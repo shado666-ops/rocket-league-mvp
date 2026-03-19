@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ mate_name }} - Rocket League MVP Tracker</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/static/player_detail.js"></script>
+</head>
+<body>
+<div class="layout">
+    <aside class="sidebar">
+        <img src="/static/logo.svg" alt="Rocket League Logo" class="sidebar-logo">
+        <div class="sidebar-title">Rocket League<br>MVP Tracker</div>
+        <div class="sidebar-subtitle">{{ mate_name }}</div>
+
+        <nav class="sidebar-nav">
+            <a class="sidebar-link" href="/">← Retour dashboard</a>
+            <a class="sidebar-link" href="#overview">Vue joueur</a>
+            <a class="sidebar-link" href="#graphs">Graphiques</a>
+            <a class="sidebar-link" href="#history">Historique</a>
+            <a class="sidebar-link" href="/analytics">📊 Analytics Globaux</a>
+        </nav>
+
+        <div class="sidebar-subtitle" style="margin-top: 24px;">Paramètres</div>
+        <div class="sidebar-setting">
+            <span>Auto-Refresh (15s)</span>
+            <label class="switch">
+                <input type="checkbox" id="autoRefreshToggle">
+                <span class="slider round"></span>
+            </label>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <div class="content-container">
+            <section id="overview" class="section" style="margin-top: 0;">
+                <h1 class="section-title">Vue joueur</h1>
+                <p class="section-subtitle">
+                    {% if is_main_player %}
+                        Vue détaillée de mes statistiques personnelles.
+                    {% else %}
+                        Vue détaillée d’un membre du club.
+                    {% endif %}
+                </p>
+
+                <div class="player-banner">
+                    <div class="player-banner-left">
+                        <div class="player-avatar">
+                            {{ mate_name[0] }}
+                        </div>
+
+                        <div class="player-info">
+                            <div class="player-name">
+                                {{ mate_name }}
+                                {% if is_main_player %}
+                                    <span class="badge-main">Ma page</span>
+                                {% endif %}
+                            </div>
+
+                            <div class="player-subtitle">
+                                {% if is_main_player %}
+                                    Rocket League Personal Performance Tracker
+                                {% else %}
+                                    Rocket League Club Member Tracker
+                                {% endif %}
+                            </div>
+
+                            <div class="player-rating" style="margin-top: 8px; font-size: 1.2rem; font-weight: bold; color: var(--text-highlight);">
+                                Performance Rating : <span style="font-size: 1.4rem;">{{ summary.performance_rating }} / 100</span>
+                            </div>
+
+                            <div class="player-indicators">
+                                <div class="player-progress-wrapper">
+                                    <div class="player-progress-label">
+                                        Winrate — {{ indicators.winrate.value }}%
+                                    </div>
+                                    <div class="player-progress-bar">
+                                        <div class="player-progress-fill" style="width: {{ indicators.winrate.percent }}%;"></div>
+                                    </div>
+                                </div>
+
+                                <div class="player-progress-wrapper">
+                                    <div class="player-progress-label">
+                                        Score / match — {{ indicators.score.value }}
+                                    </div>
+                                    <div class="player-progress-bar">
+                                        <div class="player-progress-fill score-fill" style="width: {{ indicators.score.percent }}%;"></div>
+                                    </div>
+                                </div>
+
+                                <div class="player-progress-wrapper">
+                                    <div class="player-progress-label">
+                                        Goals / match — {{ indicators.goals.value }}
+                                    </div>
+                                    <div class="player-progress-bar">
+                                        <div class="player-progress-fill goals-fill" style="width: {{ indicators.goals.percent }}%;"></div>
+                                    </div>
+                                </div>
+
+                                <div class="player-progress-wrapper">
+                                    <div class="player-progress-label">
+                                        Saves / match — {{ indicators.saves.value }}
+                                    </div>
+                                    <div class="player-progress-bar">
+                                        <div class="player-progress-fill saves-fill" style="width: {{ indicators.saves.percent }}%;"></div>
+                                    </div>
+                                </div>
+
+                                <div class="player-progress-wrapper">
+                                    <div class="player-progress-label">
+                                        Shots / match — {{ indicators.shots.value }}
+                                    </div>
+                                    <div class="player-progress-bar">
+                                        <div class="player-progress-fill shots-fill" style="width: {{ indicators.shots.percent }}%;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="player-banner-stats">
+                        <div class="player-stat">
+                            <span class="player-stat-value">{{ summary.matches_together }}</span>
+                            <span class="player-stat-label">MATCHS</span>
+                        </div>
+                        <div class="player-stat">
+                            <span class="player-stat-value">{{ summary.winrate }}%</span>
+                            <span class="player-stat-label">WINRATE</span>
+                        </div>
+                        <div class="player-stat">
+                            <span class="player-stat-value">{{ summary.goals_per_match }}</span>
+                            <span class="player-stat-label">GOALS / MATCH</span>
+                        </div>
+                        <div class="player-stat">
+                            <span class="player-stat-value">{{ summary.assists_per_match }}</span>
+                            <span class="player-stat-label">ASSISTS / MATCH</span>
+                        </div>
+                        <div class="player-stat">
+                            <span class="player-stat-value">{{ summary.saves_per_match }}</span>
+                            <span class="player-stat-label">SAVES / MATCH</span>
+                        </div>
+                        <div class="player-stat">
+                            <span class="player-stat-value">{{ summary.shots_per_match }}</span>
+                            <span class="player-stat-label">SHOTS / MATCH</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="graphs" class="section">
+                <h2 class="section-title">Graphiques</h2>
+                <p class="section-subtitle">Évolution des performances de {{ mate_name }}.</p>
+
+                <div class="grid grid-2">
+                    <div class="card chart-card">
+                        <h3>Progression du Rating</h3>
+                        <canvas id="ratingChart"></canvas>
+                    </div>
+
+                    <div class="card chart-card">
+                        <h3>Score par match (Par Playlist)</h3>
+                        <div id="scoreChartFilters" class="chart-filters"></div>
+                        <canvas id="scoreChart"></canvas>
+                    </div>
+
+                    <div class="card chart-card">
+                        <h3>Buts + Saves</h3>
+                        <canvas id="goalsSavesChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="grid grid-2" style="margin-top: 16px;">
+                    <div class="card chart-card">
+                        <h3>Radar stats</h3>
+                        <canvas id="radarChart"></canvas>
+                    </div>
+
+                    <div class="card chart-card">
+                        <h3>Victoire / Défaite</h3>
+                        <canvas id="pieChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <section id="history" class="section">
+                <div class="history-section-header">
+                    <div>
+                        <h2 class="section-title" style="margin-bottom: 4px;">Historique</h2>
+                        <p class="section-subtitle">Historique détaillé des matchs de {{ mate_name }}.</p>
+                    </div>
+                    <button class="history-toggle-btn" id="toggleHistory">
+                        <span id="btnText">Afficher les matchs</span>
+                        <span class="icon">▼</span>
+                    </button>
+                </div>
+
+                <div class="history-controls">
+                    <button class="filter-btn active" data-filter="all">Tous</button>
+                    <button class="filter-btn" data-filter="win">Victoires</button>
+                    <button class="filter-btn" data-filter="loss">Défaites</button>
+                    <button class="filter-btn" data-filter="ranked">Ranked</button>
+                    <button class="filter-btn" data-filter="casual">Casual</button>
+                    <button class="filter-btn" data-filter="private">Private</button>
+                    <button class="filter-btn" data-filter="tournament">Tournament</button>
+                    <button class="filter-btn" data-filter="unknown">Unknown</button>
+                </div>
+                
+                <p class="history-summary">
+                    Affichés : <span id="historyCount">0</span> |
+                    Victoires : <span id="historyWins">0</span> |
+                    Défaites : <span id="historyLosses">0</span>
+                </p>
+
+                <div class="history-scroll-container" id="historyContainer">
+                    <div class="card" style="padding: 0; background: transparent; box-shadow: none; border: none;">
+                        <table style="margin-top: 0;">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Playlist</th>
+                                    <th>Résultat</th>
+                                    <th>Score</th>
+                                    <th>Buts</th>
+                                    <th>Assists</th>
+                                    <th>Saves</th>
+                                    <th>Shots</th>
+                                    <th>Ballchasing</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyTableBody">
+                            {% for row in history %}
+                                <tr data-result="{{ 'win' if row.result == 'Victoire' else 'loss' }}" data-playlist="{{ row.playlist | lower }}">
+                                    <td>{{ row.date }}</td>
+                                    <td>
+                                        {% if 'inconnue' in row.playlist | lower or 'unknown' in row.playlist | lower %}
+                                            <span class="playlist-unknown">{{ row.playlist }}</span>
+                                        {% else %}
+                                            <span class="playlist-badge">{{ row.playlist }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if row.result == 'Victoire' %}
+                                            <span class="result-badge result-win">Victoire</span>
+                                        {% else %}
+                                            <span class="result-badge result-loss">Défaite</span>
+                                        {% endif %}
+                                    </td>
+                                    <td><span class="score-badge">{{ row.score }}</span></td>
+                                    <td>{{ row.goals }}</td>
+                                    <td>{{ row.assists }}</td>
+                                    <td>{{ row.saves }}</td>
+                                    <td>{{ row.shots }}</td>
+                                    <td>
+                                        {% if row.ballchasing_url %}
+                                            <a href="{{ row.ballchasing_url }}" target="_blank" class="bc-link">📊 Voir</a>
+                                        {% else %}
+                                            <span class="muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% else %}
+                                <tr>
+                                    <td colspan="9" class="muted">Aucun match disponible.</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+</div>
+
+<script>
+    initPlayerDetailCharts({
+        player_name: {{ mate_name | tojson }},
+        rating: {{ charts.rating | tojson }},
+        score: {{ charts.score | tojson }},
+        score_by_playlist: {{ charts.score_by_playlist | tojson }},
+        goals_saves: {{ charts.goals_saves | tojson }},
+        radar: {{ charts.radar | tojson }},
+        pie: {{ charts.pie | tojson }}
+    });
+
+    // History filtering logic
+    function setupHistoryFilters(btnClass, tableBodyId, countIds) {
+        const filterButtons = document.querySelectorAll(btnClass);
+        const historyRows = document.querySelectorAll(`#${tableBodyId} tr[data-result]`); // only match data rows
+        const countSpan = document.getElementById(countIds.total);
+        const winsSpan = document.getElementById(countIds.wins);
+        const lossesSpan = document.getElementById(countIds.losses);
+
+        if (!filterButtons.length || !historyRows.length) return;
+
+        function updateCounters() {
+            let displayed = 0;
+            let wins = 0;
+            let losses = 0;
+
+            historyRows.forEach(row => {
+                if (!row.classList.contains("hidden-row")) {
+                    displayed++;
+                    if (row.dataset.result === "win") wins++;
+                    if (row.dataset.result === "loss") losses++;
+                }
+            });
+
+            if (countSpan) countSpan.textContent = displayed;
+            if (winsSpan) winsSpan.textContent = wins;
+            if (lossesSpan) lossesSpan.textContent = losses;
+        }
+
+        function applyFilter(filter) {
+            historyRows.forEach(row => {
+                const result = row.dataset.result || "";
+                const playlist = row.dataset.playlist || "";
+                
+                let show = false;
+                if (filter === "all") show = true;
+                else if (filter === "win") show = (result === "win");
+                else if (filter === "loss") show = (result === "loss");
+                else if (filter === "ranked") show = playlist.includes("ranked");
+                else if (filter === "casual") show = playlist.includes("casual");
+                else if (filter === "private") show = playlist.includes("private") || playlist.includes("privé");
+                else if (filter === "tournament") show = playlist.includes("tournament") || playlist.includes("tournoi");
+                else if (filter === "unknown") show = playlist.includes("unknown") || playlist.includes("inconnue");
+                
+                row.classList.toggle("hidden-row", !show);
+            });
+            updateCounters();
+        }
+
+        filterButtons.forEach(btn => {
+            btn.addEventListener("click", () => {
+                filterButtons.forEach(b => b.classList.remove("active"));
+                btn.classList.add("active");
+                applyFilter(btn.dataset.filter);
+            });
+        });
+
+        updateCounters();
+    }
+
+    setupHistoryFilters(".filter-btn", "historyTableBody", {
+        total: "historyCount", wins: "historyWins", losses: "historyLosses"
+    });
+
+    // Toggle scroll container logic
+    const toggleBtn = document.getElementById("toggleHistory");
+    const historyContainer = document.getElementById("historyContainer");
+    const btnText = document.getElementById("btnText");
+
+    if (toggleBtn && historyContainer) {
+        toggleBtn.addEventListener("click", () => {
+            const isExpanded = historyContainer.classList.toggle("expanded");
+            toggleBtn.classList.toggle("active");
+            if (isExpanded) {
+                btnText.textContent = "Réduire le tableau";
+            } else {
+                btnText.textContent = "Afficher les matchs";
+            }
+        });
+    }
+
+    // --- AUTO-REFRESH LOGIC ---
+    let latestMatchId = 0;
+    const refreshToggle = document.getElementById("autoRefreshToggle");
+
+    // Initialize latestMatchId on load
+    fetch("/api/latest-match-id").then(res => res.json()).then(data => {
+        latestMatchId = data.latest_id;
+    });
+
+    // Load state
+    if (localStorage.getItem("autoRefreshEnabled") === "true") {
+        refreshToggle.checked = true;
+    }
+
+    refreshToggle.addEventListener("change", () => {
+        localStorage.setItem("autoRefreshEnabled", refreshToggle.checked);
+    });
+
+    setInterval(async () => {
+        if (!refreshToggle.checked) return;
+
+        try {
+            const res = await fetch("/api/latest-match-id");
+            const data = await res.json();
+            if (data.latest_id > latestMatchId) {
+                window.location.reload();
+            }
+        } catch (e) {
+            console.error("Polling error:", e);
+        }
+    }, 15000);
+</script>
+</body>
+</html>

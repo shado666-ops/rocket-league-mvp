@@ -1,0 +1,5 @@
+Server:
+.\.venv\Scripts\python.exe -m uvicorn main:app --reload
+
+Watcher:
+python agent/watcher.py

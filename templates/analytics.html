@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Analytics Globaux - Rocket League MVP Tracker</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/static/dashboard.js"></script>
+</head>
+<body>
+<div class="layout">
+    <aside class="sidebar">
+        <img src="/static/logo.svg" alt="Rocket League Logo" class="sidebar-logo">
+        <div class="sidebar-title">Rocket League<br>MVP Tracker</div>
+        <div class="sidebar-subtitle">Navigation rapide</div>
+
+        <nav class="sidebar-nav">
+            <a class="sidebar-link" href="/">← Retour dashboard</a>
+            <a class="sidebar-link" href="#overview">Performance globale</a>
+            <a class="sidebar-link" href="#mates">Stats par Mates</a>
+            <a class="sidebar-link" href="#playlists">Stats par Playlists</a>
+        </nav>
+
+        <div class="sidebar-subtitle" style="margin-top: 24px;">Paramètres</div>
+        <div class="sidebar-setting">
+            <span>Auto-Refresh (15s)</span>
+            <label class="switch">
+                <input type="checkbox" id="autoRefreshToggle">
+                <span class="slider round"></span>
+            </label>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <div class="content-container">
+            <section id="overview" class="section" style="margin-top: 0;">
+                <h1 class="section-title">Analytics Globaux</h1>
+                <p class="section-subtitle">Aperçu général de la performance de {{ main_player_name }} et de son club.</p>
+
+                <div class="grid grid-3" style="margin-top: 24px;">
+                    <div class="card" style="text-align: center; padding: 24px;">
+                        <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-muted);">Winrate (20 derniers matchs)</h3>
+                        <div style="font-size: 2.5rem; font-weight: bold; color: var(--text-highlight); margin-top: 12px;">
+                            {{ recent_winrate }}%
+                        </div>
+                        <div style="font-size: 0.9rem; color: var(--text-muted); margin-top: 4px;">Sur {{ recent_matches_count }} matchs</div>
+                    </div>
+
+                    <div class="card" style="text-align: center; padding: 24px;">
+                        <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-muted);">Meilleur Joueur (Winrate)</h3>
+                        <div style="font-size: 2.5rem; font-weight: bold; color: var(--success); margin-top: 12px;">
+                            {{ best_player.name if best_player else 'N/A' }}
+                        </div>
+                        <div style="font-size: 0.9rem; color: var(--text-muted); margin-top: 4px;">
+                            {{ best_player.winrate|round(1) if best_player else 0 }}% winrate
+                        </div>
+                    </div>
+
+                    <div class="card" style="text-align: center; padding: 24px;">
+                        <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-muted);">Matchs Club Joués</h3>
+                        <div style="font-size: 2.5rem; font-weight: bold; color: var(--text-highlight); margin-top: 12px;">
+                            {{ club_history|length }}
+                        </div>
+                        <div style="font-size: 0.9rem; color: var(--text-muted); margin-top: 4px;">Total</div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="mates" class="section">
+                <h2 class="section-title">Statistiques par Mates</h2>
+                <div class="grid grid-2">
+                    <div class="card chart-card">
+                        <h3>Mates les plus joués</h3>
+                        <canvas id="matesChart"></canvas>
+                    </div>
+
+                    <div class="card chart-card">
+                        <h3>Winrate avec mates</h3>
+                        <canvas id="matesWinrateChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <section id="playlists" class="section">
+                <h2 class="section-title">Statistiques par Playlists</h2>
+                <div class="grid grid-2">
+                    <div class="card chart-card">
+                        <h3>Score moyen par playlist</h3>
+                        <canvas id="playlistScoreChart"></canvas>
+                    </div>
+                </div>
+            </section>
+            
+        </div>
+    </main>
+</div>
+
+<script>
+    // Initialisation du chart des scores par playlist (spécifique à Analytics)
+    const avgScoreByPlaylistData = {{ charts.avg_score_by_playlist | tojson }};
+    const playlistScoreCanvas = document.getElementById("playlistScoreChart");
+    
+    if (playlistScoreCanvas && avgScoreByPlaylistData.length > 0) {
+        // Shared playlist color mapping logic
+        const playlistColors = ["#ef4444", "#22c55e", "#f59e0b", "#a855f7", "#06b6d4"];
+        const sortedPlaylists = avgScoreByPlaylistData.map(x => x.playlist).sort();
+        const playlistColorMap = {};
+        sortedPlaylists.forEach((name, i) => {
+            playlistColorMap[name] = playlistColors[i % playlistColors.length];
+        });
+
+        const labels = avgScoreByPlaylistData.map(x => x.playlist);
+        const colors = labels.map(name => playlistColorMap[name] + "99"); // 60% opacity for bars
+
+        new Chart(playlistScoreCanvas, {
+            type: "bar",
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: "Score Moyen",
+                    data: avgScoreByPlaylistData.map(x => x.avg_score),
+                    backgroundColor: colors,
+                    borderColor: labels.map(name => playlistColorMap[name]),
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+    }
+
+    // Réutilisation de la fonction dashboard pour les mates charts
+    const matesFrequency = {{ club_charts.mates_frequency | tojson }};
+    const matesWinrate = {{ club_charts.winrate_with_mates | tojson }};
+    console.log("DEBUG: Analytics Mates Frequency Data:", matesFrequency);
+    console.log("DEBUG: Analytics Mates Winrate Data:", matesWinrate);
+
+    const matesCanvas = document.getElementById("matesChart");
+    if (matesCanvas && matesFrequency.length > 0) {
+        new Chart(matesCanvas, {
+            type: "bar",
+            data: {
+                labels: matesFrequency.map(x => x.name),
+                datasets: [{
+                    label: "Matchs joués ensemble",
+                    data: matesFrequency.map(x => x.matches)
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+    }
+
+    const matesWinrateCanvas = document.getElementById("matesWinrateChart");
+    if (matesWinrateCanvas && matesWinrate.length > 0) {
+        new Chart(matesWinrateCanvas, {
+            type: "bar",
+            data: {
+                labels: matesWinrate.map(x => x.name),
+                datasets: [{
+                    label: "Winrate %",
+                    data: matesWinrate.map(x => x.winrate),
+                    backgroundColor: "rgba(16, 185, 129, 0.6)"
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+    }
+
+    // --- AUTO-REFRESH LOGIC ---
+    let latestMatchId = 0;
+    const refreshToggle = document.getElementById("autoRefreshToggle");
+
+    // Load state immediately
+    if (localStorage.getItem("autoRefreshEnabled") === "true") {
+        refreshToggle.checked = true;
+    } else if (localStorage.getItem("autoRefreshEnabled") === "false") {
+        refreshToggle.checked = false;
+    }
+
+    // Initialize latestMatchId on load
+    fetch("/api/latest-match-id").then(res => res.json()).then(data => {
+        latestMatchId = data.latest_id;
+        console.log("Current latest match ID:", latestMatchId);
+    });
+
+    refreshToggle.addEventListener("change", () => {
+        localStorage.setItem("autoRefreshEnabled", refreshToggle.checked);
+        console.log("Auto-refresh " + (refreshToggle.checked ? "enabled" : "disabled"));
+    });
+
+    // WebSocket for real-time refresh
+    function setupWebSocket() {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/ws`;
+        console.log("Connecting to WebSocket:", wsUrl);
+        const socket = new WebSocket(wsUrl);
+
+        socket.onopen = function() {
+            console.log("WebSocket connected!");
+        };
+
+        socket.onmessage = function(event) {
+            console.log("WebSocket message received:", event.data);
+            if (event.data === "refresh") {
+                if (refreshToggle.checked) {
+                    console.log("New match detected! Reloading page...");
+                    window.location.reload();
+                } else {
+                    console.log("New match detected, but auto-refresh is disabled.");
+                }
+            }
+        };
+
+        socket.onerror = function(error) {
+            console.error("WebSocket error:", error);
+        };
+
+        socket.onclose = function() {
+            console.log("WebSocket closed. Attempting to reconnect in 5s...");
+            setTimeout(setupWebSocket, 5000);
+        };
+    }
+
+    setupWebSocket();
+
+    // Fallback Polling (15s as requested by user)
+    setInterval(async () => {
+        if (!refreshToggle.checked) return;
+
+        try {
+            const res = await fetch("/api/latest-match-id");
+            if (!res.ok) return;
+            const data = await res.json();
+            if (data.latest_id > latestMatchId) {
+                console.log(`New match detected via polling (${data.latest_id} > ${latestMatchId})! Reloading...`);
+                window.location.reload();
+            }
+        } catch (e) {
+            console.warn("Polling failed:", e);
+        }
+    }, 15000);
+</script>
+</body>
+</html>

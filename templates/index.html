@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Rocket League MVP Tracker</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/static/dashboard.js"></script>
+</head>
+<body>
+<div class="layout">
+    <aside class="sidebar">
+        <img src="/static/logo.svg" alt="Rocket League Logo" class="sidebar-logo">
+        <div class="sidebar-title">Rocket League<br>MVP Tracker</div>
+        <div class="sidebar-subtitle">Navigation rapide</div>
+
+        <nav class="sidebar-nav">
+            <a class="sidebar-link" href="#dashboard">Dashboard</a>
+            <a class="sidebar-link" href="#graphs">Mes performances</a>
+            <a class="sidebar-link" href="#club">Mon club</a>
+            <a class="sidebar-link" href="#history">Historique perso</a>
+            <a class="sidebar-link" href="#club-history">Historique club</a>
+            <a class="sidebar-link" href="/analytics">📊 Analytics Globaux</a>
+        </nav>
+
+        <div class="sidebar-subtitle" style="margin-top: 24px;">Ballchasing</div>
+        <button id="syncBallchasingBtn" class="sidebar-link" style="width: 100%; text-align: left; border: none; cursor: pointer; background: #0369a1;">
+            🔄 Synchroniser Stats
+        </button>
+
+        <div class="sidebar-subtitle" style="margin-top: 24px;">Paramètres</div>
+        <div class="sidebar-setting">
+            <span>Auto-Refresh (15s)</span>
+            <label class="switch">
+                <input type="checkbox" id="autoRefreshToggle">
+                <span class="slider round"></span>
+            </label>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <div class="content-container">
+            <section id="dashboard" class="section" style="margin-top: 0;">
+                <h1 class="section-title">Dashboard</h1>
+                <p class="section-subtitle">
+                    Vue principale calculée à partir des statistiques de {{ main_player_name }}.
+                </p>
+
+                <div class="player-banner">
+                    <div class="player-banner-left">
+                        <div class="player-avatar">
+                            {{ main_player_name[0] }}
+                        </div>
+
+                        <div class="player-info">
+                            <div class="player-name">{{ main_player_name }}</div>
+                            <div class="player-subtitle">Rocket League Performance Tracker</div>
+
+                            <div class="player-rating" style="margin-top: 8px; font-size: 1.2rem; font-weight: bold; color: var(--text-highlight);">
+                                Performance Rating : <span style="font-size: 1.4rem;">{{ summary.performance_rating }} / 100</span>
+                            </div>
+
+                            <div class="player-indicators">
+                                <div class="player-progress-wrapper">
+                                    <div class="player-progress-label">
+                                        Winrate — {{ summary.winrate }}%
+                                    </div>
+                                    <div class="player-progress-bar">
+                                        <div class="player-progress-fill" style="width: {{ summary.winrate }}%;"></div>
+                                    </div>
+                                </div>
+
+                                <div class="player-progress-wrapper">
+                                    <div class="player-progress-label">
+                                        Score / match — {{ summary.score_per_match }}
+                                    </div>
+                                    <div class="player-progress-bar">
+                                        <div class="player-progress-fill score-fill" style="width: {{ [summary.score_per_match / 10, 100] | min }}%;"></div>
+                                    </div>
+                                </div>
+
+                                <div class="player-progress-wrapper">
+                                    <div class="player-progress-label">
+                                        Buts / match — {{ summary.goals_per_match }}
+                                    </div>
+                                    <div class="player-progress-bar">
+                                        <div class="player-progress-fill goals-fill" style="width: {{ [summary.goals_per_match * 20, 100] | min }}%;"></div>
+                                    </div>
+                                </div>
+
+                                <div class="player-progress-wrapper">
+                                    <div class="player-progress-label">
+                                        Saves / match — {{ summary.saves_per_match }}
+                                    </div>
+                                    <div class="player-progress-bar">
+                                        <div class="player-progress-fill saves-fill" style="width: {{ [summary.saves_per_match * 20, 100] | min }}%;"></div>
+                                    </div>
+                                </div>
+
+                                <div class="player-progress-wrapper">
+                                    <div class="player-progress-label">
+                                        Shots / match — {{ summary.shots_per_match }}
+                                    </div>
+                                    <div class="player-progress-bar">
+                                        <div class="player-progress-fill shots-fill" style="width: {{ [summary.shots_per_match * 12.5, 100] | min }}%;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="player-banner-stats">
+                        <div class="player-stat">
+                            <span class="player-stat-value">{{ summary.total_matches }}</span>
+                            <span class="player-stat-label">MATCHS</span>
+                        </div>
+                        <div class="player-stat">
+                            <span class="player-stat-value">{{ summary.winrate }}%</span>
+                            <span class="player-stat-label">WINRATE</span>
+                        </div>
+                        <div class="player-stat">
+                            <span class="player-stat-value">{{ summary.goals_per_match }}</span>
+                            <span class="player-stat-label">GOALS / MATCH</span>
+                        </div>
+                        <div class="player-stat">
+                            <span class="player-stat-value">{{ summary.assists_per_match }}</span>
+                            <span class="player-stat-label">ASSISTS / MATCH</span>
+                        </div>
+                        <div class="player-stat">
+                            <span class="player-stat-value">{{ summary.saves_per_match }}</span>
+                            <span class="player-stat-label">SAVES / MATCH</span>
+                        </div>
+                        <div class="player-stat">
+                            <span class="player-stat-value">{{ summary.shots_per_match }}</span>
+                            <span class="player-stat-label">SHOTS / MATCH</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="graphs" class="section">
+                <h2 class="section-title">Mes performances</h2>
+                <p class="section-subtitle">Graphiques personnels basés sur les matchs de {{ main_player_name }}.</p>
+
+                <div class="grid grid-2">
+                    <div class="card chart-card">
+                        <h3>Progression du Rating</h3>
+                        <canvas id="ratingChart"></canvas>
+                    </div>
+
+                    <div class="card chart-card">
+                        <h3>Score par match (Par Playlist)</h3>
+                        <div id="scoreChartFilters" class="chart-filters"></div>
+                        <canvas id="scoreChart"></canvas>
+                    </div>
+
+                    <div class="card chart-card">
+                        <h3>Matchs par playlist</h3>
+                        <canvas id="playlistChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="grid grid-2" style="margin-top: 16px;">
+                    <div class="card chart-card">
+                        <h3>Gestion du Boost (Derniers Matchs)</h3>
+                        <canvas id="boostChart"></canvas>
+                    </div>
+                    <div class="card chart-card">
+                        <h3>Positionnement (Derniers Matchs)</h3>
+                        <canvas id="positioningChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <section id="club" class="section">
+                <h2 class="section-title">Mon club</h2>
+                <p class="section-subtitle">Membres actifs pris en compte dans la vue club.</p>
+
+                <div class="card">
+                    <div class="club-members-grid">
+                        <div class="club-member-card main-player-card">
+                            <div class="club-member-left">
+                                <span class="badge badge-main">Moi</span>
+                                <a class="club-member-name" href="/mates/{{ main_player_name }}">{{ main_player_name }}</a>
+                            </div>
+                        </div>
+
+                        {% for member in all_club_members %}
+                            {% if member.display_name != main_player_name %}
+                                <div class="club-member-card {% if not member.is_active %}club-member-card-inactive{% endif %}">
+                                    <div class="club-member-left">
+                                        <span class="badge {% if member.is_active %}badge-club-active{% else %}badge-club-inactive{% endif %}">
+                                            {% if member.is_active %}Club{% else %}Inactif{% endif %}
+                                        </span>
+                                        <a class="club-member-name" href="/mates/{{ member.display_name }}">
+                                            {{ member.display_name }}
+                                        </a>
+                                    </div>
+
+                                    <div class="club-member-actions">
+                                        <form method="post" action="/club-members/{{ member.display_name }}/toggle" class="club-member-form">
+                                            <button type="submit" class="{% if member.is_active %}warning-button{% else %}success-button{% endif %}">
+                                                {% if member.is_active %}Désactiver{% else %}Activer{% endif %}
+                                            </button>
+                                        </form>
+
+                                        <form method="post"
+                                            action="/club-members/{{ member.display_name }}/delete"
+                                            class="club-member-form"
+                                            onsubmit="return confirm('Supprimer définitivement {{ member.display_name }} du club ?');">
+                                            <button type="submit" class="danger-button">Supprimer</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% else %}
+                            <p class="muted">Aucun membre du club pour le moment.</p>
+                        {% endfor %}
+                    </div>
+
+                    <form method="post" action="/club-members/add" class="club-add-form">
+                        <input type="text" name="display_name" placeholder="Nom du mate" required>
+                        <button type="submit">Ajouter un membre</button>
+                    </form>
+                </div>
+
+                <div class="grid grid-2" style="margin-top: 16px;">
+                    <div class="card chart-card">
+                        <h3>Mates les plus joués</h3>
+                        <canvas id="matesChart"></canvas>
+                    </div>
+
+                    <div class="card chart-card">
+                        <h3>Winrate des membres</h3>
+                        <canvas id="matesWinrateChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <section id="history" class="section">
+                <div class="history-section-header">
+                    <div>
+                        <h2 class="section-title" style="margin-bottom: 4px;">Historique perso</h2>
+                        <p class="section-subtitle">Historique détaillé de mes matchs.</p>
+                    </div>
+                    <button class="history-toggle-btn" id="togglePersoHistory">
+                        <span id="btnTextPerso">Afficher les matchs</span>
+                        <span class="icon">▼</span>
+                    </button>
+                </div>
+
+                <div class="history-controls">
+                    <button class="filter-btn active" data-filter="all">Tous</button>
+                    <button class="filter-btn" data-filter="win">Victoires</button>
+                    <button class="filter-btn" data-filter="loss">Défaites</button>
+                    <button class="filter-btn" data-filter="ranked">Ranked</button>
+                    <button class="filter-btn" data-filter="casual">Casual</button>
+                    <button class="filter-btn" data-filter="private">Private</button>
+                    <button class="filter-btn" data-filter="tournament">Tournament</button>
+                    <button class="filter-btn" data-filter="unknown">Unknown</button>
+                </div>
+                
+                <p class="history-summary">
+                    Affichés : <span id="historyCount">0</span> |
+                    Victoires : <span id="historyWins">0</span> |
+                    Défaites : <span id="historyLosses">0</span>
+                </p>
+
+                <div class="history-scroll-container" id="persoHistoryContainer">
+                    <div class="card" style="padding: 0; background: transparent; box-shadow: none; border: none;">
+                        <table style="margin-top: 0;">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Date</th>
+                                    <th>Playlist</th>
+                                    <th>Résultat</th>
+                                    <th>Score</th>
+                                    <th>Buts</th>
+                                    <th>Assists</th>
+                                    <th>Saves</th>
+                                    <th>Shots</th>
+                                    <th>Ballchasing</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyTableBody">
+                            {% for row in history %}
+                                <tr data-result="{{ 'win' if row.result == 'Victoire' else 'loss' }}" data-playlist="{{ row.playlist | lower }}">
+                                    <td>{{ row.match_id }}</td>
+                                    <td>{{ row.date }}</td>
+                                    <td>
+                                        {% if 'inconnue' in row.playlist | lower or 'unknown' in row.playlist | lower %}
+                                            <span class="playlist-unknown">{{ row.playlist }}</span>
+                                        {% else %}
+                                            <span class="playlist-badge">{{ row.playlist }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if row.result == 'Victoire' %}
+                                            <span class="result-badge result-win">Victoire</span>
+                                        {% else %}
+                                            <span class="result-badge result-loss">Défaite</span>
+                                        {% endif %}
+                                    </td>
+                                    <td><span class="score-badge">{{ row.score }}</span></td>
+                                    <td>{{ row.goals }}</td>
+                                    <td>{{ row.assists }}</td>
+                                    <td>{{ row.saves }}</td>
+                                    <td>{{ row.shots }}</td>
+                                    <td>
+                                        {% if row.ballchasing_url %}
+                                            <a href="{{ row.ballchasing_url }}" target="_blank" class="bc-link">📊 Voir</a>
+                                        {% else %}
+                                            <span class="muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% else %}
+                                <tr>
+                                    <td colspan="10" class="muted">Aucun match à afficher.</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <section id="club-history" class="section">
+                <div class="history-section-header">
+                    <div>
+                        <h2 class="section-title" style="margin-bottom: 4px;">Historique club</h2>
+                        <p class="section-subtitle">Vue agrégée des matchs contenant au moins un membre actif du club.</p>
+                    </div>
+                    <button class="history-toggle-btn" id="toggleClubHistory">
+                        <span id="btnTextClub">Afficher les matchs</span>
+                        <span class="icon">▼</span>
+                    </button>
+                </div>
+
+                <div class="history-controls">
+                    <button class="filter-btn-club active" data-filter="all">Tous</button>
+                    <button class="filter-btn-club" data-filter="win">Victoires</button>
+                    <button class="filter-btn-club" data-filter="loss">Défaites</button>
+                    <button class="filter-btn-club" data-filter="ranked">Ranked</button>
+                    <button class="filter-btn-club" data-filter="casual">Casual</button>
+                    <button class="filter-btn-club" data-filter="private">Private</button>
+                    <button class="filter-btn-club" data-filter="tournament">Tournament</button>
+                    <button class="filter-btn-club" data-filter="unknown">Unknown</button>
+                </div>
+                
+                <p class="history-summary">
+                    Affichés : <span id="clubHistoryCount">0</span> |
+                    Victoires : <span id="clubHistoryWins">0</span> |
+                    Défaites : <span id="clubHistoryLosses">0</span>
+                </p>
+
+                <div class="history-scroll-container" id="clubHistoryContainer">
+                    <div class="card" style="padding: 0; background: transparent; box-shadow: none; border: none;">
+                        <table style="margin-top: 0;">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Date</th>
+                                    <th>Playlist</th>
+                                    <th>Joueurs club</th>
+                                    <th>Résultat</th>
+                                    <th>Score cumulé</th>
+                                    <th>Buts</th>
+                                    <th>Assists</th>
+                                    <th>Saves</th>
+                                    <th>Shots</th>
+                                    <th>Ballchasing</th>
+                                </tr>
+                            </thead>
+                            <tbody id="clubHistoryTableBody">
+                            {% for row in club_history %}
+                                <tr data-result="{{ 'win' if row.result == 'Victoire' else 'loss' }}" data-playlist="{{ row.playlist | lower }}">
+                                    <td>{{ row.match_id }}</td>
+                                    <td>{{ row.date }}</td>
+                                    <td>
+                                        {% if 'inconnue' in row.playlist | lower or 'unknown' in row.playlist | lower %}
+                                            <span class="playlist-unknown">{{ row.playlist }}</span>
+                                        {% else %}
+                                            <span class="playlist-badge">{{ row.playlist }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ row.players }}</td>
+                                    <td>
+                                        {% if row.result == 'Victoire' %}
+                                            <span class="result-badge result-win">Victoire</span>
+                                        {% else %}
+                                            <span class="result-badge result-loss">Défaite</span>
+                                        {% endif %}
+                                    </td>
+                                    <td><span class="score-badge">{{ row.score }}</span></td>
+                                    <td>{{ row.goals }}</td>
+                                    <td>{{ row.assists }}</td>
+                                    <td>{{ row.saves }}</td>
+                                    <td>{{ row.shots }}</td>
+                                    <td>
+                                        {% if row.ballchasing_url %}
+                                            <a href="{{ row.ballchasing_url }}" target="_blank" class="bc-link">📊 Voir</a>
+                                        {% else %}
+                                            <span class="muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% else %}
+                                <tr>
+                                    <td colspan="11" class="muted">Aucun match club à afficher.</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+</div>
+
+<script>
+    const chartsData = {
+        rating: {{ charts.rating | tojson }},
+        score: {{ charts.score | tojson }},
+        score_by_playlist: {{ charts.score_by_playlist | tojson }},
+        matches_by_playlist: {{ charts.matches_by_playlist | tojson }},
+        mates_frequency: {{ club_charts.mates_frequency | tojson }},
+        winrate_with_mates: {{ club_charts.winrate_with_mates | tojson }},
+        history: {{ history | tojson }}
+    };
+    console.log("DEBUG: Mates Frequency Data:", chartsData.mates_frequency);
+    console.log("DEBUG: Mates Winrate Data:", chartsData.winrate_with_mates);
+    initDashboardCharts(chartsData);
+
+    // History filtering logic
+    function setupHistoryFilters(btnClass, tableBodyId, countIds) {
+        const filterButtons = document.querySelectorAll(btnClass);
+        const historyRows = document.querySelectorAll(`#${tableBodyId} tr[data-result]`); // only match data rows
+        const countSpan = document.getElementById(countIds.total);
+        const winsSpan = document.getElementById(countIds.wins);
+        const lossesSpan = document.getElementById(countIds.losses);
+
+        if (!filterButtons.length || !historyRows.length) return;
+
+        function updateCounters() {
+            let displayed = 0;
+            let wins = 0;
+            let losses = 0;
+
+            historyRows.forEach(row => {
+                if (!row.classList.contains("hidden-row")) {
+                    displayed++;
+                    if (row.dataset.result === "win") wins++;
+                    if (row.dataset.result === "loss") losses++;
+                }
+            });
+
+            if (countSpan) countSpan.textContent = displayed;
+            if (winsSpan) winsSpan.textContent = wins;
+            if (lossesSpan) lossesSpan.textContent = losses;
+        }
+
+        function applyFilter(filter) {
+            historyRows.forEach(row => {
+                const result = row.dataset.result || "";
+                const playlist = row.dataset.playlist || "";
+                
+                let show = false;
+                if (filter === "all") show = true;
+                else if (filter === "win") show = (result === "win");
+                else if (filter === "loss") show = (result === "loss");
+                else if (filter === "ranked") show = playlist.includes("ranked");
+                else if (filter === "casual") show = playlist.includes("casual");
+                else if (filter === "private") show = playlist.includes("private") || playlist.includes("privé");
+                else if (filter === "tournament") show = playlist.includes("tournament") || playlist.includes("tournoi");
+                else if (filter === "unknown") show = playlist.includes("unknown") || playlist.includes("inconnue");
+                
+                row.classList.toggle("hidden-row", !show);
+            });
+            updateCounters();
+        }
+
+        filterButtons.forEach(btn => {
+            btn.addEventListener("click", () => {
+                filterButtons.forEach(b => b.classList.remove("active"));
+                btn.classList.add("active");
+                applyFilter(btn.dataset.filter);
+            });
+        });
+
+        updateCounters();
+    }
+
+    // Initialize both personal and club history tables
+    setupHistoryFilters(".filter-btn", "historyTableBody", {
+        total: "historyCount", wins: "historyWins", losses: "historyLosses"
+    });
+    
+    setupHistoryFilters(".filter-btn-club", "clubHistoryTableBody", {
+        total: "clubHistoryCount", wins: "clubHistoryWins", losses: "clubHistoryLosses"
+    });
+
+    // Toggle scroll containers logic
+    function setupToggle(btnId, containerId, textId) {
+        const btn = document.getElementById(btnId);
+        const container = document.getElementById(containerId);
+        const textArea = document.getElementById(textId);
+        
+        if (!btn || !container) return;
+
+        btn.addEventListener("click", () => {
+            const isExpanded = container.classList.toggle("expanded");
+            btn.classList.toggle("active");
+            if (isExpanded) {
+                textArea.textContent = "Réduire le tableau";
+            } else {
+                textArea.textContent = "Afficher les matchs";
+            }
+        });
+    }
+
+    setupToggle("togglePersoHistory", "persoHistoryContainer", "btnTextPerso");
+    setupToggle("toggleClubHistory", "clubHistoryContainer", "btnTextClub");
+
+    // --- AUTO-REFRESH LOGIC ---
+    let latestMatchId = 0;
+    const refreshToggle = document.getElementById("autoRefreshToggle");
+
+    // Load state immediately
+    if (localStorage.getItem("autoRefreshEnabled") === "true") {
+        refreshToggle.checked = true;
+    } else if (localStorage.getItem("autoRefreshEnabled") === "false") {
+        refreshToggle.checked = false;
+    }
+
+    // Initialize latestMatchId on load
+    async function updateLatestId() {
+        try {
+            const res = await fetch("/api/latest-match-id");
+            const data = await res.json();
+            latestMatchId = data.latest_id;
+            console.log("Current latest match ID:", latestMatchId);
+        } catch (e) {
+            console.error("Failed to fetch latest match ID:", e);
+        }
+    }
+    updateLatestId();
+
+    refreshToggle.addEventListener("change", () => {
+        localStorage.setItem("autoRefreshEnabled", refreshToggle.checked);
+        console.log("Auto-refresh " + (refreshToggle.checked ? "enabled" : "disabled"));
+    });
+
+    // WebSocket for real-time refresh
+    function setupWebSocket() {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/ws`;
+        console.log("Connecting to WebSocket:", wsUrl);
+        const socket = new WebSocket(wsUrl);
+
+        socket.onopen = function() {
+            console.log("WebSocket connected!");
+        };
+
+        socket.onmessage = function(event) {
+            console.log("WebSocket message received:", event.data);
+            if (event.data === "refresh") {
+                if (refreshToggle.checked) {
+                    console.log("New match detected! Reloading page...");
+                    window.location.reload();
+                } else {
+                    console.log("New match detected, but auto-refresh is disabled.");
+                }
+            }
+        };
+
+        socket.onerror = function(error) {
+            console.error("WebSocket error:", error);
+        };
+
+        socket.onclose = function() {
+            console.log("WebSocket closed. Attempting to reconnect in 5s...");
+            setTimeout(setupWebSocket, 5000);
+        };
+    }
+
+    setupWebSocket();
+
+    // Fallback Polling (15s as requested by user)
+    setInterval(async () => {
+        if (!refreshToggle.checked) return;
+
+        try {
+            const res = await fetch("/api/latest-match-id");
+            if (!res.ok) return;
+            const data = await res.json();
+            if (data.latest_id > latestMatchId) {
+                console.log(`New match detected via polling (${data.latest_id} > ${latestMatchId})! Reloading...`);
+                window.location.reload();
+            }
+        } catch (e) {
+            console.warn("Polling failed:", e);
+        }
+    }, 15000);
+</script>
+</body>
+</html>
