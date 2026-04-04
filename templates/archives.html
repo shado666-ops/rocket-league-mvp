@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Statistiques du Club {{ club_name }} - Rocket League MVP Tracker</title>
+    <link rel="stylesheet" href="/static/style.css?v=2">
+    <style>
+        :root {
+            --primary-glow: rgba(56, 189, 248, 0.15);
+            --accent-blue: #38bdf8;
+            --accent-green: #4ade80;
+            --accent-red: #f87171;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        .archives-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding-bottom: 50px;
+        }
+        
+        /* Formation Section Styling */
+        .formation-section {
+            margin-bottom: 40px;
+            background: rgba(15, 23, 42, 0.3);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .formation-section.active {
+            box-shadow: 0 0 30px var(--primary-glow);
+            border-color: rgba(56, 189, 248, 0.3);
+        }
+
+        .formation-header {
+            padding: 24px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            background: linear-gradient(90deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.8));
+            user-select: none;
+            transition: background 0.3s;
+        }
+        
+        .formation-header:hover {
+            background: linear-gradient(90deg, rgba(56, 189, 248, 0.1), rgba(30, 41, 59, 0.8));
+        }
+        
+        .formation-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        .formation-title .count-badge {
+            font-size: 0.85rem;
+            background: var(--accent-blue);
+            color: #0f172a;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: 700;
+            letter-spacing: 0;
+        }
+
+        .formation-content {
+            display: none;
+            padding: 32px;
+            grid-template-columns: 1fr;
+            gap: 32px;
+        }
+
+        .formation-section.active .formation-content {
+            display: grid;
+        }
+        
+        /* Composition Card Styling */
+        .composition-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border-radius: 16px;
+            border: 1px solid var(--glass-border);
+            padding: 24px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .composition-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent-blue);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.4);
+        }
+
+        .composition-hero {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .composition-players {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .player-chip {
+            padding: 6px 14px;
+            background: rgba(56, 189, 248, 0.1);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            color: var(--accent-blue);
+            border-radius: 30px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .vs-tag {
+            font-weight: 900;
+            color: rgba(255,255,255,0.2);
+            font-size: 0.75rem;
+            margin: 0 10px;
+            letter-spacing: 2px;
+        }
+
+        .composition-main-stats {
+            display: flex;
+            gap: 32px;
+            align-items: center;
+        }
+
+        .stat-group {
+            text-align: center;
+        }
+
+        .stat-value {
+            display: block;
+            font-size: 1.8rem;
+            font-weight: 800;
+            line-height: 1;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Progress Bar Styling */
+        .performance-box {
+            margin-bottom: 32px;
+            background: rgba(15, 23, 42, 0.4);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .winrate-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            align-items: flex-end;
+        }
+
+        .winrate-title {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: #fff;
+        }
+
+        .winrate-percent {
+            font-size: 1.2rem;
+            font-weight: 900;
+            color: var(--accent-green);
+        }
+
+        .progress-container {
+            height: 12px;
+            background: #0f172a;
+            border-radius: 6px;
+            overflow: hidden;
+            display: flex;
+        }
+
+        .progress-fill {
+            height: 100%;
+            transition: width 1s cubic-bezier(0.17, 0.67, 0.83, 0.67);
+        }
+
+        .fill-win { background: linear-gradient(90deg, #10b981, #34d399); }
+        .fill-loss { background: linear-gradient(90deg, #ef4444, #f87171); }
+
+        .streak-row {
+            display: flex;
+            gap: 16px;
+            margin-top: 12px;
+        }
+
+        .streak-pill {
+            font-size: 0.75rem;
+            padding: 2px 10px;
+            border-radius: 6px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Table Modernization */
+        .table-wrapper {
+            background: rgba(0,0,0,0.2);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.05);
+            margin-top: 24px;
+        }
+
+        .modern-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .modern-table th {
+            background: rgba(15, 23, 42, 0.6);
+            padding: 14px 12px;
+            text-align: center;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #94a3b8;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .modern-table td {
+            padding: 12px;
+            text-align: center;
+            font-size: 0.85rem;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            color: #e2e8f0;
+        }
+
+        .modern-table tr:hover td {
+            background: rgba(255,255,255,0.02);
+        }
+
+        .modern-table th:first-child, .modern-table td:first-child {
+            text-align: left;
+            padding-left: 20px;
+        }
+
+        .modern-table .sum-row {
+            background: rgba(56, 189, 248, 0.05);
+            font-weight: 800;
+        }
+
+        .modern-table .sum-row td {
+            border-top: 2px solid rgba(56, 189, 248, 0.2);
+            color: var(--accent-blue);
+        }
+
+        .table-icon {
+            font-size: 1.1rem;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .section-header-row {
+            background: rgba(255,255,255,0.03);
+            text-align: left;
+            padding: 8px 20px;
+            font-size: 0.7rem;
+            font-weight: 900;
+            letter-spacing: 1px;
+            color: rgba(255,255,255,0.4);
+            text-transform: uppercase;
+        }
+
+        .chevron {
+            transition: transform 0.3s;
+            color: var(--accent-blue);
+            font-size: 1.2rem;
+        }
+
+        .formation-section.active .chevron {
+            transform: rotate(180deg);
+        }
+
+        .format-label {
+            font-size: 0.7rem;
+            background: rgba(251, 191, 36, 0.15);
+            color: #fbbf24;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-right: 8px;
+            border: 1px solid rgba(251, 191, 36, 0.3);
+        }
+
+        @media (max-width: 900px) {
+            .composition-hero { flex-direction: column; align-items: flex-start; }
+            .composition-main-stats { width: 100%; justify-content: space-between; }
+        }
+    </style>
+</head>
+<body>
+<div class="layout">
+    <aside class="sidebar">
+        <img src="/static/logo-club.png" alt="Club Logo" class="sidebar-logo">
+        <div class="sidebar-title">MVP Tracker</div>
+
+        <div class="sidebar-subtitle">Navigation rapide</div>
+
+        <nav class="sidebar-nav">
+            <a class="sidebar-link" href="/"><span>🏠</span> Accueil</a>
+            <a class="sidebar-link active" href="/club"><span>🛡️</span> Stats Club</a>
+            <a class="sidebar-link" href="/joueurs"><span>🧑‍🚀</span> Stats Joueurs</a>
+            <a class="sidebar-link" href="/hof"><span>🏆</span> Hall of Fame</a>
+            <a class="sidebar-link" href="/pepites"><span>✨</span> Pépites</a>
+            {% if unread_notifications_count > 0 %}
+            <a class="sidebar-link" href="/notifications"><span>🔔</span> Notifications <span class="notif-badge">{{ unread_notifications_count }}</span></a>
+            {% endif %}
+            <a class="sidebar-link" href="/admin/ui"><span>⚙️</span> Administration</a>
+        </nav>
+
+        <div class="sidebar-subtitle">Paramètres</div>
+        <div class="sidebar-setting">
+            <span>Auto-Refresh (15s)</span>
+            <label class="switch">
+                <input type="checkbox" id="autoRefreshToggle" checked>
+                <span class="slider round"></span>
+            </label>
+        </div>
+
+        <div class="sidebar-footer">
+            <img src="/static/logo.svg" alt="Rocket League Logo" class="sidebar-footer-logo">
+        </div>
+    </aside>
+
+
+    <main class="main-content">
+
+        <div class="content-container">
+            <div class="page-header">
+                <h1 class="section-title"><span>🛡️</span> Statistiques du Club {{ club_name }} <span>🛡️</span></h1>
+                <p class="section-subtitle">Historique complet des performances par formation et playlists.</p>
+            </div>
+
+            <div class="archives-container">
+                <!-- SECTION HISTORIQUE CLUB -->
+                <section id="club-history" class="section" style="margin-bottom: 40px; background: rgba(15, 23, 42, 0.3); border-radius: 20px; border: 1px solid var(--glass-border); padding: 24px;">
+                    <div class="history-section-header">
+                        <div>
+                            <h2 class="section-title" style="margin-bottom: 4px;">Historique club</h2>
+                            <p class="section-subtitle">Historique de la totalité des matchs du club.</p>
+                        </div>
+                        <button class="history-toggle-btn" id="toggleClubHistory">
+                            <span id="btnTextClub">Afficher les matchs</span>
+                            <span class="icon">▼</span>
+                        </button>
+                    </div>
+
+                    <div class="history-controls">
+                        <button class="filter-btn-club active" data-filter="all">Tous</button>
+                        <button class="filter-btn-club" data-filter="win">Victoires</button>
+                        <button class="filter-btn-club" data-filter="loss">Défaites</button>
+                        <button class="filter-btn-club" data-filter="ranked">Ranked</button>
+                        <button class="filter-btn-club" data-filter="casual">Casual</button>
+                        <button class="filter-btn-club" data-filter="private">Private</button>
+                        <button class="filter-btn-club" data-filter="tournament">Tournament</button>
+                    </div>
+                    
+                    <p class="history-summary">
+                        Joués : <span id="clubHistoryCount">0</span> |
+                        Victoires : <span id="clubHistoryWins">0</span> |
+                        Défaites : <span id="clubHistoryLosses">0</span> |
+                        Matchs Privés : <span id="clubHistoryPrivate">0</span>
+                    </p>
+
+                    <div class="history-scroll-container" id="clubHistoryContainer">
+                        <div class="card" style="padding: 0; background: transparent; box-shadow: none; border: none;">
+                            <table style="margin-top: 0;">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Playlist</th>
+                                        <th>Composition</th>
+                                        <th>Résultat</th>
+                                        <th>Score</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="clubHistoryTableBody">
+                                {% for row in club_history %}
+                                    <tr data-result="{% if row.result == 'Victoire' %}win{% elif row.result == 'Défaite' %}loss{% else %}none{% endif %}" data-playlist="{{ row.playlist | lower }}">
+                                        <td>{{ row.date }}</td>
+                                        <td>
+                                            {% if 'inconnue' in row.playlist | lower or 'unknown' in row.playlist | lower %}
+                                                <span class="playlist-unknown">{{ row.playlist }}</span>
+                                            {% else %}
+                                                <span class="playlist-badge">{{ row.playlist }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ row.players }}</td>
+                                        <td>
+                                            {% if row.result == 'Victoire' %}
+                                                <span class="result-badge result-win">Victoire</span>
+                                            {% elif row.result == 'Défaite' %}
+                                                <span class="result-badge result-loss">Défaite</span>
+                                            {% else %}
+                                                <span class="muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="score-badge">{{ row.match_score }}</span>
+                                        </td>
+                                    </tr>
+                                {% else %}
+                                    <tr>
+                                        <td colspan="5" class="muted">Aucun match club à afficher.</td>
+                                    </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                {% for formation in archives %}
+                <div class="formation-section" id="formation-{{ loop.index }}">
+                    <div class="formation-header" onclick="toggleSection('formation-{{ loop.index }}')">
+                        <div class="formation-title">
+                            {{ formation.name }}
+                            <span class="count-badge">{{ formation.groups | length }} composition{% if formation.groups | length > 1 %}s{% endif %}</span>
+                        </div>
+                        <div class="chevron">▼</div>
+                    </div>
+                    
+                    <div class="formation-content">
+                        {% for group in formation.groups %}
+                        <div class="composition-card">
+                            <div class="composition-hero">
+                                <div class="composition-players">
+                                    {% if group.format_prefix %}
+                                        <span class="format-label">{{ group.format_prefix }}</span>
+                                    {% endif %}
+                                    {% set players = group.clean_composition.split(' Vs ') %}
+                                    {% for team in players %}
+                                        {% if loop.index0 > 0 %}<span class="vs-tag">VS</span>{% endif %}
+                                        {% set members = team.replace(' / ', ',').replace(' et ', ',').split(',') %}
+                                        {% for member in members %}
+                                            <span class="player-chip">{{ member.strip() }}</span>
+                                        {% endfor %}
+                                    {% endfor %}
+                                </div>
+                                
+                                <div class="composition-main-stats">
+                                    <div class="stat-group">
+                                        <span class="stat-value">{{ group.total.matches }}</span>
+                                        <span class="stat-label">Matchs</span>
+                                    </div>
+                                    <div class="stat-group">
+                                        <span class="stat-value" style="color: var(--accent-blue);">{{ group.total.wins }}</span>
+                                        <span class="stat-label">Victoires</span>
+                                    </div>
+                                    <div class="stat-group">
+                                        <span class="stat-value" style="color: var(--accent-red);">{{ group.total.losses }}</span>
+                                        <span class="stat-label">Défaites</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="performance-box">
+                                <div class="winrate-header">
+                                    <span class="winrate-title">Taux de Victoire Global</span>
+                                    <span class="winrate-percent">{{ ((group.total.wins / group.total.matches * 100) if group.total.matches else 0) | round(1) }}%</span>
+                                </div>
+                                <div class="progress-container">
+                                    {% set win_p = (group.total.wins / group.total.matches * 100) if group.total.matches else 0 %}
+                                    <div class="progress-fill fill-win" style="width:{{ win_p }}%"></div>
+                                    <div class="progress-fill fill-loss" style="width:{{ 100 - win_p }}%"></div>
+                                </div>
+                                <div class="streak-row">
+                                    <span class="streak-pill" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">🔥 Série Victoires Max : {{ group.max_win_streak }}</span>
+                                    <span class="streak-pill" style="background: rgba(239, 68, 68, 0.1); color: #ef4444;">❄️ Série Défaites Max : {{ group.max_loss_streak }}</span>
+                                </div>
+                            </div>
+
+                            <div class="table-wrapper">
+                                <table class="modern-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Saisons</th>
+                                            <th>Matchs</th>
+                                            <th>Victoires</th>
+                                            <th>% Victoire</th>
+                                            <th>Défaites</th>
+                                            <th>% Défaite</th>
+                                            <th><span class="table-icon">⚽</span>Buts+ (Moy.)</th>
+                                            <th><span class="table-icon">🥅</span>Buts- (Moy.)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for season in group.seasons %}
+                                        <tr>
+                                            <td style="font-weight: 700;">{{ season.name }}</td>
+                                            <td>{{ season.matches }}</td>
+                                            <td style="color: var(--accent-green);">{{ season.wins }}</td>
+                                            <td>{{ season.winrate }}%</td>
+                                            <td style="color: var(--accent-red);">{{ season.losses }}</td>
+                                            <td>{{ season.lossrate }}%</td>
+                                            <td style="font-weight: 700; color: var(--accent-green);">{{ season.goals_scored }} <span style="font-size: 0.7rem; opacity: 0.5;">({{ season.avg_scored }})</span></td>
+                                            <td style="font-weight: 700; color: var(--accent-red);">{{ season.goals_conceded }} <span style="font-size: 0.7rem; opacity: 0.5;">({{ season.avg_conceded }})</span></td>
+                                        </tr>
+                                        {% endfor %}
+                                        <tr class="sum-row">
+                                            <td>TOTAL</td>
+                                            <td>{{ group.total.matches }}</td>
+                                            <td>{{ group.total.wins }}</td>
+                                            <td>{{ ((group.total.wins / group.total.matches * 100) if group.total.matches else 0) | round(1) }}%</td>
+                                            <td>{{ group.total.losses }}</td>
+                                            <td>{{ ((group.total.losses / group.total.matches * 100) if group.total.matches else 0) | round(1) }}%</td>
+                                            <td>{{ group.total.goals_scored }} <span style="font-size: 0.7rem; opacity: 0.7;">({{ group.total.avg_scored }})</span></td>
+                                            <td>{{ group.total.goals_conceded }} <span style="font-size: 0.7rem; opacity: 0.7;">({{ group.total.avg_conceded }})</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="table-wrapper" style="margin-top: 16px; background: rgba(56, 189, 248, 0.03);">
+                                <div class="section-header-row">Détails individuels par joueur</div>
+                                <table class="modern-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Joueur</th>
+                                            <th>Saison</th>
+                                            <th><span class="table-icon">✨</span>Score (Moy.)</th>
+                                            <th><span class="table-icon">⚽</span>Buts (Moy.)</th>
+                                            <th><span class="table-icon">🎯</span>Tirs (Moy.)</th>
+                                            <th><span class="table-icon">📊</span>Ratio</th>
+                                            <th><span class="table-icon">🤝</span>Passes (Moy.)</th>
+                                            <th><span class="table-icon">🛡️</span>Arrêts (Moy.)</th>
+                                            <th><span class="table-icon">🏆</span>MVP</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for season in group.seasons %}
+                                            {% for player in season.players %}
+                                            <tr>
+                                                <td><span class="player-chip" style="font-size: 0.8rem; padding: 4px 10px;">{{ player.name }}</span></td>
+                                                <td style="font-size: 0.75rem; opacity: 0.6;">{{ season.name }}</td>
+                                                <td style="font-weight: 700; color: #38bdf8;">{{ player.score }} <span style="font-size: 0.7rem; opacity: 0.5;">({{ player.avg_score }})</span></td>
+                                                <td style="font-weight: 700; color: var(--accent-green);">{{ player.goals }} <span style="font-size: 0.7rem; opacity: 0.5;">({{ player.avg_goals }})</span></td>
+                                                <td style="font-weight: 700; color: #3b82f6;">{{ player.shots }} <span style="font-size: 0.7rem; opacity: 0.5;">({{ player.avg_shots }})</span></td>
+                                                <td style="font-weight: 800;">{{ player.ratio | round(1) }}%</td>
+                                                <td style="font-weight: 700; color: #f59e0b;">{{ player.assists }} <span style="font-size: 0.7rem; opacity: 0.5;">({{ player.avg_assists }})</span></td>
+                                                <td style="font-weight: 700; color: #a78bfa;">{{ player.saves }} <span style="font-size: 0.7rem; opacity: 0.5;">({{ player.avg_saves }})</span></td>
+                                                <td style="font-weight: 900; color: #fcd34d;">{{ player.mvp_count }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% else %}
+                <div class="card" style="text-align: center; padding: 60px;">
+                    <p class="muted">Aucune statistique disponible pour le moment.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </main>
+</div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/static/common.js"></script>
+    <script>
+        function toggleSection(id) {
+            const section = document.getElementById(id);
+            section.classList.toggle('active');
+        }
+
+        // History filtering logic
+        function setupHistoryFilters(btnClass, tableBodyId, countIds) {
+            const filterButtons = document.querySelectorAll(btnClass);
+            const historyRows = document.querySelectorAll(`#${tableBodyId} tr[data-result]`);
+            const countSpan = document.getElementById(countIds.total);
+            const winsSpan = document.getElementById(countIds.wins);
+            const lossesSpan = document.getElementById(countIds.losses);
+
+            if (!filterButtons.length || !historyRows.length) return;
+
+            function updateCounters() {
+                let played = 0;
+                let wins = 0;
+                let losses = 0;
+                let privates = 0;
+
+                historyRows.forEach(row => {
+                    if (!row.classList.contains("hidden-row")) {
+                        const playlist = (row.dataset.playlist || "").toLowerCase();
+                        const isPrivate = playlist.includes("private") || playlist.includes("privé");
+
+                        played++; // On compte tous les matchs affichés
+                        
+                        if (isPrivate) {
+                            privates++;
+                        } else {
+                            // On ne compte les V/D que pour les matchs non-privés
+                            if (row.dataset.result === "win") wins++;
+                            if (row.dataset.result === "loss") losses++;
+                        }
+                    }
+                });
+
+                if (countSpan) countSpan.textContent = played;
+                if (winsSpan) winsSpan.textContent = wins;
+                if (lossesSpan) lossesSpan.textContent = losses;
+                
+                const privateSpan = document.getElementById(countIds.privates);
+                if (privateSpan) privateSpan.textContent = privates;
+            }
+
+            function applyFilter(filter) {
+                historyRows.forEach(row => {
+                    const result = row.dataset.result || "";
+                    const playlist = row.dataset.playlist || "";
+                    
+                    let show = false;
+                    if (filter === "all") show = true;
+                    else if (filter === "win") show = (result === "win");
+                    else if (filter === "loss") show = (result === "loss");
+                    else if (filter === "ranked") show = playlist.includes("ranked");
+                    else if (filter === "casual") show = playlist.includes("casual");
+                    else if (filter === "private") show = playlist.includes("private") || playlist.includes("privé");
+                    else if (filter === "tournament") show = playlist.includes("tournament") || playlist.includes("tournoi");
+                    
+                    row.classList.toggle("hidden-row", !show);
+                });
+                updateCounters();
+            }
+
+            filterButtons.forEach(btn => {
+                btn.addEventListener("click", () => {
+                    filterButtons.forEach(b => b.classList.remove("active"));
+                    btn.classList.add("active");
+                    applyFilter(btn.dataset.filter);
+                });
+            });
+
+            updateCounters();
+        }
+
+        // Toggle containers logic
+        function setupToggle(btnId, containerId, textId) {
+            const btn = document.getElementById(btnId);
+            const container = document.getElementById(containerId);
+            const textArea = document.getElementById(textId);
+            
+            if (!btn || !container) return;
+
+            btn.addEventListener("click", () => {
+                const isExpanded = container.classList.toggle("expanded");
+                btn.classList.toggle("active");
+                if (isExpanded) {
+                    textArea.textContent = "Réduire le tableau";
+                } else {
+                    textArea.textContent = "Afficher les matchs";
+                }
+            });
+        }
+
+        // Initialize Club History table logic
+        setupHistoryFilters(".filter-btn-club", "clubHistoryTableBody", {
+            total: "clubHistoryCount", wins: "clubHistoryWins", losses: "clubHistoryLosses", privates: "clubHistoryPrivate"
+        });
+        setupToggle("toggleClubHistory", "clubHistoryContainer", "btnTextClub");
+    </script>
+
+</body>
+
+</html>

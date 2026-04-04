@@ -30,7 +30,7 @@ function initDashboardCharts(data) {
                     borderColor: "#3b82f6",
                     backgroundColor: "rgba(59, 130, 246, 0.1)",
                     fill: true,
-                    tension: 0.3
+                    tension: 0
                 }]
             },
             options: {
@@ -68,7 +68,7 @@ function initDashboardCharts(data) {
                     data: chartData,
                     borderColor: color,
                     backgroundColor: color + "1a", // subtle fill
-                    tension: 0.25,
+                    tension: 0,
                     spanGaps: true
                 });
             }
@@ -78,7 +78,7 @@ function initDashboardCharts(data) {
                 label: "Score",
                 data: scoreData.map(x => x.value),
                 borderColor: "#3b82f6",
-                tension: 0.25
+                tension: 0
             }];
         }
 
@@ -169,13 +169,20 @@ function initDashboardCharts(data) {
             data: {
                 labels: matesFrequency.map(x => x.name),
                 datasets: [{
-                    label: "Matchs",
-                    data: matesFrequency.map(x => x.matches)
+                    label: "Matchs total",
+                    data: matesFrequency.map(x => x.matches),
+                    backgroundColor: "rgba(59, 130, 246, 0.6)",
+                    borderColor: "#3b82f6",
+                    borderWidth: 1,
+                    borderRadius: 4
                 }]
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true }
+                }
             }
         });
     }
@@ -188,90 +195,22 @@ function initDashboardCharts(data) {
                 labels: matesWinrate.map(x => x.name),
                 datasets: [{
                     label: "Winrate %",
-                    data: matesWinrate.map(x => x.winrate)
+                    data: matesWinrate.map(x => x.winrate),
+                    backgroundColor: "rgba(16, 185, 129, 0.6)",
+                    borderColor: "#10b981",
+                    borderWidth: 1,
+                    borderRadius: 4
                 }]
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false
-            }
-        });
-    }
-
-    // --- ADVANCED BALLCHASING CHARTS ---
-    const history = data.history || [];
-    const advMatches = history.filter(m => m.boost_collected !== null).slice(-10);
-
-    const boostCanvas = document.getElementById("boostChart");
-    if (boostCanvas) {
-        if (advMatches.length === 0) {
-            const ctx = boostCanvas.getContext("2d");
-            ctx.fillStyle = "#94a3b8";
-            ctx.font = "14px Arial";
-            ctx.textAlign = "center";
-            ctx.fillText("Aucune donnée avancée disponible. Cliquez sur Synchroniser.", boostCanvas.width/2, boostCanvas.height/2);
-        } else {
-            new Chart(boostCanvas, {
-                type: "bar",
-                data: {
-                    labels: advMatches.map(m => m.date),
-                    datasets: [
-                        { label: "Collecté", data: advMatches.map(m => m.boost_collected), backgroundColor: "#38bdf8" },
-                        { label: "Volé", data: advMatches.map(m => m.boost_stolen), backgroundColor: "#f43f5e" }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: { y: { beginAtZero: true } }
-                }
-            });
-        }
-    }
-
-    const posCanvas = document.getElementById("positioningChart");
-    if (posCanvas && advMatches.length > 0) {
-        new Chart(posCanvas, {
-            type: "bar",
-            data: {
-                labels: advMatches.map(m => m.date),
-                datasets: [
-                    { label: "Attaque", data: advMatches.map(m => m.time_offensive_third), backgroundColor: "#ef4444" },
-                    { label: "Milieu", data: advMatches.map(m => m.time_neutral_third), backgroundColor: "#f59e0b" },
-                    { label: "Défense", data: advMatches.map(m => m.time_defensive_third), backgroundColor: "#3b82f6" }
-                ]
-            },
-            options: {
-                responsive: true,
                 maintainAspectRatio: false,
-                scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } }
-            }
-        });
-    }
-
-    // --- SYNC BUTTON LOGIC ---
-    const syncBtn = document.getElementById("syncBallchasingBtn");
-    if (syncBtn) {
-        syncBtn.addEventListener("click", async () => {
-            syncBtn.disabled = true;
-            syncBtn.style.opacity = "0.7";
-            syncBtn.textContent = "⌛ Sync en cours...";
-            try {
-                const res = await fetch("/api/matches/fetch-all-ballchasing-stats", { method: "POST" });
-                const result = await res.json();
-                if (result.status === "done") {
-                    alert(`Sync Terminée !\nMatchs mis à jour : ${result.matches_updated}`);
-                    window.location.reload();
-                } else {
-                    alert("Erreur lors de la synchronisation.");
+                scales: {
+                    y: { 
+                        beginAtZero: true,
+                        max: 100
+                    }
                 }
-            } catch (e) {
-                console.error(e);
-                alert("Erreur de connexion.");
-            } finally {
-                syncBtn.disabled = false;
-                syncBtn.style.opacity = "1";
-                syncBtn.textContent = "🔄 Synchroniser Stats";
             }
         });
     }

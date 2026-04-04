@@ -13,6 +13,14 @@ class PlayerStatIn(BaseModel):
     shots: int = 0
     score: int = 0
     won: bool = False
+    
+    # Advanced stats from CSV
+    demolishes: Optional[int] = None
+    pads: Optional[int] = None
+    boost_usage: Optional[float] = None
+    possession_time: Optional[str] = None
+
+
 
 
 class MatchIngestPayload(BaseModel):
@@ -20,8 +28,6 @@ class MatchIngestPayload(BaseModel):
     playlist: str = "unknown"
     result: str = "unknown"
     played_at: Optional[datetime] = None
-    ballchasing_id: Optional[str] = None
-    ballchasing_url: Optional[str] = None
     players: List[PlayerStatIn]
 
 

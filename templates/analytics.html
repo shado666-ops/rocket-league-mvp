@@ -2,251 +2,364 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Analytics Globaux - Rocket League MVP Tracker</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <title>Hall of Fame - {{ club_name }}</title>
+    <link rel="stylesheet" href="/static/style.css?v=3">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="/static/dashboard.js"></script>
+    <script src="/static/common.js"></script>
 </head>
 <body>
 <div class="layout">
     <aside class="sidebar">
-        <img src="/static/logo.svg" alt="Rocket League Logo" class="sidebar-logo">
-        <div class="sidebar-title">Rocket League<br>MVP Tracker</div>
+        <img src="/static/logo-club.png" alt="Club Logo" class="sidebar-logo">
+        <div class="sidebar-title">MVP Tracker</div>
+
         <div class="sidebar-subtitle">Navigation rapide</div>
 
         <nav class="sidebar-nav">
-            <a class="sidebar-link" href="/">← Retour dashboard</a>
-            <a class="sidebar-link" href="#overview">Performance globale</a>
-            <a class="sidebar-link" href="#mates">Stats par Mates</a>
-            <a class="sidebar-link" href="#playlists">Stats par Playlists</a>
+            <a class="sidebar-link" href="/"><span>🏠</span> Accueil</a>
+            <a class="sidebar-link" href="/club"><span>🛡️</span> Stats Club</a>
+            <a class="sidebar-link" href="/joueurs"><span>🧑‍🚀</span> Stats Joueurs</a>
+            <a class="sidebar-link active" href="/hof"><span>🏆</span> Hall of Fame</a>
+            <a class="sidebar-link" href="/pepites"><span>✨</span> Pépites</a>
+            {% if unread_notifications_count > 0 %}
+            <a class="sidebar-link" href="/notifications"><span>🔔</span> Notifications <span class="notif-badge">{{ unread_notifications_count }}</span></a>
+            {% endif %}
+            <a class="sidebar-link" href="/admin/ui"><span>⚙️</span> Administration</a>
         </nav>
 
-        <div class="sidebar-subtitle" style="margin-top: 24px;">Paramètres</div>
+        <div class="sidebar-subtitle">Paramètres</div>
         <div class="sidebar-setting">
             <span>Auto-Refresh (15s)</span>
             <label class="switch">
-                <input type="checkbox" id="autoRefreshToggle">
+                <input type="checkbox" id="autoRefreshToggle" checked>
                 <span class="slider round"></span>
             </label>
         </div>
+
+        <div class="sidebar-footer">
+            <img src="/static/logo.svg" alt="Rocket League Logo" class="sidebar-footer-logo">
+        </div>
     </aside>
 
+
     <main class="main-content">
+
+
         <div class="content-container">
-            <section id="overview" class="section" style="margin-top: 0;">
-                <h1 class="section-title">Analytics Globaux</h1>
-                <p class="section-subtitle">Aperçu général de la performance de {{ main_player_name }} et de son club.</p>
-
-                <div class="grid grid-3" style="margin-top: 24px;">
-                    <div class="card" style="text-align: center; padding: 24px;">
-                        <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-muted);">Winrate (20 derniers matchs)</h3>
-                        <div style="font-size: 2.5rem; font-weight: bold; color: var(--text-highlight); margin-top: 12px;">
-                            {{ recent_winrate }}%
-                        </div>
-                        <div style="font-size: 0.9rem; color: var(--text-muted); margin-top: 4px;">Sur {{ recent_matches_count }} matchs</div>
-                    </div>
-
-                    <div class="card" style="text-align: center; padding: 24px;">
-                        <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-muted);">Meilleur Joueur (Winrate)</h3>
-                        <div style="font-size: 2.5rem; font-weight: bold; color: var(--success); margin-top: 12px;">
-                            {{ best_player.name if best_player else 'N/A' }}
-                        </div>
-                        <div style="font-size: 0.9rem; color: var(--text-muted); margin-top: 4px;">
-                            {{ best_player.winrate|round(1) if best_player else 0 }}% winrate
-                        </div>
-                    </div>
-
-                    <div class="card" style="text-align: center; padding: 24px;">
-                        <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-muted);">Matchs Club Joués</h3>
-                        <div style="font-size: 2.5rem; font-weight: bold; color: var(--text-highlight); margin-top: 12px;">
-                            {{ club_history|length }}
-                        </div>
-                        <div style="font-size: 0.9rem; color: var(--text-muted); margin-top: 4px;">Total</div>
-                    </div>
+                <div class="page-header">
+                    <h1 class="section-title"><span>🏆</span> Hall of Fame <span>🏆</span></h1>
+                    <p class="section-subtitle">Les meilleurs joueurs du club par catégorie (minimum 5 matchs).</p>
                 </div>
-            </section>
 
-            <section id="mates" class="section">
-                <h2 class="section-title">Statistiques par Mates</h2>
-                <div class="grid grid-2">
-                    <div class="card chart-card">
-                        <h3>Mates les plus joués</h3>
-                        <canvas id="matesChart"></canvas>
+                {% if rankings %}
+                <div class="hof-grid">
+                    {# Maître de l'Arène (Overall Rating) #}
+                    <div class="hof-card" style="grid-column: 1 / -1; background: linear-gradient(rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.7)); border-color: #f59e0b; box-shadow: 0 0 40px rgba(245, 158, 11, 0.15);">
+                        <div class="hof-icon" style="font-size: 4rem;">👑</div>
+                        <div class="hof-title" style="color: #f59e0b; font-size: 1.3rem;">Maître de l'Arène</div>
+                        <div class="hof-winner-name" style="font-size: 3rem;">{{ rankings.best_overall[0].name }}</div>
+                        <div class="hof-winner-value" style="color: #fbbf24; font-size: 1.4rem;">Note Globale : {{ rankings.best_overall[0].rating }} / 100</div>
+                        
+                        <div class="hof-runners-up" style="max-width: 600px;">
+                            {% for runner in rankings.best_overall[1:] %}
+                            <div class="hof-runner">
+                                <span class="hof-runner-rank">#{{ loop.index + 1 }}</span>
+                                <span class="hof-runner-name">{{ runner.name }}</span>
+                                <span class="hof-runner-value">{{ runner.rating }}%</span>
+                            </div>
+                            {% endfor %}
+                        </div>
                     </div>
 
-                    <div class="card chart-card">
-                        <h3>Winrate avec mates</h3>
-                        <canvas id="matesWinrateChart"></canvas>
+                    {# Meilleur Joueur (MVPs) #}
+                    <div class="hof-card">
+                        <div class="hof-icon">🌟</div>
+                        <div class="hof-title">Meilleur Joueur</div>
+                        <div class="hof-winner-name">{{ rankings.best_mvp[0].name }}</div>
+                        <div class="hof-winner-value">{{ rankings.best_mvp[0].mvps }} MVPs total</div>
+                        
+                        <div class="hof-runners-up">
+                            {% for runner in rankings.best_mvp[1:] %}
+                            <div class="hof-runner">
+                                <span class="hof-runner-rank">#{{ loop.index + 1 }}</span>
+                                <span class="hof-runner-name">{{ runner.name }}</span>
+                                <span class="hof-runner-value">{{ runner.mvps }} MVPs</span>
+                            </div>
+                            {% endfor %}
+                        </div>
                     </div>
+
+                    {# Roi de la Win (Winrate) #}
+                    <div class="hof-card">
+                        <div class="hof-icon">🏆</div>
+                        <div class="hof-title">Roi de la Win</div>
+                        <div class="hof-winner-name">{{ rankings.best_winrate[0].name }}</div>
+                        <div class="hof-winner-value">{{ rankings.best_winrate[0].winrate }}% de victoires</div>
+                        
+                        <div class="hof-runners-up">
+                            {% for runner in rankings.best_winrate[1:] %}
+                            <div class="hof-runner">
+                                <span class="hof-runner-rank">#{{ loop.index + 1 }}</span>
+                                <span class="hof-runner-name">{{ runner.name }}</span>
+                                <span class="hof-runner-value">{{ runner.winrate }}%</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    {# Meilleur Scoreur (Score) #}
+                    <div class="hof-card">
+                        <div class="hof-icon">📊</div>
+                        <div class="hof-title">Meilleur Scoreur</div>
+                        <div class="hof-winner-name">{{ rankings.best_score[0].name }}</div>
+                        <div class="hof-winner-value">{{ rankings.best_score[0].score|round(1) if rankings.best_score[0].score is number else rankings.best_score[0].score }} pts / match</div>
+                        
+                        <div class="hof-runners-up">
+                            {% for runner in rankings.best_score[1:] %}
+                            <div class="hof-runner">
+                                <span class="hof-runner-rank">#{{ loop.index + 1 }}</span>
+                                <span class="hof-runner-name">{{ runner.name }}</span>
+                                <span class="hof-runner-value">{{ runner.score|round }} pts</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    {# Meilleur Buteur #}
+                    <div class="hof-card">
+                        <div class="hof-icon">⚽</div>
+                        <div class="hof-title">Meilleur Buteur</div>
+                        <div class="hof-winner-name">{{ rankings.best_buteur[0].name }}</div>
+                        <div class="hof-winner-value">{{ rankings.best_buteur[0].goals }} buts / match</div>
+                        
+                        <div class="hof-runners-up">
+                            {% for runner in rankings.best_buteur[1:] %}
+                            <div class="hof-runner">
+                                <span class="hof-runner-rank">#{{ loop.index + 1 }}</span>
+                                <span class="hof-runner-name">{{ runner.name }}</span>
+                                <span class="hof-runner-value">{{ runner.goals }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    {# Meilleur Tireur (Précision) #}
+                    <div class="hof-card">
+                        <div class="hof-icon">🎯</div>
+                        <div class="hof-title">Meilleur Tireur</div>
+                        <div class="hof-winner-name">{{ rankings.best_tireur[0].name }}</div>
+                        <div class="hof-winner-value">{{ rankings.best_tireur[0].shooting_ratio }}% de précision</div>
+                        
+                        <div class="hof-runners-up">
+                            {% for runner in rankings.best_tireur[1:] %}
+                            <div class="hof-runner">
+                                <span class="hof-runner-rank">#{{ loop.index + 1 }}</span>
+                                <span class="hof-runner-name">{{ runner.name }}</span>
+                                <span class="hof-runner-value">{{ runner.shooting_ratio }}%</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    {# Harceleur des cages (Tirs) #}
+                    <div class="hof-card">
+                        <div class="hof-icon">🏹</div>
+                        <div class="hof-title">Harceleur des cages</div>
+                        <div class="hof-winner-name">{{ rankings.best_harceleur[0].name }}</div>
+                        <div class="hof-winner-value">{{ rankings.best_harceleur[0].shots }} tirs / match</div>
+                        
+                        <div class="hof-runners-up">
+                            {% for runner in rankings.best_harceleur[1:] %}
+                            <div class="hof-runner">
+                                <span class="hof-runner-rank">#{{ loop.index + 1 }}</span>
+                                <span class="hof-runner-name">{{ runner.name }}</span>
+                                <span class="hof-runner-value">{{ runner.shots }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    {# Meilleur Passeur #}
+                    <div class="hof-card">
+                        <div class="hof-icon">🤝</div>
+                        <div class="hof-title">Meilleur Passeur</div>
+                        <div class="hof-winner-name">{{ rankings.best_passeur[0].name }}</div>
+                        <div class="hof-winner-value">{{ rankings.best_passeur[0].assists }} passes / match</div>
+                        
+                        <div class="hof-runners-up">
+                            {% for runner in rankings.best_passeur[1:] %}
+                            <div class="hof-runner">
+                                <span class="hof-runner-rank">#{{ loop.index + 1 }}</span>
+                                <span class="hof-runner-name">{{ runner.name }}</span>
+                                <span class="hof-runner-value">{{ runner.assists }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    {# Meilleur Gardien #}
+                    <div class="hof-card">
+                        <div class="hof-icon">🛡️</div>
+                        <div class="hof-title">Meilleur Gardien</div>
+                        <div class="hof-winner-name">{{ rankings.best_gardien[0].name }}</div>
+                        <div class="hof-winner-value">{{ rankings.best_gardien[0].saves }} arrêts / match</div>
+                        
+                        <div class="hof-runners-up">
+                            {% for runner in rankings.best_gardien[1:] %}
+                            <div class="hof-runner">
+                                <span class="hof-runner-rank">#{{ loop.index + 1 }}</span>
+                                <span class="hof-runner-name">{{ runner.name }}</span>
+                                <span class="hof-runner-value">{{ runner.saves }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    {# Pro de la démolition #}
+                    <div class="hof-card">
+                        <div class="hof-icon">💥</div>
+                        <div class="hof-title">Pro de la démolition</div>
+                        <div class="hof-winner-name">{{ rankings.best_demolisseur[0].name }}</div>
+                        <div class="hof-winner-value">{{ rankings.best_demolisseur[0].demolitions }} démos / match</div>
+                        
+                        <div class="hof-runners-up">
+                            {% for runner in rankings.best_demolisseur[1:] %}
+                            <div class="hof-runner">
+                                <span class="hof-runner-rank">#{{ loop.index + 1 }}</span>
+                                <span class="hof-runner-name">{{ runner.name }}</span>
+                                <span class="hof-runner-value">{{ runner.demolitions }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    {# Ballchaser Ultime #}
+                    <div class="hof-card">
+                        <div class="hof-icon">🏎️</div>
+                        <div class="hof-title">Ballchaser Ultime</div>
+                        <div class="hof-winner-name">{{ rankings.best_ballchaser[0].name }}</div>
+                        <div class="hof-winner-value">{{ rankings.best_ballchaser[0].possession }} / match</div>
+                        
+                        <div class="hof-runners-up">
+                            {% for runner in rankings.best_ballchaser[1:] %}
+                            <div class="hof-runner">
+                                <span class="hof-runner-rank">#{{ loop.index + 1 }}</span>
+                                <span class="hof-runner-name">{{ runner.name }}</span>
+                                <span class="hof-runner-value">{{ runner.possession }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    {# Pied le plus carré (Worst Precision) #}
+                    <div class="hof-card" style="border-style: dashed; border-color: #f87171; box-shadow: 0 0 20px rgba(248, 113, 113, 0.1);">
+                        <div class="hof-icon">👞</div>
+                        <div class="hof-title" style="color: #f87171;">Pied le plus Carré</div>
+                        <div class="hof-winner-name">{{ rankings.worst_tireur[0].name }}</div>
+                        <div class="hof-winner-value" style="color: #ef4444;">{{ rankings.worst_tireur[0].shooting_ratio }}% de précision</div>
+                        
+                        <div class="hof-runners-up">
+                            {% for runner in rankings.worst_tireur[1:] %}
+                            <div class="hof-runner">
+                                <span class="hof-runner-rank">#{{ loop.index + 1 }}</span>
+                                <span class="hof-runner-name">{{ runner.name }}</span>
+                                <span class="hof-runner-value">{{ runner.shooting_ratio }}%</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    {# Le plus gros Branleur (Worst Score) #}
+                    <div class="hof-card" style="border-style: dotted; border-color: #94a3b8; opacity: 0.8;">
+                        <div class="hof-icon">😴</div>
+                        <div class="hof-title" style="color: #94a3b8;">Le plus gros Branleur</div>
+                        <div class="hof-winner-name">{{ rankings.worst_score[0].name }}</div>
+                        <div class="hof-winner-value" style="color: #64748b;">{{ rankings.worst_score[0].score|round }} pts / match</div>
+                        
+                        <div class="hof-runners-up">
+                            {% for runner in rankings.worst_score[1:] %}
+                            <div class="hof-runner">
+                                <span class="hof-runner-rank">#{{ loop.index + 1 }}</span>
+                                <span class="hof-runner-name">{{ runner.name }}</span>
+                                <span class="hof-runner-value">{{ runner.score|round }} pts</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    {# Composition la plus jouée #}
+                    {% if rankings.best_composition and rankings.best_composition|length > 0 %}
+                    <div class="hof-card" style="grid-column: 1 / -1; border-color: #38bdf8; background: linear-gradient(rgba(30,58,138,0.2), rgba(15,23,42,0.7));">
+                        <div class="hof-icon" style="font-size: 3.5rem;">🧩</div>
+                        <div class="hof-title" style="color: #38bdf8;">Composition la plus jouée</div>
+                        <div class="hof-winner-name" style="font-size: 2.2rem; margin: 10px 0;">{{ rankings.best_composition[0].name }}</div>
+                        <div class="hof-winner-value" style="color: #7dd3fc; font-size: 1.2rem;">{{ rankings.best_composition[0].count }} matchs ensemble</div>
+                        
+                        <div class="hof-runners-up" style="max-width: 700px; margin-top: 20px;">
+                            {% for runner in rankings.best_composition[1:] %}
+                            <div class="hof-runner">
+                                <span class="hof-runner-rank">#{{ loop.index + 1 }}</span>
+                                <span class="hof-runner-name">{{ runner.name }}</span>
+                                <span class="hof-runner-value">{{ runner.count }} matchs</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {# Composition la plus efficace #}
+                    {% if rankings.best_win_composition and rankings.best_win_composition|length > 0 %}
+                    <div class="hof-card" style="grid-column: 1 / -1; border-color: #10b981; background: linear-gradient(rgba(6,78,59,0.2), rgba(15,23,42,0.7));">
+                        <div class="hof-icon" style="font-size: 3.5rem;">⚡</div>
+                        <div class="hof-title" style="color: #10b981;">Composition la plus efficace</div>
+                        <div class="hof-winner-name" style="font-size: 2.2rem; margin: 10px 0;">{{ rankings.best_win_composition[0].name }}</div>
+                        <div class="hof-winner-value" style="color: #34d399; font-size: 1.2rem;">{{ rankings.best_win_composition[0].winrate }}% de victoires ({{ rankings.best_win_composition[0].count }} matchs)</div>
+                        
+                        <div class="hof-runners-up" style="max-width: 700px; margin-top: 20px;">
+                            {% for runner in rankings.best_win_composition[1:] %}
+                            <div class="hof-runner">
+                                <span class="hof-runner-rank">#{{ loop.index + 1 }}</span>
+                                <span class="hof-runner-name">{{ runner.name }}</span>
+                                <span class="hof-runner-value">{{ runner.winrate }}% ({{ runner.count }} m.)</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {# Série Royale (Plus grosse série de victoires) #}
+                    {% if rankings.best_streak_composition and rankings.best_streak_composition|length > 0 %}
+                    <div class="hof-card" style="grid-column: 1 / -1; border-color: #a855f7; background: linear-gradient(rgba(88,28,135,0.2), rgba(15,23,42,0.7));">
+                        <div class="hof-icon" style="font-size: 3.5rem;">🔥</div>
+                        <div class="hof-title" style="color: #a855f7;">Série Royale</div>
+                        <div class="hof-winner-name" style="font-size: 2.2rem; margin: 10px 0;">{{ rankings.best_streak_composition[0].name }}</div>
+                        <div class="hof-winner-value" style="color: #c084fc; font-size: 1.2rem;">{{ rankings.best_streak_composition[0].streak }} victoires consécutives</div>
+                        
+                        <div class="hof-runners-up" style="max-width: 700px; margin-top: 20px;">
+                            {% for runner in rankings.best_streak_composition[1:] %}
+                            <div class="hof-runner">
+                                <span class="hof-runner-rank">#{{ loop.index + 1 }}</span>
+                                <span class="hof-runner-name">{{ runner.name }}</span>
+                                <span class="hof-runner-value">{{ runner.streak }} à la suite</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
-            </section>
-
-            <section id="playlists" class="section">
-                <h2 class="section-title">Statistiques par Playlists</h2>
-                <div class="grid grid-2">
-                    <div class="card chart-card">
-                        <h3>Score moyen par playlist</h3>
-                        <canvas id="playlistScoreChart"></canvas>
-                    </div>
+                {% else %}
+                <div class="card" style="margin-top: 40px; text-align: center; padding: 60px;">
+                    <div style="font-size: 4rem; margin-bottom: 20px;">📊</div>
+                    <h2 style="color: #94a3b8;">Pas encore assez de données</h2>
+                    <p style="color: #64748b; margin-top: 10px;">Il faut au moins 5 matchs joués par joueur pour établir les classements.</p>
                 </div>
+                {% endif %}
             </section>
-            
         </div>
     </main>
 </div>
 
-<script>
-    // Initialisation du chart des scores par playlist (spécifique à Analytics)
-    const avgScoreByPlaylistData = {{ charts.avg_score_by_playlist | tojson }};
-    const playlistScoreCanvas = document.getElementById("playlistScoreChart");
-    
-    if (playlistScoreCanvas && avgScoreByPlaylistData.length > 0) {
-        // Shared playlist color mapping logic
-        const playlistColors = ["#ef4444", "#22c55e", "#f59e0b", "#a855f7", "#06b6d4"];
-        const sortedPlaylists = avgScoreByPlaylistData.map(x => x.playlist).sort();
-        const playlistColorMap = {};
-        sortedPlaylists.forEach((name, i) => {
-            playlistColorMap[name] = playlistColors[i % playlistColors.length];
-        });
-
-        const labels = avgScoreByPlaylistData.map(x => x.playlist);
-        const colors = labels.map(name => playlistColorMap[name] + "99"); // 60% opacity for bars
-
-        new Chart(playlistScoreCanvas, {
-            type: "bar",
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: "Score Moyen",
-                    data: avgScoreByPlaylistData.map(x => x.avg_score),
-                    backgroundColor: colors,
-                    borderColor: labels.map(name => playlistColorMap[name]),
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false
-            }
-        });
-    }
-
-    // Réutilisation de la fonction dashboard pour les mates charts
-    const matesFrequency = {{ club_charts.mates_frequency | tojson }};
-    const matesWinrate = {{ club_charts.winrate_with_mates | tojson }};
-    console.log("DEBUG: Analytics Mates Frequency Data:", matesFrequency);
-    console.log("DEBUG: Analytics Mates Winrate Data:", matesWinrate);
-
-    const matesCanvas = document.getElementById("matesChart");
-    if (matesCanvas && matesFrequency.length > 0) {
-        new Chart(matesCanvas, {
-            type: "bar",
-            data: {
-                labels: matesFrequency.map(x => x.name),
-                datasets: [{
-                    label: "Matchs joués ensemble",
-                    data: matesFrequency.map(x => x.matches)
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false
-            }
-        });
-    }
-
-    const matesWinrateCanvas = document.getElementById("matesWinrateChart");
-    if (matesWinrateCanvas && matesWinrate.length > 0) {
-        new Chart(matesWinrateCanvas, {
-            type: "bar",
-            data: {
-                labels: matesWinrate.map(x => x.name),
-                datasets: [{
-                    label: "Winrate %",
-                    data: matesWinrate.map(x => x.winrate),
-                    backgroundColor: "rgba(16, 185, 129, 0.6)"
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false
-            }
-        });
-    }
-
-    // --- AUTO-REFRESH LOGIC ---
-    let latestMatchId = 0;
-    const refreshToggle = document.getElementById("autoRefreshToggle");
-
-    // Load state immediately
-    if (localStorage.getItem("autoRefreshEnabled") === "true") {
-        refreshToggle.checked = true;
-    } else if (localStorage.getItem("autoRefreshEnabled") === "false") {
-        refreshToggle.checked = false;
-    }
-
-    // Initialize latestMatchId on load
-    fetch("/api/latest-match-id").then(res => res.json()).then(data => {
-        latestMatchId = data.latest_id;
-        console.log("Current latest match ID:", latestMatchId);
-    });
-
-    refreshToggle.addEventListener("change", () => {
-        localStorage.setItem("autoRefreshEnabled", refreshToggle.checked);
-        console.log("Auto-refresh " + (refreshToggle.checked ? "enabled" : "disabled"));
-    });
-
-    // WebSocket for real-time refresh
-    function setupWebSocket() {
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${window.location.host}/ws`;
-        console.log("Connecting to WebSocket:", wsUrl);
-        const socket = new WebSocket(wsUrl);
-
-        socket.onopen = function() {
-            console.log("WebSocket connected!");
-        };
-
-        socket.onmessage = function(event) {
-            console.log("WebSocket message received:", event.data);
-            if (event.data === "refresh") {
-                if (refreshToggle.checked) {
-                    console.log("New match detected! Reloading page...");
-                    window.location.reload();
-                } else {
-                    console.log("New match detected, but auto-refresh is disabled.");
-                }
-            }
-        };
-
-        socket.onerror = function(error) {
-            console.error("WebSocket error:", error);
-        };
-
-        socket.onclose = function() {
-            console.log("WebSocket closed. Attempting to reconnect in 5s...");
-            setTimeout(setupWebSocket, 5000);
-        };
-    }
-
-    setupWebSocket();
-
-    // Fallback Polling (15s as requested by user)
-    setInterval(async () => {
-        if (!refreshToggle.checked) return;
-
-        try {
-            const res = await fetch("/api/latest-match-id");
-            if (!res.ok) return;
-            const data = await res.json();
-            if (data.latest_id > latestMatchId) {
-                console.log(`New match detected via polling (${data.latest_id} > ${latestMatchId})! Reloading...`);
-                window.location.reload();
-            }
-        } catch (e) {
-            console.warn("Polling failed:", e);
-        }
-    }, 15000);
-</script>
 </body>
+
 </html>

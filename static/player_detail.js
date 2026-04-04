@@ -1,198 +1,187 @@
+let chartInstances = {};
+
 function initPlayerDetailCharts(data) {
-    const ratingData = data.rating || [];
-    const scoreData = data.score || [];
-    const goalsSavesData = data.goals_saves || [];
+    // Nettoyage des graphiques existants pour éviter les superpositions lors du changement d'onglet
+    Object.values(chartInstances).forEach(chart => {
+        if (chart && typeof chart.destroy === 'function') {
+            chart.destroy();
+        }
+    });
+    chartInstances = {};
+
+    // Data extraction based on stats_service.py structure
+    const ratingByPlaylist = data.rating_by_playlist || {};
+    const scoreByPlaylist = data.score_by_playlist || {};
     const radarData = data.radar || [];
     const pieData = data.pie || [];
     const playerName = data.player_name || "Joueur";
 
     // Shared playlist color mapping
     const playlistColors = ["#ef4444", "#22c55e", "#f59e0b", "#a855f7", "#06b6d4"];
-    const allPlaylists = new Set();
-    if (data.score_by_playlist) Object.keys(data.score_by_playlist).forEach(p => allPlaylists.add(p));
-    
-    const sortedPlaylists = Array.from(allPlaylists).sort();
-    const playlistColorMap = {};
-    sortedPlaylists.forEach((name, i) => {
-        playlistColorMap[name] = playlistColors[i % playlistColors.length];
-    });
+    const allPlaylists = Object.keys(ratingByPlaylist).sort();
 
-    const ratingCanvas = document.getElementById("ratingChart");
-    if (ratingCanvas) {
-        new Chart(ratingCanvas, {
-            type: "line",
-            data: {
-                labels: ratingData.map(x => x.label),
-                datasets: [{
-                    label: "Rating",
-                    data: ratingData.map(x => x.value),
-                    borderColor: "#3b82f6",
-                    backgroundColor: "rgba(59, 130, 246, 0.1)",
-                    fill: true,
-                    tension: 0.3
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false
-            }
+    const getPlaylistColor = (pName) => {
+        const idx = allPlaylists.indexOf(pName);
+        return playlistColors[idx % playlistColors.length];
+    };
+
+    // 1. Rating Chart
+    const ratingCtx = document.getElementById('ratingChart');
+    if (ratingCtx) {
+        const datasets = allPlaylists.map(playlist => {
+            const pData = ratingByPlaylist[playlist] || [];
+            return {
+                label: playlist,
+                data: pData.map(d => ({ x: d.label, y: d.value })),
+                borderColor: getPlaylistColor(playlist),
+                backgroundColor: getPlaylistColor(playlist) + "20",
+                fill: true,
+                tension: 0
+            };
         });
-    }
 
-    const scoreCanvas = document.getElementById("scoreChart");
-    if (scoreCanvas) {
-        let datasets = [];
-        let labels = [];
-
-        if (data.score_by_playlist && Object.keys(data.score_by_playlist).length > 0) {
-            const allLabels = new Set();
-            for (const playlist in data.score_by_playlist) {
-                data.score_by_playlist[playlist].forEach(pt => allLabels.add(pt.label));
-            }
-            labels = Array.from(allLabels);
-
-            for (const playlist in data.score_by_playlist) {
-                const color = playlistColorMap[playlist] || "#3b82f6";
-                const playlistPoints = data.score_by_playlist[playlist];
-                
-                const chartData = labels.map(lbl => {
-                    const found = playlistPoints.find(pt => pt.label === lbl);
-                    return found ? found.value : null;
-                });
-
-                datasets.push({
-                    label: playlist,
-                    data: chartData,
-                    borderColor: color,
-                    backgroundColor: color + "1a",
-                    tension: 0.25,
-                    spanGaps: true
-                });
-            }
-        } else {
-            labels = scoreData.map(x => x.label);
-            datasets = [{
-                label: "Score",
-                data: scoreData.map(x => x.value),
-                borderColor: "#3b82f6",
-                tension: 0.25
-            }];
-        }
-
-        const chart = new Chart(scoreCanvas, {
-            type: "line",
-            data: { labels, datasets },
+        chartInstances.rating = new Chart(ratingCtx, {
+            type: 'line',
+            data: { datasets },
             options: {
                 responsive: true,
-                maintainAspectRatio: false,
                 plugins: {
-                    legend: {
-                        display: false,
+                    legend: { display: true, position: 'top', labels: { color: '#e2e8f0' } }
+                },
+                scales: {
+                    x: {
+                        type: 'category',
+                        ticks: { color: '#94a3b8' },
+                        grid: { color: 'rgba(255,255,255,0.05)' }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: { color: '#94a3b8' },
+                        grid: { color: 'rgba(255,255,255,0.05)' }
                     }
                 }
             }
         });
-
-        const filterContainer = document.getElementById("scoreChartFilters");
-        if (filterContainer && data.score_by_playlist) {
-            filterContainer.innerHTML = "";
-            
-            const btnAll = document.createElement("button");
-            btnAll.className = "chart-filter-btn active";
-            btnAll.textContent = "Toutes";
-            btnAll.onclick = () => {
-                document.querySelectorAll("#scoreChartFilters .chart-filter-btn").forEach(b => b.classList.remove("active"));
-                btnAll.classList.add("active");
-                chart.data.datasets.forEach((ds, i) => {
-                    chart.setDatasetVisibility(i, true);
-                });
-                chart.update();
-            };
-            filterContainer.appendChild(btnAll);
-
-            datasets.forEach((ds, i) => {
-                const btn = document.createElement("button");
-                btn.className = "chart-filter-btn";
-                btn.textContent = ds.label;
-                btn.style.borderLeft = `4px solid ${ds.borderColor}`;
-                btn.onclick = () => {
-                    btn.classList.toggle("active");
-                    btnAll.classList.remove("active");
-
-                    const anyActive = Array.from(filterContainer.querySelectorAll(".chart-filter-btn:not(:first-child)")).some(b => b.classList.contains("active"));
-                    
-                    if (!anyActive) {
-                        btnAll.click();
-                        return;
-                    }
-
-                    chart.data.datasets.forEach((dataset, idx) => {
-                        const targetBtn = Array.from(filterContainer.querySelectorAll(".chart-filter-btn")).find(b => b.textContent === dataset.label);
-                        chart.setDatasetVisibility(idx, targetBtn && targetBtn.classList.contains("active"));
-                    });
-                    
-                    chart.update();
-                };
-                filterContainer.appendChild(btn);
-            });
-        }
     }
 
-    const goalsSavesCanvas = document.getElementById("goalsSavesChart");
-    if (goalsSavesCanvas) {
-        new Chart(goalsSavesCanvas, {
-            type: "bar",
-            data: {
-                labels: goalsSavesData.map(x => x.label),
-                datasets: [
-                    {
-                        label: "Buts",
-                        data: goalsSavesData.map(x => x.goals)
-                    },
-                    {
-                        label: "Saves",
-                        data: goalsSavesData.map(x => x.saves)
-                    }
-                ]
-            },
+    // 2. Score Chart
+    const scoreCtx = document.getElementById('scoreChart');
+    if (scoreCtx) {
+        const datasets = allPlaylists.map(playlist => {
+            const pData = scoreByPlaylist[playlist] || [];
+            return {
+                label: playlist,
+                data: pData.map(d => ({ x: d.label, y: d.value })),
+                borderColor: getPlaylistColor(playlist),
+                backgroundColor: getPlaylistColor(playlist) + "20",
+                fill: true,
+                tension: 0
+            };
+        });
+
+        chartInstances.score = new Chart(scoreCtx, {
+            type: 'line',
+            data: { datasets },
             options: {
                 responsive: true,
-                maintainAspectRatio: false
+                plugins: {
+                    legend: { display: true, position: 'top', labels: { color: '#e2e8f0' } }
+                },
+                scales: {
+                    x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                    y: { beginAtZero: true, ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+                }
             }
         });
     }
 
-    const radarCanvas = document.getElementById("radarChart");
-    if (radarCanvas) {
-        new Chart(radarCanvas, {
-            type: "radar",
+    // Small evolution charts
+    const renderSmallChart = (canvasId, label, chartData, color) => {
+        const ctx = document.getElementById(canvasId);
+        if (!ctx || !chartData || chartData.length === 0) return;
+        chartInstances[canvasId] = new Chart(ctx, {
+            type: 'line',
             data: {
-                labels: ["Buts", "Assists", "Saves", "Shots", "Score"],
+                labels: chartData.map(d => d.label),
+                datasets: [{
+                    label: label,
+                    data: chartData.map(d => d.value),
+                    borderColor: color,
+                    backgroundColor: color + "20",
+                    fill: true,
+                    tension: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { display: false },
+                    y: { beginAtZero: true, ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+                }
+            }
+        });
+    };
+
+    renderSmallChart('goalsChart', 'Buts', data.goals, "#4ade80");
+    renderSmallChart('shotsChart', 'Tirs', data.shots, "#3b82f6");
+    renderSmallChart('assistsChart', 'Passes', data.assists, "#f59e0b");
+    renderSmallChart('savesChart', 'Arrêts', data.saves, "#a78bfa");
+    renderSmallChart('boostChart', 'Boost', data.boost, "#ef4444");
+    renderSmallChart('possessionChart', 'Possession', data.possession, "#06b6d4");
+    renderSmallChart('demolishesChart', 'Démos', data.demolishes, "#94a3b8");
+
+    // Radar Chart
+    const radarCtx = document.getElementById('radarChart');
+    if (radarCtx && radarData.length === 4) {
+        chartInstances.radar = new Chart(radarCtx, {
+            type: 'radar',
+            data: {
+                labels: ["Buts", "Arrêts", "Tirs", "Passes"],
                 datasets: [{
                     label: playerName,
-                    data: radarData
+                    data: radarData,
+                    backgroundColor: 'rgba(56, 189, 248, 0.2)',
+                    borderColor: '#38bdf8',
+                    pointBackgroundColor: '#38bdf8'
                 }]
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false
+                plugins: { legend: { display: false } },
+                scales: {
+                    r: {
+                        angleLines: { color: 'rgba(255,255,255,0.1)' },
+                        grid: { color: 'rgba(255,255,255,0.1)' },
+                        pointLabels: { color: '#94a3b8' },
+                        ticks: { display: false },
+                        suggestedMin: 0,
+                        suggestedMax: 2
+                    }
+                }
             }
         });
     }
 
-    const pieCanvas = document.getElementById("pieChart");
-    if (pieCanvas) {
-        new Chart(pieCanvas, {
-            type: "pie",
+    // Pie Chart (Win/Loss)
+    const pieCtx = document.getElementById('pieChart');
+    if (pieCtx && pieData.length === 2) {
+        chartInstances.pie = new Chart(pieCtx, {
+            type: 'doughnut',
             data: {
-                labels: ["Victoires", "Défaites"],
+                labels: ['Victoires', 'Défaites'],
                 datasets: [{
-                    data: pieData
+                    data: pieData,
+                    backgroundColor: ['#22c55e', '#ef4444'],
+                    borderWidth: 0
                 }]
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false
+                plugins: {
+                    legend: { position: 'bottom', labels: { color: '#e2e8f0' } }
+                }
             }
         });
     }

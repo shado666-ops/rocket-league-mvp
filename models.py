@@ -4,6 +4,7 @@ from sqlalchemy import (
     Boolean,
     Column,
     DateTime,
+    Float,
     ForeignKey,
     Integer,
     String,
@@ -32,9 +33,6 @@ class Match(Base):
     result = Column(String, nullable=False, default="unknown")  # win / loss / unknown
     played_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
-    
-    ballchasing_id = Column(String, nullable=True)
-    ballchasing_url = Column(String, nullable=True)
 
     player_stats = relationship("MatchPlayerStat", back_populates="match", cascade="all, delete-orphan")
 
@@ -56,17 +54,13 @@ class MatchPlayerStat(Base):
     shots = Column(Integer, nullable=False, default=0)
     score = Column(Integer, nullable=False, default=0)
     won = Column(Boolean, nullable=False, default=False)
-    
-    # Advanced stats from Ballchasing
-    boost_collected = Column(Integer, nullable=True)
-    boost_stolen = Column(Integer, nullable=True)
-    time_zero_boost = Column(Integer, nullable=True)  # in seconds or milliseconds depending on API
-    time_full_boost = Column(Integer, nullable=True)
-    time_defensive_third = Column(Integer, nullable=True)
-    time_neutral_third = Column(Integer, nullable=True)
-    time_offensive_third = Column(Integer, nullable=True)
-    avg_speed = Column(Integer, nullable=True)
-    time_supersonic = Column(Integer, nullable=True)
+
+    # Advanced stats from CSV
+    demolishes = Column(Integer, nullable=True)
+    pads = Column(Integer, nullable=True)
+    boost_usage = Column(Float, nullable=True)
+
+    possession_time = Column(String, nullable=True)
 
     match = relationship("Match", back_populates="player_stats")
     player = relationship("Player", back_populates="stats")
@@ -78,3 +72,42 @@ class ClubMember(Base):
     id = Column(Integer, primary_key=True, index=True)
     display_name = Column(String, unique=True, nullable=False, index=True)
     is_active = Column(Boolean, nullable=False, default=True)
+
+    aliases = relationship("PlayerAlias", back_populates="member", cascade="all, delete-orphan")
+
+
+class PlayerAlias(Base):
+    __tablename__ = "player_aliases"
+
+    id = Column(Integer, primary_key=True, index=True)
+    pseudo = Column(String, unique=True, nullable=False, index=True)
+    club_member_id = Column(Integer, ForeignKey("club_members.id", ondelete="CASCADE"), nullable=False)
+
+    member = relationship("ClubMember", back_populates="aliases")
+
+
+class Season(Base):
+    __tablename__ = "seasons"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, nullable=False, index=True)
+    start_date = Column(DateTime, nullable=False)
+    end_date = Column(DateTime, nullable=False)
+
+
+class Setting(Base):
+    __tablename__ = "settings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    key = Column(String, unique=True, nullable=False, index=True)
+    value = Column(String, nullable=False)
+
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    message = Column(String, nullable=False)
+    type = Column(String, nullable=True) # e.g. "hall_of_fame"
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    is_read = Column(Boolean, nullable=False, default=False)

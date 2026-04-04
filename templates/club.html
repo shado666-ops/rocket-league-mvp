@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ club_name }} - Rocket League MVP Tracker</title>
+    <link rel="stylesheet" href="/static/style.css?v=2">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+    </script>
+    <script src="/static/dashboard.js"></script>
+    <script src="/static/common.js"></script>
+</head>
+<body>
+<div class="layout">
+    <aside class="sidebar">
+        <img src="/static/logo-club.png" alt="Club Logo" class="sidebar-logo">
+        <div class="sidebar-title">MVP Tracker</div>
+
+        <div class="sidebar-subtitle">Navigation rapide</div>
+
+        <nav class="sidebar-nav">
+            <a class="sidebar-link" href="/"><span>🏠</span> Accueil</a>
+            <a class="sidebar-link" href="/club"><span>🛡️</span> Stats Club</a>
+            <a class="sidebar-link active" href="/joueurs"><span>🧑‍🚀</span> Stats Joueurs</a>
+            <a class="sidebar-link" href="/hof"><span>🏆</span> Hall of Fame</a>
+            <a class="sidebar-link" href="/pepites"><span>✨</span> Pépites</a>
+            {% if unread_notifications_count > 0 %}
+            <a class="sidebar-link" href="/notifications"><span>🔔</span> Notifications <span class="notif-badge">{{ unread_notifications_count }}</span></a>
+            {% endif %}
+            <a class="sidebar-link" href="/admin/ui"><span>⚙️</span> Administration</a>
+        </nav>
+
+        <div class="sidebar-subtitle">Paramètres</div>
+        <div class="sidebar-setting">
+            <span>Auto-Refresh (15s)</span>
+            <label class="switch">
+                <input type="checkbox" id="autoRefreshToggle" checked>
+                <span class="slider round"></span>
+            </label>
+        </div>
+
+        <div class="sidebar-footer">
+            <img src="/static/logo.svg" alt="Rocket League Logo" class="sidebar-footer-logo">
+        </div>
+    </aside>
+
+
+    <main class="main-content">
+
+        <div class="content-container">
+            <section id="club" class="section" style="margin-top: 0;">
+                <div class="page-header">
+                    <h1 class="section-title"><span>🧑‍🚀</span> Statistiques des membres du club {{ club_name }} <span>🧑‍🚀</span></h1>
+                    <p class="section-subtitle">Membres actifs pris en compte dans la vue club.</p>
+                </div>
+
+                <div class="card">
+                    <div class="club-sort-container" style="margin-bottom: 24px;">
+                        <div class="club-sort-left">
+                            <span class="sort-label">Trier par :</span>
+                            <button class="filter-btn-club active" data-sort="default">Défaut</button>
+                        </div>
+                        <div class="sort-controls-grid">
+                            <button class="filter-btn-club" data-sort="winrate">Winrate</button>
+                            <button class="filter-btn-club" data-sort="goals">Buts/m</button>
+                            <button class="filter-btn-club" data-sort="shots">Tirs/m</button>
+                            <button class="filter-btn-club" data-sort="assists">Passes/m</button>
+                            <button class="filter-btn-club" data-sort="saves">Arrêts/m</button>
+                        </div>
+                    </div>
+
+                    <div class="club-members-grid">
+                        <a href="/mates/{{ main_player_name }}" class="club-member-card main-player-card" 
+                           data-index="0"
+                           data-name="{{ main_player_name | lower }}"
+                           data-winrate="{{ summary.winrate }}"
+                           data-goals="{{ summary.goals_per_match }}"
+                           data-shots="{{ summary.shots_per_match }}"
+                           data-assists="{{ summary.assists_per_match }}"
+                           data-saves="{{ summary.saves_per_match }}">
+                            <div class="club-member-left">
+                                <div class="club-member-avatar">
+                                    {% if main_player_name.lower() == 'shado666' %}
+                                        <img src="/static/Avatar_Shado666.gif" alt="Avatar">
+                                    {% elif main_player_name.lower() == 'kalibakbak' %}
+                                        <img src="/static/Avatar_Kalibakbak.gif" alt="Avatar">
+                                    {% elif main_player_name.lower() == 'ezy' %}
+                                        <img src="/static/Avatar_Ezy.jpg" alt="Avatar">
+                                    {% elif main_player_name.lower() == 'xen0n666' %}
+                                        <img src="/static/Avatar_Xen0n666.jpg" alt="Avatar">
+                                    {% elif main_player_name.lower() == 'julienyo' %}
+                                        <img src="/static/Avatar_JulienYo.jpg" alt="Avatar">
+                                    {% else %}
+                                        <img src="/static/logo-club.png" alt="Avatar">
+                                    {% endif %}
+                                </div>
+                                <span class="badge badge-main">{{ club_tag }}</span>
+                                <span class="club-member-name">{{ main_player_name }}👑</span>
+                            </div>
+                            <div class="club-member-stats">
+                                <span class="stat-item"><span class="stat-label stat-winrate">Winrate</span> {{ summary.winrate }}%</span>
+                                <span class="stat-item"><span class="stat-label stat-goals">Buts/m</span> {{ summary.goals_per_match }}</span>
+                                <span class="stat-item"><span class="stat-label stat-shots">Tirs/m</span> {{ summary.shots_per_match }}</span>
+                                <span class="stat-item"><span class="stat-label stat-assists">Passes/m</span> {{ summary.assists_per_match }}</span>
+                                <span class="stat-item"><span class="stat-label stat-saves">Arrêts/m</span> {{ summary.saves_per_match }}</span>
+                            </div>
+                        </a>
+
+                        {% for member in all_club_members %}
+                            {% if member.display_name != main_player_name %}
+                                <a href="/mates/{{ member.display_name }}" class="club-member-card {% if not member.is_active %}club-member-card-inactive{% endif %}"
+                                   data-index="{{ loop.index }}"
+                                   data-name="{{ member.display_name | lower }}"
+                                   data-winrate="{{ member.stats.winrate }}"
+                                   data-goals="{{ member.stats.goals_per_match }}"
+                                   data-shots="{{ member.stats.shots_per_match }}"
+                                   data-assists="{{ member.stats.assists_per_match }}"
+                                   data-saves="{{ member.stats.saves_per_match }}">
+                                    <div class="club-member-left">
+                                        <div class="club-member-avatar">
+                                            {% if member.display_name.lower() == 'shado666' %}
+                                                <img src="/static/Avatar_Shado666.gif" alt="Avatar">
+                                            {% elif member.display_name.lower() == 'kalibakbak' %}
+                                                <img src="/static/Avatar_Kalibakbak.gif" alt="Avatar">
+                                            {% elif member.display_name.lower() == 'ezy' %}
+                                                <img src="/static/Avatar_Ezy.jpg" alt="Avatar">
+                                            {% elif member.display_name.lower() == 'xen0n666' %}
+                                                <img src="/static/Avatar_Xen0n666.jpg" alt="Avatar">
+                                            {% elif member.display_name.lower() == 'julienyo' %}
+                                                <img src="/static/Avatar_JulienYo.jpg" alt="Avatar">
+                                            {% else %}
+                                                <img src="/static/logo-club.png" alt="Avatar">
+                                            {% endif %}
+                                        </div>
+                                        <span class="badge {% if member.is_active %}badge-club-active{% else %}badge-club-inactive{% endif %}">
+                                            {% if member.is_active %}{{ club_tag }}{% else %}Inactif{% endif %}
+                                        </span>
+                                        <span class="club-member-name">
+                                            {{ member.display_name }}
+                                        </span>
+                                    </div>
+                                    <div class="club-member-stats">
+                                        <span class="stat-item"><span class="stat-label stat-winrate">Winrate</span> {{ member.stats.winrate }}%</span>
+                                        <span class="stat-item"><span class="stat-label stat-goals">Buts/m</span> {{ member.stats.goals_per_match }}</span>
+                                        <span class="stat-item"><span class="stat-label stat-shots">Tirs/m</span> {{ member.stats.shots_per_match }}</span>
+                                        <span class="stat-item"><span class="stat-label stat-assists">Passes/m</span> {{ member.stats.assists_per_match }}</span>
+                                        <span class="stat-item"><span class="stat-label stat-saves">Arrêts/m</span> {{ member.stats.saves_per_match }}</span>
+                                    </div>
+                                </a>
+                            {% endif %}
+                        {% else %}
+                            <p class="muted">Aucun membre du club pour le moment.</p>
+                        {% endfor %}
+                    </div>
+
+
+                </div>
+
+                <div class="grid grid-2" style="margin-top: 16px;">
+                    <div class="card chart-card">
+                        <h3>Matchs comptabilisés</h3>
+                        <canvas id="matesChart"></canvas>
+                    </div>
+
+                    <div class="card chart-card">
+                        <h3>Winrate</h3>
+                        <canvas id="matesWinrateChart"></canvas>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+</div>
+
+<script>
+    const chartsData = {
+        mates_frequency: {{ (club_charts.mates_frequency if club_charts else []) | tojson }},
+        winrate_with_mates: {{ (club_charts.winrate_with_mates if club_charts else []) | tojson }}
+    };
+    initDashboardCharts(chartsData);
+
+    // Dynamic Club Member Sorting logic
+    const sortButtons = document.querySelectorAll('[data-sort]');
+    const grid = document.querySelector('.club-members-grid');
+    let currentCriteria = null;
+    let isAsc = false;
+
+    sortButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const criteria = btn.dataset.sort;
+            
+            // Toggle direction if same criteria is clicked
+            if (currentCriteria === criteria && criteria !== 'default') {
+                isAsc = !isAsc;
+            } else {
+                currentCriteria = criteria;
+                if (criteria === 'default') {
+                    isAsc = true;
+                } else if (criteria === 'name') {
+                    isAsc = true;
+                } else {
+                    isAsc = false; // Default to DESC (best first) for stats
+                }
+            }
+
+            // Update UI/Classes
+            sortButtons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            // Collect and sort cards
+            const cards = Array.from(grid.querySelectorAll('.club-member-card'));
+            cards.sort((a, b) => {
+                let valA = a.dataset[criteria];
+                let valB = b.dataset[criteria];
+
+                // Convert numbers to float if criteria is a stat or index
+                if (criteria !== 'name') {
+                    valA = parseFloat(valA) || 0;
+                    valB = parseFloat(valB) || 0;
+                }
+
+                if (valA < valB) return isAsc ? -1 : 1;
+                if (valA > valB) return isAsc ? 1 : -1;
+                return 0;
+            });
+
+            // Re-append cards to grid in new order
+            cards.forEach(card => grid.appendChild(card));
+        });
+    });
+</script>
+
+</body>
+
+
+
+</html>

@@ -1,31 +1,25 @@
 from fastapi import APIRouter, Depends, Request
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-from sqlalchemy import func
-
-from app.services.stats_service import get_dashboard_data
 from database import get_db
 
-router = APIRouter(tags=["analytics"])
+router = APIRouter(tags=["pepites"])
 templates = Jinja2Templates(directory="templates")
 
-@router.get("/hof")
-def analytics_page(request: Request, db: Session = Depends(get_db)):
-    from app.services.stats_service import get_rankings_data, get_club_name, get_club_tag
+@router.get("/pepites")
+def pepites_page(request: Request, db: Session = Depends(get_db)):
+    from app.services.stats_service import get_club_name, get_club_tag
     
-    # On récupère les classements par stats
-    rankings = get_rankings_data(db, min_matches=5)
     club_name = get_club_name(db)
     club_tag = get_club_tag(db)
-    
+
     from app.services.stats_service import get_unread_notifications_count
     unread_notifications_count = get_unread_notifications_count(db)
 
     return templates.TemplateResponse(
-        "analytics.html",
+        "pepites.html",
         {
             "request": request,
-            "rankings": rankings,
             "club_name": club_name,
             "club_tag": club_tag,
             "unread_notifications_count": unread_notifications_count,

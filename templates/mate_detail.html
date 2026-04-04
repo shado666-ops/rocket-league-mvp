@@ -3,216 +3,310 @@
 <head>
     <meta charset="UTF-8">
     <title>{{ mate_name }} - Rocket League MVP Tracker</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/style.css?v=2">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="/static/player_detail.js"></script>
+    <script src="/static/player_detail.js?v=4"></script>
+    <script src="/static/common.js"></script>
 </head>
 <body>
 <div class="layout">
     <aside class="sidebar">
-        <img src="/static/logo.svg" alt="Rocket League Logo" class="sidebar-logo">
-        <div class="sidebar-title">Rocket League<br>MVP Tracker</div>
-        <div class="sidebar-subtitle">{{ mate_name }}</div>
+        <img src="/static/logo-club.png" alt="Club Logo" class="sidebar-logo">
+        <div class="sidebar-title">MVP Tracker</div>
+
+        <div class="sidebar-subtitle">Navigation rapide</div>
 
         <nav class="sidebar-nav">
-            <a class="sidebar-link" href="/">← Retour dashboard</a>
-            <a class="sidebar-link" href="#overview">Vue joueur</a>
-            <a class="sidebar-link" href="#graphs">Graphiques</a>
-            <a class="sidebar-link" href="#history">Historique</a>
-            <a class="sidebar-link" href="/analytics">📊 Analytics Globaux</a>
+            <a class="sidebar-link" href="/"><span>🏠</span> Accueil</a>
+            <a class="sidebar-link" href="/club"><span>🛡️</span> Stats Club</a>
+            <a class="sidebar-link active" href="/joueurs"><span>🧑‍🚀</span> Stats Joueurs</a>
+            <a class="sidebar-link" href="/hof"><span>🏆</span> Hall of Fame</a>
+            <a class="sidebar-link" href="/pepites"><span>✨</span> Pépites</a>
+            {% if unread_notifications_count > 0 %}
+            <a class="sidebar-link" href="/notifications"><span>🔔</span> Notifications <span class="notif-badge">{{ unread_notifications_count }}</span></a>
+            {% endif %}
+            <a class="sidebar-link" href="/admin/ui"><span>⚙️</span> Administration</a>
         </nav>
 
-        <div class="sidebar-subtitle" style="margin-top: 24px;">Paramètres</div>
+        <div class="sidebar-subtitle">Paramètres</div>
         <div class="sidebar-setting">
             <span>Auto-Refresh (15s)</span>
             <label class="switch">
-                <input type="checkbox" id="autoRefreshToggle">
+                <input type="checkbox" id="autoRefreshToggle" checked>
                 <span class="slider round"></span>
             </label>
         </div>
+
+        <div class="sidebar-footer">
+            <img src="/static/logo.svg" alt="Rocket League Logo" class="sidebar-footer-logo">
+        </div>
     </aside>
 
+
     <main class="main-content">
+<main class="main-content">
         <div class="content-container">
             <section id="overview" class="section" style="margin-top: 0;">
-                <h1 class="section-title">Vue joueur</h1>
-                <p class="section-subtitle">
-                    {% if is_main_player %}
-                        Vue détaillée de mes statistiques personnelles.
-                    {% else %}
-                        Vue détaillée d’un membre du club.
-                    {% endif %}
-                </p>
+                <div class="page-header">
+                    <h1 class="section-title"><span>👤</span> Vue joueur <span>👤</span></h1>
+                    <p class="section-subtitle">
+                        {% if is_main_player %}
+                            Vue détaillée de mes statistiques personnelles.
+                        {% else %}
+                            Vue détaillée d’un membre du club {{ club_name }}.
+                        {% endif %}
+                    </p>
+                </div>
+
+                <div class="detail-tabs">
+                    <div class="detail-tab active" id="tab-btn-global" onclick="switchTab('global')">
+                        🌎 Stats Globales
+                    </div>
+                    <div class="detail-tab" id="tab-btn-recent" onclick="switchTab('recent')">
+                        ⏱️ 20 Derniers Matchs
+                    </div>
+                </div>
 
                 <div class="player-banner">
                     <div class="player-banner-left">
                         <div class="player-avatar">
-                            {{ mate_name[0] }}
+                            {% if mate_name.lower() == 'shado666' %}
+                                <img src="/static/Avatar_Shado666.gif" alt="Avatar">
+                            {% elif mate_name.lower() == 'kalibakbak' %}
+                                <img src="/static/Avatar_Kalibakbak.gif" alt="Avatar">
+                            {% elif mate_name.lower() == 'ezy' %}
+                                <img src="/static/Avatar_Ezy.jpg" alt="Avatar">
+                            {% elif mate_name.lower() == 'xen0n666' %}
+                                <img src="/static/Avatar_Xen0n666.jpg" alt="Avatar">
+                            {% elif mate_name.lower() == 'julienyo' %}
+                                <img src="/static/Avatar_JulienYo.jpg" alt="Avatar">
+                            {% else %}
+                                <img src="/static/logo-club.png" alt="Avatar">
+                            {% endif %}
                         </div>
 
                         <div class="player-info">
                             <div class="player-name">
                                 {{ mate_name }}
-                                {% if is_main_player %}
-                                    <span class="badge-main">Ma page</span>
-                                {% endif %}
+
                             </div>
 
                             <div class="player-subtitle">
                                 {% if is_main_player %}
-                                    Rocket League Personal Performance Tracker
+                                    Suivi des performances personnelles Rocket League
                                 {% else %}
-                                    Rocket League Club Member Tracker
+                                    Membre du Club {{ club_name }}
                                 {% endif %}
                             </div>
 
-                            <div class="player-rating" style="margin-top: 8px; font-size: 1.2rem; font-weight: bold; color: var(--text-highlight);">
-                                Performance Rating : <span style="font-size: 1.4rem;">{{ summary.performance_rating }} / 100</span>
+                            <div id="rating-recent" class="player-rating" style="display: none; margin-top: 8px; font-size: 1.2rem; font-weight: bold; color: var(--text-highlight);">
+                                Performance Rating <span class="info-icon" data-tooltip="Bases (100%) : Score (500), Arrêts (2.5), Buts (2), Tirs (4) et Passes (1).">?</span> : <span style="font-size: 1.4rem;">{{ summary.performance_rating }} / 100</span>
+                            </div>
+                            <div id="rating-global" class="player-rating" style="margin-top: 8px; font-size: 1.2rem; font-weight: bold; color: var(--text-highlight);">
+                                Performance Rating <span class="info-icon" data-tooltip="Bases (100%) : Score (500), Arrêts (2.5), Buts (2), Tirs (4) et Passes (1).">?</span> : <span style="font-size: 1.4rem;">{{ summary_global.performance_rating }} / 100</span>
                             </div>
 
                             <div class="player-indicators">
-                                <div class="player-progress-wrapper">
-                                    <div class="player-progress-label">
-                                        Winrate — {{ indicators.winrate.value }}%
+                                <!-- INDICATORS RECENT -->
+                                <div id="indicators-recent" class="tab-pane" style="display: none;">
+                                    {% for key, ind in indicators.items() %}
+                                    <div class="player-progress-wrapper">
+                                        <div class="player-progress-label">
+                                            {{ ind.label }} — {{ ind.value }}{{ "%" if key == "winrate" else "" }}
+                                        </div>
+                                        <div class="player-progress-bar">
+                                            <div class="player-progress-fill {{ key }}-fill" style="width: {{ ind.percent }}%;"></div>
+                                        </div>
                                     </div>
-                                    <div class="player-progress-bar">
-                                        <div class="player-progress-fill" style="width: {{ indicators.winrate.percent }}%;"></div>
-                                    </div>
+                                    {% endfor %}
                                 </div>
 
-                                <div class="player-progress-wrapper">
-                                    <div class="player-progress-label">
-                                        Score / match — {{ indicators.score.value }}
+                                <!-- INDICATORS GLOBAL -->
+                                <div id="indicators-global" class="tab-pane active">
+                                    {% for key, ind in indicators_global.items() %}
+                                    <div class="player-progress-wrapper">
+                                        <div class="player-progress-label">
+                                            {{ ind.label }} — {{ ind.value }}{{ "%" if key == "winrate" else "" }}
+                                        </div>
+                                        <div class="player-progress-bar">
+                                            <div class="player-progress-fill {{ key }}-fill" style="width: {{ ind.percent }}%;"></div>
+                                        </div>
                                     </div>
-                                    <div class="player-progress-bar">
-                                        <div class="player-progress-fill score-fill" style="width: {{ indicators.score.percent }}%;"></div>
-                                    </div>
-                                </div>
-
-                                <div class="player-progress-wrapper">
-                                    <div class="player-progress-label">
-                                        Goals / match — {{ indicators.goals.value }}
-                                    </div>
-                                    <div class="player-progress-bar">
-                                        <div class="player-progress-fill goals-fill" style="width: {{ indicators.goals.percent }}%;"></div>
-                                    </div>
-                                </div>
-
-                                <div class="player-progress-wrapper">
-                                    <div class="player-progress-label">
-                                        Saves / match — {{ indicators.saves.value }}
-                                    </div>
-                                    <div class="player-progress-bar">
-                                        <div class="player-progress-fill saves-fill" style="width: {{ indicators.saves.percent }}%;"></div>
-                                    </div>
-                                </div>
-
-                                <div class="player-progress-wrapper">
-                                    <div class="player-progress-label">
-                                        Shots / match — {{ indicators.shots.value }}
-                                    </div>
-                                    <div class="player-progress-bar">
-                                        <div class="player-progress-fill shots-fill" style="width: {{ indicators.shots.percent }}%;"></div>
-                                    </div>
+                                    {% endfor %}
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <div class="player-banner-stats">
-                        <div class="player-stat">
-                            <span class="player-stat-value">{{ summary.matches_together }}</span>
-                            <span class="player-stat-label">MATCHS</span>
+                        <!-- STATS RECENT -->
+                        <div id="stats-recent" class="tab-pane active" style="display: flex; gap: 20px; flex-wrap: wrap; justify-content: flex-end;">
+                            <div class="player-stat">
+                                <span class="player-stat-value">{{ summary.matches_together }}</span>
+                                <span class="player-stat-label">MATCHS (20 DERS)</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Pourcentage de victoires sur les 20 derniers matchs enregistrés.">
+                                <span class="player-stat-value">{{ summary.winrate }}%</span>
+                                <span class="player-stat-label">WINRATE</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Nombre moyen de buts par match.">
+                                <span class="player-stat-value">{{ summary.goals_per_match }}</span>
+                                <span class="player-stat-label">BUTS / M</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Nombre moyen de tirs par match.">
+                                <span class="player-stat-value">{{ summary.shots_per_match }}</span>
+                                <span class="player-stat-label">TIRS / M</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Nombre moyen de passes décisives par match.">
+                                <span class="player-stat-value">{{ summary.assists_per_match }}</span>
+                                <span class="player-stat-label">PASSES / M</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Nombre moyen d'arrêts par match.">
+                                <span class="player-stat-value">{{ summary.saves_per_match }}</span>
+                                <span class="player-stat-label">ARRÊTS / M</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Possession moyenne du ballon.">
+                                <span class="player-stat-value">{{ summary.possession_per_match }}</span>
+                                <span class="player-stat-label">POSSESSION</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Nombre moyen de démolitions par match.">
+                                <span class="player-stat-value">{{ summary.demolishes_per_match }}</span>
+                                <span class="player-stat-label">DÉMOS / M</span>
+                            </div>
                         </div>
-                        <div class="player-stat">
-                            <span class="player-stat-value">{{ summary.winrate }}%</span>
-                            <span class="player-stat-label">WINRATE</span>
-                        </div>
-                        <div class="player-stat">
-                            <span class="player-stat-value">{{ summary.goals_per_match }}</span>
-                            <span class="player-stat-label">GOALS / MATCH</span>
-                        </div>
-                        <div class="player-stat">
-                            <span class="player-stat-value">{{ summary.assists_per_match }}</span>
-                            <span class="player-stat-label">ASSISTS / MATCH</span>
-                        </div>
-                        <div class="player-stat">
-                            <span class="player-stat-value">{{ summary.saves_per_match }}</span>
-                            <span class="player-stat-label">SAVES / MATCH</span>
-                        </div>
-                        <div class="player-stat">
-                            <span class="player-stat-value">{{ summary.shots_per_match }}</span>
-                            <span class="player-stat-label">SHOTS / MATCH</span>
+
+                        <!-- STATS GLOBAL -->
+                        <div id="stats-global" class="tab-pane" style="display: none; gap: 20px; flex-wrap: wrap; justify-content: flex-end;">
+                            <div class="player-stat">
+                                <span class="player-stat-value">{{ summary_global.matches_together }}</span>
+                                <span class="player-stat-label">MATCHS (TOTAL)</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Pourcentage de victoires sur la totalité des matchs.">
+                                <span class="player-stat-value">{{ summary_global.winrate }}%</span>
+                                <span class="player-stat-label">WINRATE</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Nombre moyen de buts par match (Global).">
+                                <span class="player-stat-value">{{ summary_global.goals_per_match }}</span>
+                                <span class="player-stat-label">BUTS / M</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Nombre moyen de tirs par match (Global).">
+                                <span class="player-stat-value">{{ summary_global.shots_per_match }}</span>
+                                <span class="player-stat-label">TIRS / M</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Nombre moyen de passes décisives par match (Global).">
+                                <span class="player-stat-value">{{ summary_global.assists_per_match }}</span>
+                                <span class="player-stat-label">PASSES / M</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Nombre moyen d'arrêts par match (Global).">
+                                <span class="player-stat-value">{{ summary_global.saves_per_match }}</span>
+                                <span class="player-stat-label">ARRÊTS / M</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Possession moyenne du ballon (Global).">
+                                <span class="player-stat-value">{{ summary_global.possession_per_match }}</span>
+                                <span class="player-stat-label">POSSESSION</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Nombre moyen de démolitions par match (Global).">
+                                <span class="player-stat-value">{{ summary_global.demolishes_per_match }}</span>
+                                <span class="player-stat-label">DÉMOS / M</span>
+                            </div>
                         </div>
                     </div>
                 </div>
             </section>
+            <section id="seasonal-stats" class="section">
+                <h2 class="section-title">Bilan par Saison</h2>
+                <p class="section-subtitle">Statistiques cumulées par playlist pour chaque saison.</p>
 
-            <section id="graphs" class="section">
-                <h2 class="section-title">Graphiques</h2>
-                <p class="section-subtitle">Évolution des performances de {{ mate_name }}.</p>
-
-                <div class="grid grid-2">
-                    <div class="card chart-card">
-                        <h3>Progression du Rating</h3>
-                        <canvas id="ratingChart"></canvas>
+                {% for season in seasons_stats %}
+                    <div class="card seasonal-card {% if loop.first %}active{% endif %}" style="margin-bottom: 24px;">
+                        <h3 class="seasonal-header" onclick="this.parentElement.classList.toggle('active')">
+                            {{ season.name }}
+                            <span class="chevron">▼</span>
+                        </h3>
+                        <div class="seasonal-content">
+                            <table class="seasonal-table">
+                                <thead>
+                                    <tr>
+                                        <th>Playlist</th>
+                                        <th class="text-center">Matchs</th>
+                                        <th class="text-center">Winrate</th>
+                                        <th class="text-center">Score/M</th>
+                                        <th class="text-center">Buts/M</th>
+                                        <th class="text-center">Tirs/M</th>
+                                        <th class="text-center">Ratio</th>
+                                        <th class="text-center">Passes/M</th>
+                                        <th class="text-center">Arrêts/M</th>
+                                        <th class="text-center"><img src="/static/mvp_icon.png" alt="MVP" style="height: 20px; vertical-align: middle;" title="Nombre de fois MVP"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for p in season.playlists %}
+                                        <tr>
+                                            <td><span class="playlist-badge">{{ p.playlist }}</span></td>
+                                            <td class="text-center">{{ p.matches }}</td>
+                                            <td class="text-center" style="color: #00b894; font-weight: 600;">{{ p.winrate }}%</td>
+                                            <td class="text-center" style="font-weight: 600; color: #38bdf8;">{{ p.score_avg }}</td>
+                                            <td class="text-center" style="color: #4ade80; font-weight: 600;">{{ p.goals_avg }}</td>
+                                            <td class="text-center" style="color: #3b82f6; font-weight: 600;">{{ p.shots_avg }}</td>
+                                            <td class="text-center" style="font-weight: 600; color: #ffffff;">{{ p.ratio }}%</td>
+                                            <td class="text-center" style="color: #f59e0b; font-weight: 600;">{{ p.assists_avg }}</td>
+                                            <td class="text-center" style="color: #a78bfa; font-weight: 600;">{{ p.saves_avg }}</td>
+                                            <td class="text-center" style="font-weight: 600; color: #fcd34d;">{{ p.mvps }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                                <tfoot>
+                                    <tr class="total-row">
+                                        <td>TOTAL GLOBAL</td>
+                                        <td class="text-center">{{ season.total.matches }}</td>
+                                        <td class="text-center" style="color: #00b894;">{{ season.total.winrate }}%</td>
+                                        <td class="text-center" style="color: #38bdf8;">{{ season.total.score_avg }}</td>
+                                        <td class="text-center" style="color: #4ade80;">{{ season.total.goals_avg }}</td>
+                                        <td class="text-center" style="color: #3b82f6;">{{ season.total.shots_avg }}</td>
+                                        <td class="text-center" style="color: #ffffff;">{{ season.total.ratio }}%</td>
+                                        <td class="text-center" style="color: #f59e0b;">{{ season.total.assists_avg }}</td>
+                                        <td class="text-center" style="color: #a78bfa;">{{ season.total.saves_avg }}</td>
+                                        <td class="text-center" style="color: #fcd34d;">{{ season.total.mvps }}</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
                     </div>
-
-                    <div class="card chart-card">
-                        <h3>Score par match (Par Playlist)</h3>
-                        <div id="scoreChartFilters" class="chart-filters"></div>
-                        <canvas id="scoreChart"></canvas>
-                    </div>
-
-                    <div class="card chart-card">
-                        <h3>Buts + Saves</h3>
-                        <canvas id="goalsSavesChart"></canvas>
-                    </div>
-                </div>
-
-                <div class="grid grid-2" style="margin-top: 16px;">
-                    <div class="card chart-card">
-                        <h3>Radar stats</h3>
-                        <canvas id="radarChart"></canvas>
-                    </div>
-
-                    <div class="card chart-card">
-                        <h3>Victoire / Défaite</h3>
-                        <canvas id="pieChart"></canvas>
-                    </div>
-                </div>
+                {% else %}
+                    <p class="muted">Aucune donnée saisonnière disponible.</p>
+                {% endfor %}
             </section>
 
-            <section id="history" class="section">
+            <!-- SECTION HISTORIQUE RECENT -->
+            <section id="history-recent" class="section" style="display: none;">
                 <div class="history-section-header">
                     <div>
-                        <h2 class="section-title" style="margin-bottom: 4px;">Historique</h2>
-                        <p class="section-subtitle">Historique détaillé des matchs de {{ mate_name }}.</p>
+                        <h2 class="section-title" style="margin-bottom: 4px;">Historique Récent</h2>
+                        <p class="section-subtitle">Aperçu détaillé des 20 derniers matchs de {{ mate_name }}.</p>
                     </div>
-                    <button class="history-toggle-btn" id="toggleHistory">
-                        <span id="btnText">Afficher les matchs</span>
+                    <button class="history-toggle-btn" id="toggleHistoryRecent">
+                        <span id="btnTextRecent">Afficher les matchs</span>
                         <span class="icon">▼</span>
                     </button>
                 </div>
 
                 <div class="history-controls">
-                    <button class="filter-btn active" data-filter="all">Tous</button>
-                    <button class="filter-btn" data-filter="win">Victoires</button>
-                    <button class="filter-btn" data-filter="loss">Défaites</button>
-                    <button class="filter-btn" data-filter="ranked">Ranked</button>
-                    <button class="filter-btn" data-filter="casual">Casual</button>
-                    <button class="filter-btn" data-filter="private">Private</button>
-                    <button class="filter-btn" data-filter="tournament">Tournament</button>
-                    <button class="filter-btn" data-filter="unknown">Unknown</button>
+                    <button class="filter-btn-recent active" data-filter="all">Tous</button>
+                    <button class="filter-btn-recent" data-filter="win">Victoires</button>
+                    <button class="filter-btn-recent" data-filter="loss">Défaites</button>
+                    <button class="filter-btn-recent" data-filter="ranked">Ranked</button>
+                    <button class="filter-btn-recent" data-filter="casual">Casual</button>
+                    <button class="filter-btn-recent" data-filter="private">Private</button>
+                    <button class="filter-btn-recent" data-filter="tournament">Tournois</button>
                 </div>
                 
                 <p class="history-summary">
-                    Affichés : <span id="historyCount">0</span> |
-                    Victoires : <span id="historyWins">0</span> |
-                    Défaites : <span id="historyLosses">0</span>
+                    Affichés : <span id="historyCountRecent">0</span> |
+                    Victoires : <span id="historyWinsRecent">0</span> |
+                    Défaites : <span id="historyLossesRecent">0</span>
                 </p>
 
-                <div class="history-scroll-container" id="historyContainer">
+                <div class="history-scroll-container" id="historyContainerRecent">
                     <div class="card" style="padding: 0; background: transparent; box-shadow: none; border: none;">
                         <table style="margin-top: 0;">
                             <thead>
@@ -222,13 +316,14 @@
                                     <th>Résultat</th>
                                     <th>Score</th>
                                     <th>Buts</th>
-                                    <th>Assists</th>
-                                    <th>Saves</th>
-                                    <th>Shots</th>
-                                    <th>Ballchasing</th>
+                                    <th>Passes</th>
+                                    <th>Arrêts</th>
+                                    <th>Tirs</th>
+                                    <th>Démos</th>
+                                    <th>Possession</th>
                                 </tr>
                             </thead>
-                            <tbody id="historyTableBody">
+                            <tbody id="historyTableBodyRecent">
                             {% for row in history %}
                                 <tr data-result="{{ 'win' if row.result == 'Victoire' else 'loss' }}" data-playlist="{{ row.playlist | lower }}">
                                     <td>{{ row.date }}</td>
@@ -251,17 +346,12 @@
                                     <td>{{ row.assists }}</td>
                                     <td>{{ row.saves }}</td>
                                     <td>{{ row.shots }}</td>
-                                    <td>
-                                        {% if row.ballchasing_url %}
-                                            <a href="{{ row.ballchasing_url }}" target="_blank" class="bc-link">📊 Voir</a>
-                                        {% else %}
-                                            <span class="muted">-</span>
-                                        {% endif %}
-                                    </td>
+                                    <td>{{ row.demolishes }}</td>
+                                    <td>{{ row.possession_time }}</td>
                                 </tr>
                             {% else %}
                                 <tr>
-                                    <td colspan="9" class="muted">Aucun match disponible.</td>
+                                    <td colspan="10" class="muted">Aucun match disponible.</td>
                                 </tr>
                             {% endfor %}
                             </tbody>
@@ -269,25 +359,221 @@
                     </div>
                 </div>
             </section>
+
+            <!-- SECTION HISTORIQUE GLOBAL -->
+            <section id="history-global" class="section">
+                <div class="history-section-header">
+                    <div>
+                        <h2 class="section-title" style="margin-bottom: 4px;">Historique Global</h2>
+                        <p class="section-subtitle">Aperçu complet de l'ensemble des matchs enregistrés pour {{ mate_name }}.</p>
+                    </div>
+                    <button class="history-toggle-btn" id="toggleHistoryGlobal">
+                        <span id="btnTextGlobal">Afficher les matchs</span>
+                        <span class="icon">▼</span>
+                    </button>
+                </div>
+
+                <div class="history-controls">
+                    <button class="filter-btn-global active" data-filter="all">Tous</button>
+                    <button class="filter-btn-global" data-filter="win">Victoires</button>
+                    <button class="filter-btn-global" data-filter="loss">Défaites</button>
+                    <button class="filter-btn-global" data-filter="ranked">Ranked</button>
+                    <button class="filter-btn-global" data-filter="casual">Casual</button>
+                    <button class="filter-btn-global" data-filter="private">Private</button>
+                    <button class="filter-btn-global" data-filter="tournament">Tournois</button>
+                </div>
+                
+                <p class="history-summary">
+                    Affichés : <span id="historyCountGlobal">0</span> |
+                    Victoires : <span id="historyWinsGlobal">0</span> |
+                    Défaites : <span id="historyLossesGlobal">0</span>
+                </p>
+
+                <div class="history-scroll-container" id="historyContainerGlobal">
+                    <div class="card" style="padding: 0; background: transparent; box-shadow: none; border: none;">
+                        <table style="margin-top: 0;">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Playlist</th>
+                                    <th>Résultat</th>
+                                    <th>Score</th>
+                                    <th>Buts</th>
+                                    <th>Passes</th>
+                                    <th>Arrêts</th>
+                                    <th>Tirs</th>
+                                    <th>Démos</th>
+                                    <th>Possession</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyTableBodyGlobal">
+                            {% for row in history_global %}
+                                <tr data-result="{{ 'win' if row.result == 'Victoire' else 'loss' }}" data-playlist="{{ row.playlist | lower }}">
+                                    <td>{{ row.date }}</td>
+                                    <td>
+                                        {% if 'inconnue' in row.playlist | lower or 'unknown' in row.playlist | lower %}
+                                            <span class="playlist-unknown">{{ row.playlist }}</span>
+                                        {% else %}
+                                            <span class="playlist-badge">{{ row.playlist }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if row.result == 'Victoire' %}
+                                            <span class="result-badge result-win">Victoire</span>
+                                        {% else %}
+                                            <span class="result-badge result-loss">Défaite</span>
+                                        {% endif %}
+                                    </td>
+                                    <td><span class="score-badge">{{ row.score }}</span></td>
+                                    <td>{{ row.goals }}</td>
+                                    <td>{{ row.assists }}</td>
+                                    <td>{{ row.saves }}</td>
+                                    <td>{{ row.shots }}</td>
+                                    <td>{{ row.demolishes }}</td>
+                                    <td>{{ row.possession_time }}</td>
+                                </tr>
+                            {% else %}
+                                <tr>
+                                    <td colspan="10" class="muted">Aucun match disponible.</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <section id="graphs" class="section">
+                <h2 class="section-title">Graphiques</h2>
+                <p class="section-subtitle">Évolution des performances de {{ mate_name }}.</p>
+
+                <div class="grid grid-1">
+                    <div class="card chart-card">
+                        <h3 class="chart-header-with-icon">
+                            Progression du Rating
+                            <span class="info-icon" data-tooltip="Score sur 100 basé sur : Victoire (20%), Score (25% - Base 500), Arrêts (20% - Base 2.5), Buts (15% - Base 2), Tirs (10% - Base 4) et Passes (10% - Base 1).">?</span>
+                        </h3>
+                        <div id="ratingChartFilters" class="chart-filters"></div>
+                        <canvas id="ratingChart"></canvas>
+                    </div>
+
+                    <div class="card chart-card">
+                        <h3>Score par match (Par Playlist)</h3>
+                        <div id="scoreChartFilters" class="chart-filters"></div>
+                        <canvas id="scoreChart"></canvas>
+                    </div>
+
+                <div class="grid grid-2">
+                    <div class="card chart-card">
+                        <h3>Buts</h3>
+                        <canvas id="goalsChart"></canvas>
+                    </div>
+                    <div class="card chart-card">
+                        <h3>Tirs</h3>
+                        <canvas id="shotsChart"></canvas>
+                    </div>
+                    <div class="card chart-card">
+                        <h3>Passes</h3>
+                        <canvas id="assistsChart"></canvas>
+                    </div>
+                    <div class="card chart-card">
+                        <h3>Arrêts</h3>
+                        <canvas id="savesChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="grid grid-3" style="margin-top: 16px;">
+                    <div class="card chart-card">
+                        <h3>Consommation Boost</h3>
+                        <canvas id="boostChart"></canvas>
+                    </div>
+                    <div class="card chart-card">
+                        <h3>Temps de Possession (sec)</h3>
+                        <canvas id="possessionChart"></canvas>
+                    </div>
+                    <div class="card chart-card">
+                        <h3>Démolitions</h3>
+                        <canvas id="demolishesChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="grid grid-2" style="margin-top: 16px;">
+                    <div class="card chart-card">
+                        <h3>Radar stats</h3>
+                        <canvas id="radarChart"></canvas>
+                    </div>
+
+                    <div class="card chart-card">
+                        <h3>Victoires / Défaites</h3>
+                        <canvas id="pieChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+
         </div>
     </main>
 </div>
 
 <script>
-    initPlayerDetailCharts({
-        player_name: {{ mate_name | tojson }},
-        rating: {{ charts.rating | tojson }},
-        score: {{ charts.score | tojson }},
-        score_by_playlist: {{ charts.score_by_playlist | tojson }},
-        goals_saves: {{ charts.goals_saves | tojson }},
-        radar: {{ charts.radar | tojson }},
-        pie: {{ charts.pie | tojson }}
-    });
+    const DATA_RECENT = {{ charts | tojson }};
+    const DATA_GLOBAL = {{ charts_global | tojson }};
+    const MATE_NAME = {{ mate_name | tojson }};
+
+    function switchTab(tabId) {
+        // Mise à jour des boutons d'onglets
+        document.querySelectorAll('.detail-tab').forEach(el => el.classList.remove('active'));
+        const activeBtn = document.getElementById('tab-btn-' + tabId);
+        if (activeBtn) activeBtn.classList.add('active');
+
+        // Éléments à basculer
+        const statsRecent = document.getElementById('stats-recent');
+        const statsGlobal = document.getElementById('stats-global');
+        const indRecent = document.getElementById('indicators-recent');
+        const indGlobal = document.getElementById('indicators-global');
+        const ratingRecent = document.getElementById('rating-recent');
+        const ratingGlobal = document.getElementById('rating-global');
+        const seasonalStats = document.getElementById('seasonal-stats');
+        const historyRecent = document.getElementById('history-recent');
+        const historyGlobal = document.getElementById('history-global');
+        const graphSubtitle = document.querySelector('#graphs .section-subtitle');
+
+        if (tabId === 'recent') {
+            if (statsRecent) statsRecent.style.display = 'flex';
+            if (statsGlobal) statsGlobal.style.display = 'none';
+            if (indRecent) indRecent.style.display = 'block';
+            if (indGlobal) indGlobal.style.display = 'none';
+            if (ratingRecent) ratingRecent.style.display = 'block';
+            if (ratingGlobal) ratingGlobal.style.display = 'none';
+            if (seasonalStats) seasonalStats.style.display = 'none';
+            if (historyRecent) historyRecent.style.display = 'block';
+            if (historyGlobal) historyGlobal.style.display = 'none';
+            if (graphSubtitle) graphSubtitle.textContent = "Évolution des performances de " + MATE_NAME + " (20 derniers matchs).";
+            
+            initPlayerDetailCharts({ player_name: MATE_NAME, ...DATA_RECENT });
+        } else {
+            if (statsRecent) statsRecent.style.display = 'none';
+            if (statsGlobal) statsGlobal.style.display = 'flex';
+            if (indRecent) indRecent.style.display = 'none';
+            if (indGlobal) indGlobal.style.display = 'block';
+            if (ratingRecent) ratingRecent.style.display = 'none';
+            if (ratingGlobal) ratingGlobal.style.display = 'block';
+            if (seasonalStats) seasonalStats.style.display = 'block';
+            if (historyRecent) historyRecent.style.display = 'none';
+            if (historyGlobal) historyGlobal.style.display = 'block';
+            if (graphSubtitle) graphSubtitle.textContent = "Statistiques cumulées de " + MATE_NAME + " sur l'ensemble des matchs.";
+            
+            initPlayerDetailCharts({ player_name: MATE_NAME, ...DATA_GLOBAL });
+        }
+    }
+
+    // Initialisation par défaut sur l'onglet global
+    switchTab('global');
 
     // History filtering logic
     function setupHistoryFilters(btnClass, tableBodyId, countIds) {
         const filterButtons = document.querySelectorAll(btnClass);
-        const historyRows = document.querySelectorAll(`#${tableBodyId} tr[data-result]`); // only match data rows
+        const historyRows = document.querySelectorAll(`#${tableBodyId} tr[data-result]`);
         const countSpan = document.getElementById(countIds.total);
         const winsSpan = document.getElementById(countIds.wins);
         const lossesSpan = document.getElementById(countIds.losses);
@@ -325,7 +611,6 @@
                 else if (filter === "casual") show = playlist.includes("casual");
                 else if (filter === "private") show = playlist.includes("private") || playlist.includes("privé");
                 else if (filter === "tournament") show = playlist.includes("tournament") || playlist.includes("tournoi");
-                else if (filter === "unknown") show = playlist.includes("unknown") || playlist.includes("inconnue");
                 
                 row.classList.toggle("hidden-row", !show);
             });
@@ -343,58 +628,39 @@
         updateCounters();
     }
 
-    setupHistoryFilters(".filter-btn", "historyTableBody", {
-        total: "historyCount", wins: "historyWins", losses: "historyLosses"
+    // Init Recent History
+    setupHistoryFilters(".filter-btn-recent", "historyTableBodyRecent", {
+        total: "historyCountRecent", wins: "historyWinsRecent", losses: "historyLossesRecent"
+    });
+
+    // Init Global History
+    setupHistoryFilters(".filter-btn-global", "historyTableBodyGlobal", {
+        total: "historyCountGlobal", wins: "historyWinsGlobal", losses: "historyLossesGlobal"
     });
 
     // Toggle scroll container logic
-    const toggleBtn = document.getElementById("toggleHistory");
-    const historyContainer = document.getElementById("historyContainer");
-    const btnText = document.getElementById("btnText");
+    function setupToggle(btnId, containerId, textId) {
+        const toggleBtn = document.getElementById(btnId);
+        const container = document.getElementById(containerId);
+        const btnText = document.getElementById(textId);
 
-    if (toggleBtn && historyContainer) {
-        toggleBtn.addEventListener("click", () => {
-            const isExpanded = historyContainer.classList.toggle("expanded");
-            toggleBtn.classList.toggle("active");
-            if (isExpanded) {
-                btnText.textContent = "Réduire le tableau";
-            } else {
-                btnText.textContent = "Afficher les matchs";
-            }
-        });
-    }
-
-    // --- AUTO-REFRESH LOGIC ---
-    let latestMatchId = 0;
-    const refreshToggle = document.getElementById("autoRefreshToggle");
-
-    // Initialize latestMatchId on load
-    fetch("/api/latest-match-id").then(res => res.json()).then(data => {
-        latestMatchId = data.latest_id;
-    });
-
-    // Load state
-    if (localStorage.getItem("autoRefreshEnabled") === "true") {
-        refreshToggle.checked = true;
-    }
-
-    refreshToggle.addEventListener("change", () => {
-        localStorage.setItem("autoRefreshEnabled", refreshToggle.checked);
-    });
-
-    setInterval(async () => {
-        if (!refreshToggle.checked) return;
-
-        try {
-            const res = await fetch("/api/latest-match-id");
-            const data = await res.json();
-            if (data.latest_id > latestMatchId) {
-                window.location.reload();
-            }
-        } catch (e) {
-            console.error("Polling error:", e);
+        if (toggleBtn && container) {
+            toggleBtn.addEventListener("click", () => {
+                const isExpanded = container.classList.toggle("expanded");
+                toggleBtn.classList.toggle("active");
+                if (btnText) {
+                    btnText.textContent = isExpanded ? "Réduire le tableau" : "Afficher les matchs";
+                }
+            });
         }
-    }, 15000);
+    }
+
+    setupToggle("toggleHistoryRecent", "historyContainerRecent", "btnTextRecent");
+    setupToggle("toggleHistoryGlobal", "historyContainerGlobal", "btnTextGlobal");
 </script>
+
 </body>
+
+
+
 </html>
