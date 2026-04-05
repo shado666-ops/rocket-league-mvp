@@ -21,3 +21,7 @@ tracker_pids.json
 # OS specific
 .DS_Store
 Thumbs.db
+
+# Server PIDs
+data/server.pid
+data/watcher.pid
