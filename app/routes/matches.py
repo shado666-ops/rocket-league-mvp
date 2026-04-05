@@ -205,6 +205,12 @@ async def upload_replay(replay_file: UploadFile = File(...), mtime: float = None
             30: "Chaos (Ranked)",
             31: "Gridiron",
             34: "Knockout",
+            38: "Heatseeker",
+            41: "3v3 Tournament",
+            43: "2v2 Tournament",
+            45: "1v1 Tournament",
+            47: "2v2 Tournament (Double Elim)",
+            48: "3v3 Tournament (Double Elim)",
         }
         
         # Tentative d'extraction intelligente de l'ID de la playlist
@@ -241,9 +247,11 @@ async def upload_replay(replay_file: UploadFile = File(...), mtime: float = None
             
             replay_name = props.get("ReplayName", "").lower()
             
-            # Logique Demandée : Online -> Ranked, Pas Online -> Casual
+            # Logique Demandée : Online -> Ranked, Tournament -> Tournament, Private -> Private, else Casual
             if match_type == "Online" or "online" in replay_name:
                 display_type = "Ranked"
+            elif match_type == "Tournament" or "tournoi" in replay_name or "tournament" in replay_name:
+                display_type = "Tournament"
             elif match_type == "Private":
                 display_type = "Private Match"
             else:

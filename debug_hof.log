@@ -1,0 +1,7 @@
+Traceback (most recent call last):
+  File "C:\Users\perno\Desktop\Rocket-League-MVP-Propre\app\routes\analytics.py", line 19, in analytics_page
+    rankings_public = get_rankings_data(db, min_matches=5, match_filter="public")
+  File "C:\Users\perno\Desktop\Rocket-League-MVP-Propre\app\services\stats_service.py", line 1120, in get_rankings_data
+    if ("3v3" in playlist_lower or "standard" in playlist_lower) and len(members) == 2:
+                 ^^^^^^^^^^^^^^
+NameError: name 'playlist_lower' is not defined

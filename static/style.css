@@ -598,9 +598,9 @@ html {
 .badge-main {
     background: #38bdf8;
     color: #0f172a;
-    border-radius: 8px;
+    border-radius: 999px;
     white-space: nowrap;
-    padding: 6px 12px;
+    padding: 6px 10px;
 }
 
 /* Info Icon Tooltips */
@@ -901,7 +901,7 @@ canvas {
     border-radius: 6px;
 }
 
-.filter-btn, .filter-btn-club, .filter-btn-recent, .filter-btn-global {
+.filter-btn, .filter-btn-club, .filter-btn-recent, .filter-btn-global, .filter-btn-private, .filter-btn-ranked, .filter-btn-tournament {
     background: #1e293b;
     color: white;
     border: 1px solid #334155;
@@ -913,11 +913,11 @@ canvas {
     transition: background 0.2s ease;
 }
 
-.filter-btn:hover, .filter-btn-club:hover, .filter-btn-recent:hover, .filter-btn-global:hover {
+.filter-btn:hover, .filter-btn-club:hover, .filter-btn-recent:hover, .filter-btn-global:hover, .filter-btn-private:hover, .filter-btn-ranked:hover, .filter-btn-tournament:hover {
     background: #334155;
 }
 
-.filter-btn.active, .filter-btn-club.active, .filter-btn-recent.active, .filter-btn-global.active {
+.filter-btn.active, .filter-btn-club.active, .filter-btn-recent.active, .filter-btn-global.active, .filter-btn-private.active, .filter-btn-ranked.active, .filter-btn-tournament.active {
     background: #2563eb;
     border-color: #3b82f6;
 }
@@ -1084,7 +1084,7 @@ canvas {
 
 .sort-controls-grid {
     display: grid;
-    grid-template-columns: repeat(5, minmax(100px, 130px));
+    grid-template-columns: repeat(7, minmax(100px, 130px));
     gap: 8px;
     justify-content: flex-end;
 }
@@ -1213,7 +1213,7 @@ canvas {
 
 .club-member-stats {
     display: grid;
-    grid-template-columns: repeat(5, minmax(100px, 130px));
+    grid-template-columns: repeat(6, minmax(100px, 130px));
     gap: 8px;
     font-size: 0.85rem;
     color: #94a3b8;
@@ -1240,6 +1240,7 @@ canvas {
 }
 
 .stat-winrate { color: #00b894; }
+.stat-rating { color: #f472b6; }
 .stat-goals { color: #4ade80; }
 .stat-shots { color: #3b82f6; }
 .stat-assists { color: #f59e0b; }
@@ -1478,15 +1479,56 @@ input:checked + .slider:before {
 }
 
 /* --- HALL OF FAME (Analytics) --- */
-.hof-section {
-    padding-bottom: 40px;
+/* Split Layout for HoF */
+.hof-split-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    align-items: start;
+}
+
+/* Vertical line separation */
+@media (min-width: 1201px) {
+    .hof-column:nth-child(2) {
+        border-left: 4px solid rgba(255, 255, 255, 0.1);
+        padding-left: 40px;
+    }
+}
+
+@media (max-width: 1200px) {
+    .hof-split-container {
+        grid-template-columns: 1fr;
+        gap: 50px;
+    }
+    .hof-column:nth-child(2) {
+        border-top: 4px dashed rgba(255, 255, 255, 0.08);
+        padding-top: 30px;
+    }
+}
+
+.content-container.hof-container {
+    max-width: 1800px;
+}
+
+.hof-column-title {
+    text-align: center;
+    font-size: 1.8rem;
+    font-weight: 900;
+    margin-bottom: 25px;
+    padding: 15px;
+    background: rgba(30, 41, 59, 0.3);
+    border-radius: 16px;
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 .hof-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 24px;
-    margin-top: 30px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    width: 100%;
 }
 
 .hof-card {
@@ -1494,7 +1536,7 @@ input:checked + .slider:before {
     backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 24px;
-    padding: 30px;
+    padding: 15px;
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
@@ -1503,6 +1545,33 @@ input:checked + .slider:before {
     align-items: center;
     text-align: center;
     box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    width: 100%;
+    margin: 0;
+    min-height: 310px; /* Further reduced height */
+}
+
+.hof-card-featured {
+    grid-column: span 3;
+    padding: 25px 15px;
+    min-height: 420px;
+}
+
+@media (max-width: 1600px) {
+    .hof-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .hof-card-featured {
+        grid-column: span 2;
+    }
+}
+
+@media (max-width: 1200px) {
+    .hof-grid {
+        grid-template-columns: 1fr;
+    }
+    .hof-card-featured {
+        grid-column: span 1;
+    }
 }
 
 .hof-card:hover {
@@ -1523,26 +1592,30 @@ input:checked + .slider:before {
 }
 
 .hof-icon {
-    font-size: 3rem;
-    margin-bottom: 20px;
+    font-size: 2.2rem;
+    margin-bottom: 12px;
     filter: drop-shadow(0 0 10px rgba(255,255,255,0.2));
 }
 
 .hof-title {
-    font-size: 1.1rem;
+    font-size: 0.9rem;
     font-weight: 800;
     color: #94a3b8;
     text-transform: uppercase;
     letter-spacing: 2px;
-    margin-bottom: 15px;
+    margin-bottom: 8px;
 }
 
 .hof-winner-name {
-    font-size: 2.2rem;
+    font-size: 1.5rem; /* Even more compact */
     font-weight: 900;
     color: #fff;
     margin-bottom: 5px;
     letter-spacing: -0.5px;
+    min-height: 2.4rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .hof-winner-value {
@@ -1555,18 +1628,20 @@ input:checked + .slider:before {
 .hof-runners-up {
     width: 100%;
     border-top: 1px solid rgba(255, 255, 255, 0.05);
-    padding-top: 20px;
+    padding-top: 12px;
+    min-height: 95px; /* Maximum compactness */
+    margin-top: auto;
 }
 
 .hof-runner {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
-    padding: 8px 12px;
+    margin-bottom: 6px;
+    padding: 5px 10px;
     background: rgba(15, 23, 42, 0.4);
     border-radius: 12px;
-    font-size: 0.95rem;
+    font-size: 0.85rem;
 }
 
 .hof-runner-rank {

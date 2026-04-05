@@ -58,9 +58,10 @@
                     <div class="club-sort-container" style="margin-bottom: 24px;">
                         <div class="club-sort-left">
                             <span class="sort-label">Trier par :</span>
-                            <button class="filter-btn-club active" data-sort="default">Défaut</button>
                         </div>
                         <div class="sort-controls-grid">
+                            <button class="filter-btn-club active" data-sort="default">Défaut</button>
+                            <button class="filter-btn-club" data-sort="rating">Rating</button>
                             <button class="filter-btn-club" data-sort="winrate">Winrate</button>
                             <button class="filter-btn-club" data-sort="goals">Buts/m</button>
                             <button class="filter-btn-club" data-sort="shots">Tirs/m</button>
@@ -73,6 +74,7 @@
                         <a href="/mates/{{ main_player_name }}" class="club-member-card main-player-card" 
                            data-index="0"
                            data-name="{{ main_player_name | lower }}"
+                           data-rating="{{ summary.performance_rating }}"
                            data-winrate="{{ summary.winrate }}"
                            data-goals="{{ summary.goals_per_match }}"
                            data-shots="{{ summary.shots_per_match }}"
@@ -98,6 +100,7 @@
                                 <span class="club-member-name">{{ main_player_name }}👑</span>
                             </div>
                             <div class="club-member-stats">
+                                <span class="stat-item"><span class="stat-label stat-rating">Rating</span> {{ summary.performance_rating }}</span>
                                 <span class="stat-item"><span class="stat-label stat-winrate">Winrate</span> {{ summary.winrate }}%</span>
                                 <span class="stat-item"><span class="stat-label stat-goals">Buts/m</span> {{ summary.goals_per_match }}</span>
                                 <span class="stat-item"><span class="stat-label stat-shots">Tirs/m</span> {{ summary.shots_per_match }}</span>
@@ -111,6 +114,7 @@
                                 <a href="/mates/{{ member.display_name }}" class="club-member-card {% if not member.is_active %}club-member-card-inactive{% endif %}"
                                    data-index="{{ loop.index }}"
                                    data-name="{{ member.display_name | lower }}"
+                                   data-rating="{{ member.stats.performance_rating }}"
                                    data-winrate="{{ member.stats.winrate }}"
                                    data-goals="{{ member.stats.goals_per_match }}"
                                    data-shots="{{ member.stats.shots_per_match }}"
@@ -140,6 +144,7 @@
                                         </span>
                                     </div>
                                     <div class="club-member-stats">
+                                        <span class="stat-item"><span class="stat-label stat-rating">Rating</span> {{ member.stats.performance_rating }}</span>
                                         <span class="stat-item"><span class="stat-label stat-winrate">Winrate</span> {{ member.stats.winrate }}%</span>
                                         <span class="stat-item"><span class="stat-label stat-goals">Buts/m</span> {{ member.stats.goals_per_match }}</span>
                                         <span class="stat-item"><span class="stat-label stat-shots">Tirs/m</span> {{ member.stats.shots_per_match }}</span>
@@ -210,11 +215,12 @@
             // Collect and sort cards
             const cards = Array.from(grid.querySelectorAll('.club-member-card'));
             cards.sort((a, b) => {
-                let valA = a.dataset[criteria];
-                let valB = b.dataset[criteria];
+                const sortKey = criteria === 'default' ? 'index' : criteria;
+                let valA = a.dataset[sortKey];
+                let valB = b.dataset[sortKey];
 
                 // Convert numbers to float if criteria is a stat or index
-                if (criteria !== 'name') {
+                if (sortKey !== 'name') {
                     valA = parseFloat(valA) || 0;
                     valB = parseFloat(valB) || 0;
                 }

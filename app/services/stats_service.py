@@ -11,6 +11,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 
 import json
+import app.services.private_service as ps
 from models import ClubMember, Match, MatchPlayerStat, Player, Season, Setting, Notification
 
 MAIN_PLAYER_NAME = "Shado666"
@@ -109,14 +110,14 @@ def get_active_club_member_names(db: Session) -> list[str]:
     return [row[0] for row in rows]
 
 
-def get_player_rows(db: Session, player_name: str) -> list[MatchPlayerStat]:
+def get_player_rows(db: Session, player_name: str, exclude_casual: bool = False) -> list[MatchPlayerStat]:
     # Si c'est un membre du club, on récupère aussi ses pseudos/aliases
     member = db.query(ClubMember).filter(ClubMember.display_name == player_name).first()
     pseudos = [player_name]
     if member:
         pseudos += [a.pseudo for a in member.aliases]
 
-    return (
+    query = (
         db.query(MatchPlayerStat)
         .join(Player, MatchPlayerStat.player_id == Player.id)
         .join(Match, MatchPlayerStat.match_id == Match.id)
@@ -125,6 +126,13 @@ def get_player_rows(db: Session, player_name: str) -> list[MatchPlayerStat]:
             joinedload(MatchPlayerStat.match).joinedload(Match.player_stats)
         )
         .filter(Player.display_name.in_(pseudos))
+    )
+    
+    if exclude_casual:
+        query = query.filter(~Match.playlist.ilike("%casual%"))
+        
+    return (
+        query
         .order_by(Match.played_at.asc(), Match.id.asc())
         .all()
     )
@@ -765,7 +773,8 @@ def delete_season(db: Session, season_id: int):
 
 
 def get_dashboard_data(db: Session, limit: int | None = 20) -> dict[str, Any]:
-    player_rows = get_player_rows(db, MAIN_PLAYER_NAME)
+    # On exclut casual par défaut pour les stats globales du dashboard
+    player_rows = get_player_rows(db, MAIN_PLAYER_NAME, exclude_casual=True)
     
     # Harmonisation : On ne garde que les derniers matchs demandés pour le dashboard
     recent_player_rows = player_rows[-limit:] if limit is not None else player_rows
@@ -836,22 +845,78 @@ def get_mate_detail_data(db: Session, mate_name: str) -> dict[str, Any] | None:
 
     rows = get_player_rows(db, mate_name)
     
-    # Statistiques des 20 derniers matchs
-    recent_rows = rows[-20:]
+    # Split rows into functional categories using private_service
+    private_rows = ps.filter_private_rows(rows)
+    
+    # Ranked: Only Ranked/Competitive playlists
+    ranked_rows = ps.filter_ranked_rows(rows)
+    
+    # Global: Everything EXCEPT Casual (Includes Ranked + Private + Tournament + etc)
+    global_rows = ps.filter_non_casual_rows(rows)
+    
+    # Recent: Latest 20 RANKED matches (as requested)
+    recent_rows = ranked_rows[-20:]
+    
+    # Tournament: Only tournament playlists
+    tournament_rows = ps.filter_tournament_rows(rows)
+    
+    # Calculate Summaries and Indicators
     summary_recent = build_player_summary(recent_rows)
     extra_recent = build_player_history_and_charts(recent_rows)
     indicators_recent = build_progress_indicators(summary_recent)
 
-    # Statistiques globales (tous les matchs)
-    summary_global = build_player_summary(rows)
-    extra_global = build_player_history_and_charts(rows)
+    summary_global = build_player_summary(global_rows)
+    extra_global = build_player_history_and_charts(global_rows)
     indicators_global = build_progress_indicators(summary_global)
+    
+    summary_ranked = build_player_summary(ranked_rows)
+    extra_ranked = build_player_history_and_charts(ranked_rows)
+    indicators_ranked = build_progress_indicators(summary_ranked)
+    
+    summary_private = build_player_summary(private_rows)
+    extra_private = build_player_history_and_charts(private_rows)
+    indicators_private = build_progress_indicators(summary_private)
+
+    summary_tournament = build_player_summary(tournament_rows)
+    extra_tournament = build_player_history_and_charts(tournament_rows)
+    indicators_tournament = build_progress_indicators(summary_tournament)
 
     club_name = get_club_name(db)
-
-    # Seasonal statistics aggregation
     seasons_meta = db.query(Season).order_by(Season.start_date.desc()).all()
-    
+
+    return {
+        "mate_name": mate_name,
+        "is_main_player": (mate_name == MAIN_PLAYER_NAME),
+        "club_name": club_name,
+        "club_tag": get_club_tag(db),
+        "summary": summary_recent,
+        "summary_global": summary_global,
+        "summary_ranked": summary_ranked,
+        "summary_private": summary_private,
+        "summary_tournament": summary_tournament,
+        "history": extra_recent["history"],
+        "history_global": extra_global["history"],
+        "history_ranked": extra_ranked["history"],
+        "history_private": extra_private["history"],
+        "history_tournament": extra_tournament["history"],
+        "charts": extra_recent["charts"],
+        "charts_global": extra_global["charts"],
+        "charts_ranked": extra_ranked["charts"],
+        "charts_private": extra_private["charts"],
+        "charts_tournament": extra_tournament["charts"],
+        "indicators": indicators_recent,
+        "indicators_global": indicators_global,
+        "indicators_ranked": indicators_ranked,
+        "indicators_private": indicators_private,
+        "indicators_tournament": indicators_tournament,
+        "seasons_stats": get_seasonal_stats_for_rows(global_rows, seasons_meta),
+        "seasons_stats_ranked": get_seasonal_stats_for_rows(ranked_rows, seasons_meta),
+        "seasons_stats_private": get_seasonal_stats_for_rows(private_rows, seasons_meta),
+        "seasons_stats_tournament": get_seasonal_stats_for_rows(tournament_rows, seasons_meta),
+        "unread_notifications_count": get_unread_notifications_count(db),
+    }
+
+def get_seasonal_stats_for_rows(rows: list[MatchPlayerStat], seasons_meta: list[Season]) -> list[dict[str, Any]]:
     # key: season_name -> key: playlist -> stats
     seasonal_data = defaultdict(lambda: defaultdict(lambda: {
         "matches": 0, "wins": 0, "goals": 0, "assists": 0, "saves": 0, "shots": 0, "score": 0, "mvps": 0
@@ -865,7 +930,6 @@ def get_mate_detail_data(db: Session, mate_name: str) -> dict[str, Any] | None:
         all_stats = r.match.player_stats
         winning_team = next((ps.team for ps in all_stats if ps.won), None)
         if winning_team is not None:
-            # MVP is highest score on winning team
             winning_team_stats = [ps for ps in all_stats if ps.team == winning_team]
             if winning_team_stats:
                 max_score = max(ps.score for ps in winning_team_stats)
@@ -873,7 +937,6 @@ def get_mate_detail_data(db: Session, mate_name: str) -> dict[str, Any] | None:
             else:
                 is_mvp = False
         else:
-            # Fallback: highest score overall
             max_overall = max(ps.score for ps in all_stats)
             is_mvp = (r.score == max_overall)
 
@@ -888,15 +951,11 @@ def get_mate_detail_data(db: Session, mate_name: str) -> dict[str, Any] | None:
         if is_mvp: s["mvps"] += 1
 
     formatted_seasons = []
-    # Sort seasons: standard name ordering (S22 > S21 etc) or by date if possible
-    # Here we just iterate through seasons_meta to keep order
     season_names_in_order = [s.name for s in seasons_meta]
-    # Add any months that might be in seasonal_data but not in seasons_meta
     for s_name in seasonal_data.keys():
         if s_name not in season_names_in_order:
             season_names_in_order.append(s_name)
     
-    # Basic sort for now
     season_names_in_order.sort(reverse=True)
 
     for s_name in season_names_in_order:
@@ -921,7 +980,6 @@ def get_mate_detail_data(db: Session, mate_name: str) -> dict[str, Any] | None:
             for k in total_s: total_s[k] += p_stats[k]
         
         playlists_list.sort(key=lambda x: x["matches"], reverse=True)
-        club_name = get_club_name(db)
         
         formatted_seasons.append({
             "name": s_name,
@@ -939,22 +997,7 @@ def get_mate_detail_data(db: Session, mate_name: str) -> dict[str, Any] | None:
             }
         })
 
-    return {
-        "mate_name": mate_name,
-        "is_main_player": (mate_name == MAIN_PLAYER_NAME),
-        "club_name": club_name,
-        "club_tag": get_club_tag(db),
-        "summary": summary_recent,
-        "history": extra_recent["history"],
-        "history_global": extra_global["history"],
-        "charts": extra_recent["charts"],
-        "indicators": indicators_recent,
-        "summary_global": summary_global,
-        "charts_global": extra_global["charts"],
-        "indicators_global": indicators_global,
-        "seasons_stats": formatted_seasons,
-        "unread_notifications_count": unread_notifications_count,
-    }
+    return formatted_seasons
 
 def build_progress_indicators(summary: dict[str, float | int]) -> dict[str, dict[str, float | str]]:
     winrate = float(summary.get("winrate", 0))
@@ -980,11 +1023,6 @@ def build_progress_indicators(summary: dict[str, float | int]) -> dict[str, dict
             "value": round(goals_per_match, 2),
             "percent": min(round((goals_per_match / 2) * 100, 2), 100),
         },
-        "saves": {
-            "label": "Arrêts / match",
-            "value": round(saves_per_match, 2),
-            "percent": min(round((saves_per_match / 2.5) * 100, 2), 100),
-        },
         "shots": {
             "label": "Tirs / match",
             "value": round(shots_per_match, 2),
@@ -994,6 +1032,11 @@ def build_progress_indicators(summary: dict[str, float | int]) -> dict[str, dict
             "label": "Passes / match",
             "value": round(assists_per_match, 2),
             "percent": min(round((assists_per_match / 1) * 100, 2), 100),
+        },
+        "saves": {
+            "label": "Arrêts / match",
+            "value": round(saves_per_match, 2),
+            "percent": min(round((saves_per_match / 2.5) * 100, 2), 100),
         },
     }
 
@@ -1010,13 +1053,23 @@ def get_all_club_members(db: Session) -> list[dict[str, Any]]:
             "display_name": row.display_name,
             "is_active": row.is_active,
             "aliases": [{"id": a.id, "pseudo": a.pseudo} for a in row.aliases],
-            "stats": build_player_summary(get_player_rows(db, row.display_name))
+            "stats": build_player_summary(get_player_rows(db, row.display_name, exclude_casual=True))
         }
         for row in rows
     ]
 
-def get_rankings_data(db: Session, min_matches: int = 5) -> dict[str, Any]:
+def get_rankings_data(db: Session, min_matches: int = 5, match_filter: str = "all") -> dict[str, Any]:
     """Calculates rankings for all club members across various stats."""
+    
+    def format_val(val: Any) -> str:
+        if isinstance(val, (int, float)):
+            rounded = round(val, 2)
+            # Se fosse um número inteiro (ex: 12.0), mostra sem decimais
+            if rounded == int(rounded):
+                return str(int(rounded))
+            return str(rounded)
+        return str(val)
+
     primary_names = get_active_club_member_names(db)
     
     # We always include the main player
@@ -1041,11 +1094,20 @@ def get_rankings_data(db: Session, min_matches: int = 5) -> dict[str, Any]:
         player_stats = match.player_stats
         if not player_stats: continue
         
-        # Robust private match check
-        playlist_lower = match.playlist.lower()
-        is_private = "private" in playlist_lower or "privé" in playlist_lower
-        if is_private:
-            continue
+        playlist_lower = (match.playlist or "").lower()
+        
+        playlist_lower = (match.playlist or "").lower()
+        
+        # Consistent filtering based on match_filter
+        if match_filter == "public":
+            # Pour la colonne Classé, on ne veut que du classé compétitif pur
+            # Pas de casual, pas de privé, pas de tournoi
+            if ps.is_casual_match(playlist_lower) or ps.is_private_match(playlist_lower) or ps.is_tournament_match(playlist_lower):
+                continue
+        elif match_filter == "private":
+            # Pour la colonne Privé, on ne veut que du privé
+            if not ps.is_private_match(playlist_lower):
+                continue
 
         # Club members by team
         teams_club = defaultdict(list)
@@ -1073,6 +1135,8 @@ def get_rankings_data(db: Session, min_matches: int = 5) -> dict[str, Any]:
                     composition_streaks[comp_key]["current"] = 0
 
     sorted_compositions = sorted([{"name": k, "count": v} for k, v in composition_counts.items()], key=lambda x: x["count"], reverse=True)
+    for c in sorted_compositions:
+        c["display_value"] = f"{c['count']} matchs"
     best_composition = sorted_compositions[:3]
 
     # Calculate winrates for compositions with at least 5 matches
@@ -1083,15 +1147,35 @@ def get_rankings_data(db: Session, min_matches: int = 5) -> dict[str, Any]:
             win_compositions.append({"name": k, "winrate": winrate, "wins": composition_wins[k], "count": v})
             
     sorted_win_compositions = sorted(win_compositions, key=lambda x: x["winrate"], reverse=True)
+    for c in sorted_win_compositions:
+        c["display_value"] = f"{format_val(c['winrate'])}% win"
     best_win_composition = sorted_win_compositions[:3]
 
     # Calculate streaks for compositions
     sorted_streak_compositions = sorted([{"name": k, "streak": v["max"]} for k, v in composition_streaks.items()], key=lambda x: x["streak"], reverse=True)
+    for c in sorted_streak_compositions:
+        c["display_value"] = f"{c['streak']} victoires"
     best_streak_composition = sorted_streak_compositions[:3]
 
     all_stats = []
     for name in primary_names:
-        rows = get_player_rows(db, name)
+        # On exclut casual pour les classements également
+        rows = get_player_rows(db, name, exclude_casual=True)
+        
+        # Apply match_filter to rows
+        if match_filter != "all":
+            filtered_rows = []
+            for r in rows:
+                playlist_lower = (r.match.playlist or "").lower()
+                if match_filter == "public":
+                    # Uniquement du classé pur (exclut casual, privé, tournoi)
+                    if not (ps.is_casual_match(playlist_lower) or ps.is_private_match(playlist_lower) or ps.is_tournament_match(playlist_lower)):
+                        filtered_rows.append(r)
+                elif match_filter == "private":
+                    if ps.is_private_match(playlist_lower):
+                        filtered_rows.append(r)
+            rows = filtered_rows
+
         if len(rows) < min_matches:
             continue
             
@@ -1124,24 +1208,31 @@ def get_rankings_data(db: Session, min_matches: int = 5) -> dict[str, Any]:
     if not all_stats:
         return {}
 
-    def get_top(stat_key: str, reverse: bool = True):
+    def get_top(stat_key: str, suffix: str = "", reverse: bool = True):
         sorted_list = sorted(all_stats, key=lambda x: x[stat_key], reverse=reverse)
-        return sorted_list[:3] # Return top 3
+        top_3 = []
+        for item in sorted_list[:3]:
+            # Criamos uma cópia para evitar modificar o objeto original compartilhado entre rankings
+            item_copy = item.copy()
+            val = item_copy[stat_key]
+            item_copy["display_value"] = f"{format_val(val)}{suffix}"
+            top_3.append(item_copy)
+        return top_3
 
     return {
-        "best_overall": get_top("rating"),
-        "best_mvp": get_top("mvps"),
-        "best_winrate": get_top("winrate"),
-        "best_score": get_top("score"),
-        "best_buteur": get_top("goals"),
-        "best_tireur": get_top("shooting_ratio"),
-        "best_harceleur": get_top("shots"),
-        "best_passeur": get_top("assists"),
-        "best_gardien": get_top("saves"),
-        "best_demolisseur": get_top("demolitions"),
-        "best_ballchaser": get_top("possession_sec"),
-        "worst_tireur": get_top("shooting_ratio", reverse=False),
-        "worst_score": get_top("score", reverse=False),
+        "best_overall": get_top("rating", "/100"),
+        "best_mvp": get_top("mvps", " MVPs"),
+        "best_winrate": get_top("winrate", "%"),
+        "best_score": get_top("score", " pts"),
+        "best_buteur": get_top("goals", " buts"),
+        "best_tireur": get_top("shooting_ratio", "%"),
+        "best_harceleur": get_top("shots", " tirs"),
+        "best_passeur": get_top("assists", " passes"),
+        "best_gardien": get_top("saves", " arrêts"),
+        "best_demolisseur": get_top("demolitions", " démos"),
+        "best_ballchaser": get_top("possession_sec", "s"), # Simplified possession
+        "worst_tireur": get_top("shooting_ratio", "%", reverse=False),
+        "worst_score": get_top("score", " pts", reverse=False),
         "best_composition": best_composition,
         "best_win_composition": best_win_composition,
         "best_streak_composition": best_streak_composition,

@@ -11,21 +11,22 @@ templates = Jinja2Templates(directory="templates")
 
 @router.get("/hof")
 def analytics_page(request: Request, db: Session = Depends(get_db)):
-    from app.services.stats_service import get_rankings_data, get_club_name, get_club_tag
+    from app.services.stats_service import get_rankings_data, get_club_name, get_club_tag, get_unread_notifications_count
+
+    # On récupère les classements par stats (Public vs Privé)
+    rankings_public = get_rankings_data(db, min_matches=5, match_filter="public")
+    rankings_private = get_rankings_data(db, min_matches=5, match_filter="private")
     
-    # On récupère les classements par stats
-    rankings = get_rankings_data(db, min_matches=5)
     club_name = get_club_name(db)
     club_tag = get_club_tag(db)
-    
-    from app.services.stats_service import get_unread_notifications_count
     unread_notifications_count = get_unread_notifications_count(db)
 
     return templates.TemplateResponse(
         "analytics.html",
         {
             "request": request,
-            "rankings": rankings,
+            "rankings_public": rankings_public,
+            "rankings_private": rankings_private,
             "club_name": club_name,
             "club_tag": club_tag,
             "unread_notifications_count": unread_notifications_count,

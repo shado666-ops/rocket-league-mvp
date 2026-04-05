@@ -378,10 +378,9 @@
                         <button class="filter-btn-club active" data-filter="all">Tous</button>
                         <button class="filter-btn-club" data-filter="win">Victoires</button>
                         <button class="filter-btn-club" data-filter="loss">Défaites</button>
-                        <button class="filter-btn-club" data-filter="ranked">Ranked</button>
-                        <button class="filter-btn-club" data-filter="casual">Casual</button>
-                        <button class="filter-btn-club" data-filter="private">Private</button>
-                        <button class="filter-btn-club" data-filter="tournament">Tournament</button>
+                        <button class="filter-btn-club" data-filter="ranked">Matchs Classés</button>
+                        <button class="filter-btn-club" data-filter="private">Matchs Privés</button>
+                        <button class="filter-btn-club" data-filter="tournament">Tournois</button>
                     </div>
                     
                     <p class="history-summary">
@@ -404,7 +403,7 @@
                                     </tr>
                                 </thead>
                                 <tbody id="clubHistoryTableBody">
-                                {% for row in club_history %}
+                                {% for row in club_history if 'casual' not in row.playlist | lower %}
                                     <tr data-result="{% if row.result == 'Victoire' %}win{% elif row.result == 'Défaite' %}loss{% else %}none{% endif %}" data-playlist="{{ row.playlist | lower }}">
                                         <td>{{ row.date }}</td>
                                         <td>
