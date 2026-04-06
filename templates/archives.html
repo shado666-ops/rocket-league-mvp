@@ -217,92 +217,104 @@
                 {% endfor %}
             </div>
 
-            <div class="archives-container">
-                <!-- SECTION HISTORIQUE CLUB -->
-                <section id="club-history" class="section" style="margin-bottom: 40px; background: rgba(15, 23, 42, 0.3); border-radius: 20px; border: 1px solid var(--glass-border); padding: 24px;">
-                    <div class="history-section-header">
-                        <div>
-                            <h2 class="section-title" style="margin-bottom: 4px;">Historique global</h2>
-                            <p class="section-subtitle">Derniers matchs joués par les membres du club.</p>
-                        </div>
-                        <button class="history-toggle-btn" id="toggleClubHistory">
-                            <span id="btnTextClub">Masquer les matchs</span>
-                            <span class="icon">▲</span>
-                        </button>
-                    </div>
 
-                    <div class="history-controls">
-                        <button class="filter-btn-club active" data-filter="all">Tous</button>
-                        <button class="filter-btn-club" data-filter="win">Victoires</button>
-                        <button class="filter-btn-club" data-filter="loss">Défaites</button>
-                        <button class="filter-btn-club" data-filter="ranked">Matchs Classés</button>
-                        <button class="filter-btn-club" data-filter="private">Matchs Privés</button>
-                        <button class="filter-btn-club" data-filter="tournament">Tournois</button>
+            <section id="history-global" class="section" style="margin-top: 40px;">
+                <div class="history-section-header">
+                    <div>
+                        <h2 class="section-title" style="margin-bottom: 4px;">Historique Global</h2>
+                        <p class="section-subtitle">Aperçu complet des matchs enregistrés pour le club.</p>
                     </div>
-                    
-                    <p class="history-summary">
-                        Joués : <span id="clubHistoryCount">0</span> |
-                        Victoires : <span id="clubHistoryWins">0</span> |
-                        Défaites : <span id="clubHistoryLosses">0</span> |
-                        Matchs Privés : <span id="clubHistoryPrivate">0</span>
-                    </p>
+                    <button class="history-toggle-btn" id="toggleHistoryGlobal">
+                        <span id="btnTextGlobal">Afficher les matchs</span>
+                        <span class="icon">▼</span>
+                    </button>
+                </div>
 
-                    <div class="history-scroll-container" id="clubHistoryContainer" style="display: block;">
-                        <div class="card" style="padding: 0; background: transparent; box-shadow: none; border: none;">
-                            <table style="margin-top: 0;">
-                                <thead>
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Playlist</th>
-                                        <th>Composition</th>
-                                        <th>Résultat</th>
-                                        <th>Score</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="clubHistoryTableBody">
-                                {% for row in club_history if 'casual' not in row.playlist | lower %}
-                                    <tr data-result="{% if row.result == 'Victoire' %}win{% elif row.result == 'Défaite' %}loss{% else %}none{% endif %}" data-playlist="{{ row.playlist | lower }}">
-                                        <td>{{ row.date }}</td>
-                                        <td>
-                                            {% if 'inconnue' in row.playlist | lower or 'unknown' in row.playlist | lower %}
-                                                <span class="playlist-unknown">{{ row.playlist }}</span>
-                                            {% else %}
-                                                <span class="playlist-badge">{{ row.playlist }}</span>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {% if row.is_private %}
-                                                {{ row.players }}
-                                            {% else %}
-                                                {% for p in row.player_list %}
-                                                    <a href="/mates/{{ p }}" style="color: var(--accent-blue); text-decoration: none;">{{ p }}</a>{% if not loop.last %}, {% endif %}
-                                                {% endfor %}
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {% if row.result == 'Victoire' %}
-                                                <span class="result-badge result-win">Victoire</span>
-                                            {% elif row.result == 'Défaite' %}
-                                                <span class="result-badge result-loss">Défaite</span>
-                                            {% else %}
-                                                <span class="muted">-</span>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            <span class="score-badge">{{ row.match_score }}</span>
-                                        </td>
-                                    </tr>
-                                {% else %}
-                                    <tr>
-                                        <td colspan="5" class="muted">Aucun match club à afficher.</td>
-                                    </tr>
-                                {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
+                <div class="history-controls">
+                    <button class="filter-btn-global active" data-filter="all">Tous</button>
+                    <button class="filter-btn-global" data-filter="win">Victoires</button>
+                    <button class="filter-btn-global" data-filter="loss">Défaites</button>
+                    <button class="filter-btn-global" data-filter="ranked">Matchs Classés</button>
+                    <button class="filter-btn-global" data-filter="private">Matchs Privés</button>
+                    <button class="filter-btn-global" data-filter="tournament">Tournois</button>
+                </div>
+                
+                <p class="history-summary">
+                    Affichés : <span id="historyCountGlobal">0</span> |
+                    Victoires : <span id="historyWinsGlobal">0</span> |
+                    Défaites : <span id="historyLossesGlobal">0</span> |
+                    Privés : <span id="historyPrivateGlobal">0</span> |
+                    Tournois : <span id="historyTournamentGlobal">0</span>
+                </p>
+
+                <div class="history-scroll-container" id="historyContainerGlobal">
+                    <div class="card" style="padding: 0; background: transparent; box-shadow: none; border: none;">
+                        <table style="margin-top: 0;">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Playlist</th>
+                                    <th>Composition</th>
+                                    <th>Résultat</th>
+                                    <th>Buts</th>
+                                    <th>Passes</th>
+                                    <th>Arrêts</th>
+                                    <th>Tirs</th>
+                                    <th>Démos</th>
+                                    <th>Possession</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyTableBodyGlobal">
+                            {% for row in club_history if 'casual' not in row.playlist | lower %}
+                                {% set is_win = row.result == 'Victoire' %}
+                                {% set is_loss = row.result == 'Défaite' %}
+                                {% if row.is_private %}
+                                    {% set score_parts = row.match_score.split(' - ') %}
+                                    {% if score_parts|length == 2 %}
+                                        {% if score_parts[0]|int > score_parts[1]|int %}
+                                            {% set is_win = true %}
+                                        {% elif score_parts[0]|int < score_parts[1]|int %}
+                                            {% set is_loss = true %}
+                                        {% endif %}
+                                    {% endif %}
+                                {% endif %}
+                                <tr data-result="{{ 'win' if is_win else ('loss' if is_loss else 'none') }}" data-playlist="{{ row.playlist | lower }}">
+                                    <td>{{ row.date }}</td>
+                                    <td>
+                                        {% if 'inconnue' in row.playlist | lower or 'unknown' in row.playlist | lower %}
+                                            <span class="playlist-unknown">{{ row.playlist }}</span>
+                                        {% else %}
+                                            <span class="playlist-badge">{{ row.playlist }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ row.players }}</td>
+                                    <td>
+                                        {% if is_win %}
+                                            <span class="result-badge result-win">{{ row.match_score }}</span>
+                                        {% elif is_loss %}
+                                            <span class="result-badge result-loss">{{ row.match_score }}</span>
+                                        {% else %}
+                                            <span class="result-badge muted">{{ row.match_score }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ row.goals }}</td>
+                                    <td>{{ row.assists }}</td>
+                                    <td>{{ row.saves }}</td>
+                                    <td>{{ row.shots }}</td>
+                                    <td>{{ row.demolishes }}</td>
+                                    <td>{{ row.possession_time }}</td>
+                                </tr>
+                            {% else %}
+                                <tr>
+                                    <td colspan="10" class="muted">Aucun match club disponible.</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
-                </section>
-            </div>
+                </div>
+            </section>
+
         </div>
     </main>
 </div>
@@ -310,78 +322,98 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="/static/common.js"></script>
     <script>
-        // Specific script for club history filtering on main page
-        document.addEventListener('DOMContentLoaded', function() {
-            const clubRows = document.querySelectorAll('#clubHistoryTableBody tr');
-            const clubControls = document.querySelectorAll('.filter-btn-club');
-            const countEl = document.getElementById('clubHistoryCount');
-            const winEl = document.getElementById('clubHistoryWins');
-            const lossEl = document.getElementById('clubHistoryLosses');
-            const privateEl = document.getElementById('clubHistoryPrivate');
+    function setupHistoryFilters(btnClass, tableBodyId, counterIds) {
+        const filterButtons = document.querySelectorAll(btnClass);
+        const tableBody = document.getElementById(tableBodyId);
+        
+        if (!tableBody) return;
+        const rows = tableBody.querySelectorAll("tr");
 
-            function updateClubHistory() {
-                const activeFilter = document.querySelector('.filter-btn-club.active').dataset.filter;
-                let visibleCount = 0;
-                let wins = 0;
-                let losses = 0;
-                let privates = 0;
+        function updateCounters() {
+            const visibleRows = tableBody.querySelectorAll("tr:not(.hidden-row):not(.empty-row)");
+            const total = visibleRows.length;
+            const wins = Array.from(visibleRows).filter(r => r.dataset.result === "win").length;
+            const losses = Array.from(visibleRows).filter(r => r.dataset.result === "loss").length;
+            const privates = Array.from(visibleRows).filter(r => r.dataset.playlist.includes("private") || r.dataset.playlist.includes("privé")).length;
+            const tournaments = Array.from(visibleRows).filter(r => r.dataset.playlist.includes("tournament") || r.dataset.playlist.includes("tournoi")).length;
 
-                clubRows.forEach(row => {
-                    const res = row.dataset.result;
-                    const playlist = row.dataset.playlist;
-                    let show = false;
-
-                    if (activeFilter === 'all') show = true;
-                    else if (activeFilter === 'win') show = (res === 'win');
-                    else if (activeFilter === 'loss') show = (res === 'loss');
-                    else if (activeFilter === 'ranked') show = (playlist.includes('ranked') || playlist.includes('tournoi') || playlist.includes('tournament'));
-                    else if (activeFilter === 'private') show = (playlist.includes('private') || playlist.includes('privé'));
-                    else if (activeFilter === 'tournament') show = (playlist.includes('tournoi') || playlist.includes('tournament'));
-
-                    if (show) {
-                        row.style.display = '';
-                        visibleCount++;
-                        if (res === 'win') wins++;
-                        if (res === 'loss') losses++;
-                        if (playlist.includes('private') || playlist.includes('privé')) privates++;
-                    } else {
-                        row.style.display = 'none';
-                    }
-                });
-
-                countEl.textContent = visibleCount;
-                winEl.textContent = wins;
-                lossEl.textContent = losses;
-                privateEl.textContent = privates;
-            }
-
-            clubControls.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    clubControls.forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    updateClubHistory();
-                });
-            });
-
-            // Toggle history visibility
-            const toggleBtn = document.getElementById('toggleClubHistory');
-            const container = document.getElementById('clubHistoryContainer');
-            const btnText = document.getElementById('btnTextClub');
+            if (document.getElementById(counterIds.total)) document.getElementById(counterIds.total).textContent = total;
+            if (document.getElementById(counterIds.wins)) document.getElementById(counterIds.wins).textContent = wins;
+            if (document.getElementById(counterIds.losses)) document.getElementById(counterIds.losses).textContent = losses;
+            if (document.getElementById(counterIds.private)) document.getElementById(counterIds.private).textContent = privates;
+            if (document.getElementById(counterIds.tournament)) document.getElementById(counterIds.tournament).textContent = tournaments;
             
-            toggleBtn.addEventListener('click', () => {
-                if (container.style.display === 'none') {
-                    container.style.display = 'block';
-                    btnText.textContent = 'Masquer les matchs';
-                    toggleBtn.querySelector('.icon').textContent = '▲';
-                } else {
-                    container.style.display = 'none';
-                    btnText.textContent = 'Afficher les matchs';
-                    toggleBtn.querySelector('.icon').textContent = '▼';
+            // Show/hide empty row
+            const emptyRow = tableBody.querySelector(".empty-row");
+            if (total === 0 && rows.length > 0) {
+                if (!emptyRow) {
+                    const tr = document.createElement("tr");
+                    tr.className = "empty-row";
+                    tr.innerHTML = `<td colspan="10" class="muted">Aucun match ne correspond aux critères.</td>`;
+                    tableBody.appendChild(tr);
+                }
+            } else if (emptyRow) {
+                emptyRow.remove();
+            }
+        }
+
+        function applyFilter(filter) {
+            rows.forEach(row => {
+                if (row.classList.contains("empty-row")) return;
+                const result = row.dataset.result;
+                const playlist = row.dataset.playlist || "";
+                let show = false;
+
+                if (filter === "all") show = true;
+                else if (filter === "win") show = (result === "win");
+                else if (filter === "loss") show = (result === "loss");
+                else if (filter === "ranked") show = playlist.includes("ranked") || playlist.includes("classé") || playlist.includes("tournament") || playlist.includes("tournoi");
+                else if (filter === "private") show = playlist.includes("private") || playlist.includes("privé");
+                else if (filter === "tournament") show = playlist.includes("tournament") || playlist.includes("tournoi");
+                
+                row.classList.toggle("hidden-row", !show);
+            });
+            updateCounters();
+        }
+
+        filterButtons.forEach(btn => {
+            btn.addEventListener("click", () => {
+                filterButtons.forEach(b => b.classList.remove("active"));
+                btn.classList.add("active");
+                applyFilter(btn.dataset.filter);
+            });
+        });
+
+        updateCounters();
+    }
+
+    function setupToggle(btnId, containerId, textId) {
+        const toggleBtn = document.getElementById(btnId);
+        const container = document.getElementById(containerId);
+        const btnText = document.getElementById(textId);
+
+        if (toggleBtn && container) {
+            toggleBtn.addEventListener("click", () => {
+                const isExpanded = container.classList.toggle("expanded");
+                toggleBtn.classList.toggle("active");
+                if (btnText) {
+                    btnText.textContent = isExpanded ? "Réduire le tableau" : "Afficher les matchs";
                 }
             });
+        }
+    }
 
-            updateClubHistory();
+    document.addEventListener("DOMContentLoaded", () => {
+        setupHistoryFilters(".filter-btn-global", "historyTableBodyGlobal", {
+            total: "historyCountGlobal", 
+            wins: "historyWinsGlobal", 
+            losses: "historyLossesGlobal",
+            private: "historyPrivateGlobal",
+            tournament: "historyTournamentGlobal"
         });
+        setupToggle("toggleHistoryGlobal", "historyContainerGlobal", "btnTextGlobal");
+    });
     </script>
+
 </body>
 </html>

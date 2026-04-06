@@ -213,12 +213,19 @@ def stop_tracker():
     print(colorize("Processus arrêtés.", C_GREEN))
     time.sleep(1.5)
 
+def start_ngrok():
     if is_process_running("ngrok.exe", is_python=False):
         print(colorize("\nNgrok est déjà en cours d'exécution.", C_CYAN))
         return
 
-    print(colorize("\nNgrok sera lancé automatiquement par le serveur (Option 1).", C_YELLOW))
-    print(colorize("Il apparaîtra directement dans la fenêtre du serveur.", C_WHITE))
+    # Lancement manuel de ngrok sur le port 8000
+    print(colorize("\nDémarrage manuel de ngrok...", C_CYAN))
+    print(colorize("Note: Ngrok sera lié au serveur (port 8000).", C_DIM))
+    
+    # On lance ngrok dans une nouvelle fenêtre pour ne pas bloquer le menu
+    cmd = 'start "RL_NGROK_WIN" ngrok http 8000'
+    os.system(cmd)
+    
     time.sleep(2)
 
 def stop_ngrok():

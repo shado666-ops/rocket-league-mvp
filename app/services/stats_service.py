@@ -58,14 +58,37 @@ def get_season_for_date(date: datetime, seasons: list[Season]) -> str:
     return f"{months_fr[date.month]} {date.year}"
 
 
-def calculate_performance_rating(winrate: float, score: float, goals: float, saves: float, assists: float, shots: float) -> int:
-    norm_score = min((score / 500.0) * 100, 100.0)
-    norm_goals = min((goals / 2.0) * 100, 100.0)
-    norm_saves = min((saves / 2.5) * 100, 100.0)
-    norm_assists = min((assists / 1.0) * 100, 100.0)
-    norm_shots = min((shots / 4.0) * 100, 100.0)
+def calculate_performance_rating(winrate: float, score: float, goals: float, saves: float, assists: float, shots: float, playlist: str | None = None) -> int:
+    playlist = (playlist or "").lower()
     
-    rating = (winrate * 0.20) + (norm_score * 0.25) + (norm_goals * 0.15) + (norm_saves * 0.20) + (norm_shots * 0.10) + (norm_assists * 0.10)
+    # Defaults (3v3 bases)
+    base_score = 400.0
+    base_goals = 2.0
+    base_saves = 2.0
+    base_shots = 3.0
+    base_assists = 1.0
+    
+    if "2v2" in playlist or "doubles" in playlist:
+        base_score = 600.0
+        base_goals = 3.0
+        base_saves = 3.0
+        base_shots = 4.0
+        base_assists = 1.0
+    elif "3v3" in playlist or "standard" in playlist:
+        base_score = 400.0
+        base_goals = 2.0
+        base_saves = 2.0
+        base_shots = 3.0
+        base_assists = 1.0
+
+    norm_score = min((score / base_score) * 100, 100.0)
+    norm_goals = min((goals / base_goals) * 100, 100.0)
+    norm_saves = min((saves / base_saves) * 100, 100.0)
+    norm_assists = min((assists / base_assists) * 100, 100.0)
+    norm_shots = min((shots / base_shots) * 100, 100.0)
+    
+    # Weighted formula (15% Win, 25% Score, 20% Goals, 10% Shots, 10% Assists, 20% Saves)
+    rating = (winrate * 0.15) + (norm_score * 0.25) + (norm_goals * 0.20) + (norm_saves * 0.20) + (norm_shots * 0.10) + (norm_assists * 0.10)
     return int(round(rating))
 
 
@@ -183,14 +206,21 @@ def build_player_summary(rows: list[MatchPlayerStat]) -> dict[str, float | int]:
             if mvp_stat.player_id == r.player_id:
                 mvps_total += 1
 
-    performance_rating = calculate_performance_rating(
-        winrate=winrate,
-        score=score_per_match,
-        goals=goals_per_match,
-        saves=saves_per_match,
-        assists=assists_per_match,
-        shots=shots_per_match
-    )
+    # Distinguish 2v2 and 3v3 by calculating the average of individual match ratings
+    individual_ratings = []
+    for r in rows:
+        match_rating = calculate_performance_rating(
+            winrate=100.0 if r.won else 0.0,
+            score=float(r.score),
+            goals=float(r.goals),
+            saves=float(r.saves),
+            assists=float(r.assists),
+            shots=float(r.shots),
+            playlist=r.match.playlist
+        )
+        individual_ratings.append(match_rating)
+    
+    performance_rating = int(round(mean(individual_ratings))) if individual_ratings else 0
 
     return {
         "matches_together": matches_count,
@@ -239,7 +269,8 @@ def build_player_history_and_charts(rows: list[MatchPlayerStat]) -> dict[str, An
             goals=float(row.goals),
             saves=float(row.saves),
             assists=float(row.assists),
-            shots=float(row.shots)
+            shots=float(row.shots),
+            playlist=row.match.playlist
         )
 
         history.append(
@@ -449,7 +480,10 @@ def get_club_overview_data(db: Session, limit: int | None = 20) -> dict[str, Any
                 "assists": sum(r.assists for r in rows),
                 "saves": sum(r.saves for r in rows),
                 "shots": sum(r.shots for r in rows),
+                "demolishes": sum(r.demolishes or 0 for r in rows),
+                "possession_time": seconds_to_time(sum(time_to_seconds(r.possession_time) for r in rows))
             }
+
         )
 
     return {
