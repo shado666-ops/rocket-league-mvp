@@ -1,9 +1,5 @@
-import os
-import json
-import subprocess
-from datetime import datetime, timedelta
-
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Request
+from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from database import get_db
@@ -11,9 +7,33 @@ from models import Match, MatchPlayerStat, Player
 from schemas import MatchIngestPayload, PlayerStatIn
 from app.websocket_manager import manager
 from app.services.csv_service import CSVService
-from app.services.stats_service import check_and_update_rankings, get_active_club_member_map
+from app.services.stats_service import check_and_update_rankings, get_active_club_member_map, get_match_detail_data, get_unread_notifications_count, get_club_name, get_club_tag
 
 router = APIRouter(tags=["matches"])
+templates = Jinja2Templates(directory="templates")
+
+
+@router.get("/matches/{match_id}")
+def match_detail(match_id: int, request: Request, db: Session = Depends(get_db)):
+    data = get_match_detail_data(db, match_id)
+    if not data:
+        raise HTTPException(status_code=404, detail="Match introuvable.")
+    
+    # Common data for layout
+    unread_notifications_count = get_unread_notifications_count(db)
+    club_name = get_club_name(db)
+    club_tag = get_club_tag(db)
+    
+    return templates.TemplateResponse(
+        "match_detail.html",
+        {
+            "request": request,
+            **data,
+            "unread_notifications_count": unread_notifications_count,
+            "club_name": club_name,
+            "club_tag": club_tag
+        },
+    )
 
 
 @router.get("/health")
@@ -120,7 +140,8 @@ async def ingest_match(payload: MatchIngestPayload, db: Session = Depends(get_db
     db.refresh(match)
 
     # Vérification des changements dans le Hall of Fame
-    check_and_update_rankings(db)
+    check_and_update_rankings(db, match_filter="public")
+    check_and_update_rankings(db, match_filter="private")
 
     await manager.broadcast("refresh")
 

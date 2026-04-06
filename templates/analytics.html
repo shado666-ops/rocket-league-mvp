@@ -7,6 +7,17 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="/static/dashboard.js"></script>
     <script src="/static/common.js"></script>
+    <style>
+        .hof-link {
+            text-decoration: none;
+            color: inherit;
+            transition: color 0.2s;
+        }
+        .hof-link:hover {
+            color: #38bdf8 !important;
+            text-decoration: underline;
+        }
+    </style>
 </head>
 <body>
 <div class="layout">
@@ -61,13 +72,13 @@
                         <div class="hof-card hof-card-featured" style="background: linear-gradient(rgba(30, 41, 59, 1), rgba(15, 23, 42, 0.95)); border-color: #f59e0b; box-shadow: 0 0 40px rgba(245, 158, 11, 0.15);">
                             <div class="hof-icon" style="font-size: 3.5rem;">👑</div>
                             <div class="hof-title" style="color: #f59e0b; font-size: 1.1rem;">Maître de l'Arène</div>
-                            <div class="hof-winner-name">{{ r.best_overall[0].name }}</div>
+                            <div class="hof-winner-name"><a href="/mates/{{ r.best_overall[0].name }}" class="hof-link">{{ r.best_overall[0].name }}</a></div>
                             <div class="hof-winner-value" style="color: #fbbf24; font-size: 1.2rem;">Note : {{ r.best_overall[0].display_value }}</div>
                             <div class="hof-runners-up">
                                 {% for runner in r.best_overall[1:] %}
                                 <div class="hof-runner">
                                     <span class="hof-runner-rank">#{{ loop.index + 1 }}</span>
-                                    <span class="hof-runner-name">{{ runner.name }}</span>
+                                    <span class="hof-runner-name"><a href="/mates/{{ runner.name }}" class="hof-link">{{ runner.name }}</a></span>
                                     <span class="hof-runner-value">{{ runner.display_value }}</span>
                                 </div>
                                 {% endfor %}
@@ -95,13 +106,13 @@
                         <div class="hof-card {{ 'hof-card-alt' if 'worst' in key else '' }}">
                             <div class="hof-icon" style="font-size: 2.5rem;">{{ icon }}</div>
                             <div class="hof-title">{{ title }}</div>
-                            <div class="hof-winner-name" style="font-size: 1.5rem;">{{ r[key][0].name }}</div>
+                            <div class="hof-winner-name" style="font-size: 1.5rem;"><a href="/mates/{{ r[key][0].name }}" class="hof-link">{{ r[key][0].name }}</a></div>
                             <div class="hof-winner-value">{{ r[key][0].display_value }}</div>
                             <div class="hof-runners-up">
                                 {% for runner in r[key][1:] %}
                                 <div class="hof-runner">
                                     <span class="hof-runner-rank">#{{ loop.index + 1 }}</span>
-                                    <span class="hof-runner-name">{{ runner.name }}</span>
+                                    <span class="hof-runner-name"><a href="/mates/{{ runner.name }}" class="hof-link">{{ runner.name }}</a></span>
                                     <span class="hof-runner-value">{{ runner.display_value }}</span>
                                 </div>
                                 {% endfor %}

@@ -140,6 +140,29 @@ a:hover {
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+.back-link, .back-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 20px;
+    background: rgba(56, 189, 248, 0.1);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    color: #38bdf8;
+    border-radius: 12px;
+    text-decoration: none;
+    font-weight: 700;
+    margin-bottom: 24px;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+}
+
+.back-link:hover, .back-button:hover {
+    background: #38bdf8;
+    color: #0f172a;
+    transform: translateX(-5px);
+    text-decoration: none;
+}
+
 .sub-nav-link {
     padding: 8px 16px;
     border-radius: 8px;
@@ -1483,15 +1506,19 @@ input:checked + .slider:before {
 .hof-split-container {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 40px;
+    gap: 0;
     align-items: start;
 }
 
-/* Vertical line separation */
+/* Symmetric separation */
 @media (min-width: 1201px) {
+    .hof-column:nth-child(1) {
+        padding-right: 40px;
+        border-right: 2px solid rgba(255, 255, 255, 0.1);
+    }
     .hof-column:nth-child(2) {
-        border-left: 4px solid rgba(255, 255, 255, 0.1);
         padding-left: 40px;
+        border-left: 2px solid rgba(255, 255, 255, 0.1);
     }
 }
 
@@ -1710,17 +1737,66 @@ input:checked + .slider:before {
     border-radius: 12px;
     padding: 16px 20px;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column; /* Changed to column for footer */
+    gap: 8px;
     box-shadow: 0 4px 15px rgba(0,0,0,0.2);
     animation: slideInNotif 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     transition: all 0.3s ease;
+    position: relative;
+}
+
+.notif-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    width: 100%;
 }
 
 .notif-content {
     color: #f1f5f9;
     font-size: 1.05rem;
     line-height: 1.4;
+    flex: 1;
+}
+
+.notif-footer {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    padding-top: 8px;
+    width: 100%;
+}
+
+.notif-date {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    font-family: 'Inter', sans-serif;
+    letter-spacing: 0.5px;
+}
+
+/* Badges de types */
+.notif-badge-type {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    margin-right: 8px;
+    vertical-align: middle;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.badge-classe {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+}
+
+.badge-prive {
+    background: linear-gradient(135deg, #a855f7, #9333ea);
+    color: white;
 }
 
 .notif-content b, .notif-content strong {

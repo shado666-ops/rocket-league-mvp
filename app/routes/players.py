@@ -36,13 +36,30 @@ def club_page(request: Request, db: Session = Depends(get_db)):
 @router.get("/club")
 def archives_page(request: Request, db: Session = Depends(get_db)):
     data = get_dashboard_data(db, limit=None)
-    archive_data = get_club_archives_data(db)
+    archive_data = get_club_archives_data(db) # This now returns the menu
     return templates.TemplateResponse(
         "archives.html",
         {
             "request": request,
             **data,
             **archive_data,
+        },
+    )
+
+
+@router.get("/club/{fid}")
+def archives_detail_page(fid: str, request: Request, db: Session = Depends(get_db)):
+    data = get_dashboard_data(db, limit=None)
+    category_data = get_club_archives_data(db, category_fid=fid)
+    if not category_data:
+        raise HTTPException(status_code=404, detail="Catégorie introuvable.")
+    
+    return templates.TemplateResponse(
+        "archives_detail.html",
+        {
+            "request": request,
+            **data,
+            **category_data,
         },
     )
 

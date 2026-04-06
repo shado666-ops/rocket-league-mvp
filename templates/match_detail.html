@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Détails du Match #{{ match_id }} - Rocket League MVP Tracker</title>
+    <link rel="stylesheet" href="/static/style.css?v=3">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .match-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .match-header {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            margin-bottom: 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .match-header::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 4px;
+            background: linear-gradient(90deg, #38bdf8, #818cf8, #38bdf8);
+            background-size: 200% 100%;
+            animation: gradient-shift 3s infinite linear;
+        }
+        @keyframes gradient-shift {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 200% 50%; }
+        }
+        .score-display {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 40px;
+            margin: 20px 0;
+        }
+        .team-score {
+            font-size: 5rem;
+            font-weight: 900;
+            text-shadow: 0 0 30px rgba(255,255,255,0.2);
+        }
+        .blue-team-text { color: #38bdf8; text-shadow: 0 0 20px rgba(56, 189, 248, 0.5); }
+        .orange-team-text { color: #fbbf24; text-shadow: 0 0 20px rgba(251, 191, 36, 0.5); }
+        
+        .match-info-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255,255,255,0.05);
+            padding: 8px 20px;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            color: #94a3b8;
+            border: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 15px;
+        }
+
+        .teams-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        .team-card {
+            background: rgba(15, 23, 42, 0.4);
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.05);
+            overflow: hidden;
+        }
+        .team-card.blue { border-top: 4px solid #38bdf8; }
+        .team-card.orange { border-top: 4px solid #fbbf24; }
+        
+        .team-header {
+            padding: 20px;
+            background: rgba(255,255,255,0.03);
+            font-weight: 800;
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th {
+            background: rgba(0,0,0,0.2);
+            font-size: 0.75rem;
+            color: #64748b;
+            text-transform: uppercase;
+            padding: 12px 15px;
+            text-align: left;
+        }
+        td {
+            padding: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            font-size: 0.95rem;
+        }
+        tr:last-child td { border-bottom: none; }
+        
+        .player-name-cell {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .player-detail-name { font-weight: 700; color: #fff; }
+        .club-badge {
+            font-size: 0.6rem;
+            background: rgba(56, 189, 248, 0.2);
+            color: #38bdf8;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .score-val { font-weight: 800; color: #38bdf8; }
+        .mvp-tag {
+            color: #fbbf24;
+            font-size: 0.8rem;
+            margin-left: 5px;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            color: #94a3b8;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.2s;
+            margin-bottom: 20px;
+        }
+        .back-btn:hover { color: #fff; transform: translateX(-5px); }
+
+        .stat-icon { opacity: 0.5; margin-right: 5px; width: 14px; text-align: center; }
+    </style>
+</head>
+<body class="dashboard-page">
+<div class="layout">
+    <aside class="sidebar">
+        <img src="/static/logo-club.png" alt="Club Logo" class="sidebar-logo">
+        <div class="sidebar-title">MVP Tracker</div>
+        <nav class="sidebar-nav">
+            <a class="sidebar-link" href="/"><span>🏠</span> Accueil</a>
+            <a class="sidebar-link active" href="/club"><span>🛡️</span> Stats Club</a>
+            <a class="sidebar-link" href="/joueurs"><span>🧑‍🚀</span> Stats Joueurs</a>
+            <a class="sidebar-link" href="/hof"><span>🏆</span> Hall of Fame</a>
+            <a class="sidebar-link" href="/pepites"><span>✨</span> Pépites</a>
+            {% if unread_notifications_count > 0 %}
+            <a class="sidebar-link" href="/notifications"><span>🔔</span> Notifications <span class="notif-badge">{{ unread_notifications_count }}</span></a>
+            {% endif %}
+            <a class="sidebar-link" href="/admin/ui"><span>⚙️</span> Administration</a>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <div class="match-container">
+            {% if 'Private' in playlist or 'Privé' in playlist %}
+            <a href="/club/private" class="back-btn">
+                <i class="fas fa-arrow-left"></i> Retour aux Matchs Privés
+            </a>
+            {% elif 'Tournament' in playlist or 'Tournoi' in playlist %}
+            <a href="/club/tournaments" class="back-btn">
+                <i class="fas fa-arrow-left"></i> Retour aux Tournois
+            </a>
+            {% else %}
+            <a href="/club" class="back-btn">
+                <i class="fas fa-arrow-left"></i> Retour aux Archives
+            </a>
+            {% endif %}
+
+
+            <div class="match-header">
+                <div class="match-info-pill">
+                    <i class="far fa-calendar-alt"></i> {{ date }}
+                    <span style="opacity: 0.3; margin: 0 10px;">|</span>
+                    <i class="fas fa-gamepad"></i> {{ playlist }}
+                </div>
+                
+                <h1 style="font-size: 1.2rem; text-transform: uppercase; letter-spacing: 3px; color: #64748b; margin: 0;">Résultat Final</h1>
+                
+                <div class="score-display">
+                    <div class="team-score blue-team-text">{{ blue_score }}</div>
+                    <div style="font-size: 1.5rem; color: #475569; font-weight: 800;">VS</div>
+                    <div class="team-score orange-team-text">{{ orange_score }}</div>
+                </div>
+
+                {% if winner != 'Tie' %}
+                <div style="display: inline-flex; align-items: center; gap: 15px; background: rgba(74, 222, 128, 0.1); color: #4ade80; padding: 10px 25px; border-radius: 40px; font-weight: 800; border: 1px solid rgba(74, 222, 128, 0.2);">
+                    <i class="fas fa-trophy"></i> Victoire de l'équipe {{ 'Bleue' if winner == 'Blue' else 'Orange' }}
+                </div>
+                {% else %}
+                <div style="display: inline-flex; align-items: center; gap: 15px; background: rgba(148, 163, 184, 0.1); color: #94a3b8; padding: 10px 25px; border-radius: 40px; font-weight: 800; border: 1px solid rgba(148, 163, 184, 0.2);">
+                    Match Nul
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="teams-grid">
+                <!-- BLUE TEAM -->
+                <div class="team-card blue">
+                    <div class="team-header">
+                        <span>Équipe Bleue</span>
+                        <i class="fas fa-shield-alt" style="color: #38bdf8;"></i>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Joueur</th>
+                                <th>Score</th>
+                                <th>B</th>
+                                <th>P</th>
+                                <th>A</th>
+                                <th>T</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in blue_team %}
+                            <tr>
+                                <td>
+                                    <div class="player-name-cell">
+                                        <span class="player-detail-name">{{ p.name }}</span>
+                                        {% if p.is_club_member %}<span class="club-badge">{{ club_tag }}</span>{% endif %}
+                                        {% if p.is_mvp %}<i class="fas fa-crown mvp-tag" title="MVP du match"></i>{% endif %}
+                                    </div>
+                                </td>
+                                <td><span class="score-val">{{ p.score }}</span></td>
+                                <td>{{ p.goals }}</td>
+                                <td>{{ p.assists }}</td>
+                                <td>{{ p.saves }}</td>
+                                <td>{{ p.shots }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- ORANGE TEAM -->
+                <div class="team-card orange">
+                    <div class="team-header">
+                        <span>Équipe Orange</span>
+                        <i class="fas fa-shield-alt" style="color: #fbbf24;"></i>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Joueur</th>
+                                <th>Score</th>
+                                <th>B</th>
+                                <th>P</th>
+                                <th>A</th>
+                                <th>T</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in orange_team %}
+                            <tr>
+                                <td>
+                                    <div class="player-name-cell">
+                                        <span class="player-detail-name">{{ p.name }}</span>
+                                        {% if p.is_club_member %}<span class="club-badge">{{ club_tag }}</span>{% endif %}
+                                        {% if p.is_mvp %}<i class="fas fa-crown mvp-tag" title="MVP du match"></i>{% endif %}
+                                    </div>
+                                </td>
+                                <td><span class="score-val">{{ p.score }}</span></td>
+                                <td>{{ p.goals }}</td>
+                                <td>{{ p.assists }}</td>
+                                <td>{{ p.saves }}</td>
+                                <td>{{ p.shots }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- More detailed stats below if needed -->
+            <div style="margin-top: 30px; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                <div class="team-card" style="padding: 24px;">
+                    <h3 style="margin-top: 0; color: #fff; font-size: 1rem; text-transform: uppercase;">Récapitulatif Démolitions</h3>
+                    {% for p in blue_team + orange_team %}
+                        {% if p.demolishes > 0 %}
+                        <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                            <span style="color: #94a3b8;">{{ p.name }}</span>
+                            <span style="color: #f87171; font-weight: 800;">{{ p.demolishes }} démos</span>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                <div class="team-card" style="padding: 24px;">
+                    <h3 style="margin-top: 0; color: #fff; font-size: 1rem; text-transform: uppercase;">Possession de balle</h3>
+                    {% for p in blue_team + orange_team %}
+                        <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                            <span style="color: #94a3b8;">{{ p.name }}</span>
+                            <span style="color: #fff; font-weight: 700;">{{ p.possession }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+        </div>
+    </main>
+</div>
+</body>
+</html>

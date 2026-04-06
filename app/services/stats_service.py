@@ -441,6 +441,8 @@ def get_club_overview_data(db: Session, limit: int | None = 20) -> dict[str, Any
                 "date": match.played_at.strftime("%d/%m/%Y %H:%M"),
                 "playlist": match.playlist,
                 "players": players_str,
+                "player_list": [] if is_private else player_list,
+                "is_private": is_private,
                 "result": "Privé" if is_private else ("Victoire" if any(r.won for r in rows) else "Défaite"),
                 "match_score": match_score,
                 "goals": sum(r.goals for r in rows),
@@ -460,7 +462,74 @@ def get_club_overview_data(db: Session, limit: int | None = 20) -> dict[str, Any
     }
 
 
-def get_club_archives_data(db: Session) -> dict[str, Any]:
+def get_match_detail_data(db: Session, match_id: int) -> dict[str, Any] | None:
+    match = (
+        db.query(Match)
+        .options(joinedload(Match.player_stats).joinedload(MatchPlayerStat.player))
+        .filter(Match.id == match_id)
+        .first()
+    )
+    if not match:
+        return None
+
+    member_map = get_active_club_member_map(db)
+    
+    # Identify teams and MVP
+    player_stats = match.player_stats
+    winning_team = next((s.team for s in player_stats if s.won), None)
+    if winning_team is not None:
+        mvp_stat = max([s for s in player_stats if s.team == winning_team], key=lambda ps: ps.score)
+    else:
+        mvp_stat = max(player_stats, key=lambda ps: ps.score)
+        
+    mvp_id = mvp_stat.player_id
+    
+    # Split players by team
+    teams: dict[int, list[dict[str, Any]]] = defaultdict(list)
+    for ps in player_stats:
+        p_name = ps.player.display_name
+        primary_name = member_map.get(p_name, p_name)
+        teams[ps.team].append({
+            "name": p_name,
+            "primary_name": primary_name,
+            "is_club_member": p_name in member_map,
+            "score": ps.score,
+            "goals": ps.goals,
+            "assists": ps.assists,
+            "saves": ps.saves,
+            "shots": ps.shots,
+            "demolishes": ps.demolishes or 0,
+            "possession": ps.possession_time or "0:00",
+            "is_mvp": ps.player_id == mvp_id,
+            "won": ps.won
+        })
+        
+    # Sort teams by score
+    for team_id in teams:
+        teams[team_id].sort(key=lambda x: x["score"], reverse=True)
+        
+    # Determine which team is Blue (0) and Orange (1)
+    # If standard RL, 0=Blue, 1=Orange
+    blue_team = teams.get(0, [])
+    orange_team = teams.get(1, [])
+    
+    blue_score = sum(p["goals"] for p in blue_team)
+    orange_score = sum(p["goals"] for p in orange_team)
+    
+    return {
+        "match_id": match.id,
+        "date": match.played_at.strftime("%d/%m/%Y %H:%M:%S"),
+        "playlist": match.playlist,
+        "blue_team": blue_team,
+        "orange_team": orange_team,
+        "blue_score": blue_score,
+        "orange_score": orange_score,
+        "winner": "Blue" if blue_score > orange_score else ("Orange" if orange_score > blue_score else "Tie"),
+        "mvp_name": mvp_stat.player.display_name
+    }
+
+
+def get_club_archives_data(db: Session, category_fid: str | None = None) -> dict[str, Any]:
     member_map = get_active_club_member_map(db)
     all_pseudos = set(member_map.keys())
     
@@ -475,14 +544,22 @@ def get_club_archives_data(db: Session) -> dict[str, Any]:
     # key: formation_id (e.g. "3v3_club", "3v3_random", etc.)
     # value: { formation_name, player_combinations: { "Player A / Player B": { seasons: { "Season name": stats } } } }
     archives: dict[str, Any] = {
-        "3v3_club": {"name": "Toutes les équipes de 3V3 entre nous", "groups": {}},
-        "3v3_random": {"name": "Toutes les équipes de 3V3 avec du random", "groups": {}},
-        "2v2_club": {"name": "Toutes les équipes de 2V2 entre nous", "groups": {}},
-        "4v4_club": {"name": "Tous les matchs 4v4", "groups": {}},
-        "private": {"name": "PRIVATE GAMES", "groups": {}},
-        "tournaments": {"name": "Tournois", "groups": {}},
+        "3v3_club": {"name": "Équipes 3V3 entre nous", "groups": {}},
+        "3v3_random": {"name": "3V3 avec Random", "groups": {}},
+        "2v2_club": {"name": "Équipes 2V2 entre nous", "groups": {}},
+        "4v4_club": {"name": "Matchs 4v4", "groups": {}},
+        "private": {"name": "Matchs Privés", "groups": {}},
+        "tournaments": {"name": "Tournois", "sessions": []}, # Changement: sessions au lieu de groups
     }
 
+    # Map pour collecter les matchs de tournoi par session
+    # Touche: (date, frozenset(membres_du_club))
+    tourney_sessions_map: dict[tuple, list] = defaultdict(list)
+
+    # Map pour collecter les matchs par série private
+    # Clé: combination_name
+    private_current_series: dict[str, dict] = {}
+    
     # Get main player for perspective in private games
     main_player_name = MAIN_PLAYER_NAME
 
@@ -526,7 +603,29 @@ def get_club_archives_data(db: Session) -> dict[str, Any]:
         if not (is_ranked or is_private):
             continue
 
-        # --- SPECIAL HANDLING FOR PRIVATE MATCHES (Team Vs Team) ---
+        # --- GESTION SPÉCIFIQUE DES TOURNOIS (REGROUPEMENT PAR SESSION) ---
+        if is_tournament:
+            # On cherche l'équipe qui contient au moins un membre du club
+            club_team_id = None
+            for team_id, members in teams_club_members.items():
+                if members:
+                    club_team_id = team_id
+                    break
+            
+            if club_team_id is not None:
+                # On identifie la session par la date et l'équipe exacte
+                membres = frozenset(teams_club_members[club_team_id])
+                session_key = (match.played_at.date(), membres)
+                tourney_sessions_map[session_key].append({
+                    "match": match,
+                    "club_team_id": club_team_id,
+                    "teams": teams,
+                    "team_won": team_won,
+                    "mvp_pseudo": mvp_pseudo
+                })
+            continue
+
+        # --- SPECIAL HANDLING FOR PRIVATE MATCHES (Series BO) ---
         if is_private and len(teams) >= 2:
             team_ids = list(teams.keys())
             t0, t1 = team_ids[0], team_ids[1]
@@ -538,14 +637,11 @@ def get_club_archives_data(db: Session) -> dict[str, Any]:
             if main_player_name:
                 if main_player_name in t1_players: our_team_id = t1
                 elif main_player_name not in t0_players:
-                    # Neither team has main player? (Wait, usually he is there)
-                    # Pick lexicographically smaller team as perspective
                     if " / ".join(sorted(t1_players)) < " / ".join(sorted(t0_players)): our_team_id = t1
             else:
                 if " / ".join(sorted(t1_players)) < " / ".join(sorted(t0_players)): our_team_id = t1
             
             their_team_id = t1 if our_team_id == t0 else t0
-            
             our_team_names = sorted(teams[our_team_id])
             their_team_names = sorted(teams[their_team_id])
             
@@ -555,11 +651,12 @@ def get_club_archives_data(db: Session) -> dict[str, Any]:
             
             if combination_name not in archives[fid]["groups"]:
                 archives[fid]["groups"][combination_name] = {
-                    "matches": [],
+                    "series_list": [], # Use series_list instead of matches
                     "streaks": {"current_win": 0, "current_loss": 0, "max_win": 0, "max_loss": 0}
                 }
             
-            archives[fid]["groups"][combination_name]["matches"].append({
+            match_data = {
+                "id": match.id,
                 "date": match.played_at,
                 "won": team_won[our_team_id],
                 "playlist": match.playlist,
@@ -568,8 +665,41 @@ def get_club_archives_data(db: Session) -> dict[str, Any]:
                 "individual": {member_map.get(ps.player.display_name, ps.player.display_name): {
                     "score": ps.score, "goals": ps.goals, "assists": ps.assists, "saves": ps.saves, "shots": ps.shots,
                     "is_mvp": ps.player.display_name == mvp_pseudo
-                } for ps in player_stats} # ALL players for private games
-            })
+                } for ps in player_stats}
+            }
+            
+            # Grouping Logic into Series
+            last_series = private_current_series.get(combination_name)
+            
+            # Use an 8-hour gap to keep sessions together across midnight.
+            # A series ends immediately if someone hits 4 wins (BO7).
+            
+            need_new_series = True
+            if last_series:
+                gap = (match.played_at - last_series["last_time"])
+                is_same_session = gap < timedelta(hours=8)
+                
+                # Calculate current wins in the last_series
+                our_wins = sum(1 for g in last_series["games"] if g["won"])
+                their_wins = len(last_series["games"]) - our_wins
+                is_concluded = (our_wins >= 4 or their_wins >= 4)
+                
+                if is_same_session and not is_concluded:
+                    # Continue current series
+                    last_series["games"].append(match_data)
+                    last_series["last_time"] = match.played_at
+                    need_new_series = False
+            
+            if need_new_series:
+                new_series = {
+                    "games": [match_data],
+                    "start_time": match.played_at,
+                    "last_time": match.played_at,
+                    "format": "Série"
+                }
+                archives[fid]["groups"][combination_name]["series_list"].append(new_series)
+                private_current_series[combination_name] = new_series
+                
             continue # Important: don't process via standard loop
 
         # --- STANDARD HANDLING (1 entry per winning team/club formation) ---
@@ -618,16 +748,162 @@ def get_club_archives_data(db: Session) -> dict[str, Any]:
                 } for ps in player_stats if member_map.get(ps.player.display_name) in club_memb}
             })
 
+    # --- TRAITEMENT DES SESSIONS DE TOURNOI (DÉDUCTION DU CLASSEMENT) ---
+    for (s_date, s_members_set), s_matches_data in tourney_sessions_map.items():
+        # Trier les matchs par heure
+        s_matches_data.sort(key=lambda x: x["match"].played_at)
+        
+        # Identifier les rounds et BO3
+        rounds = []
+        for m_data in s_matches_data:
+            match = m_data["match"]
+            club_team_id = m_data["club_team_id"]
+            opponent_team_id = 1 if club_team_id == 0 else 0
+            
+            # Nom de l'adversaire
+            opponent_display = " / ".join(sorted(m_data["teams"][opponent_team_id]))
+            
+            if not rounds or rounds[-1]["opponent"] != opponent_display:
+                rounds.append({
+                    "opponent": opponent_display,
+                    "games": []
+                })
+            
+            rounds[-1]["games"].append({
+                "match": match,
+                "won": m_data["team_won"][club_team_id],
+                "score_club": sum(ps.goals for ps in match.player_stats if ps.team == club_team_id),
+                "score_opp": sum(ps.goals for ps in match.player_stats if ps.team == opponent_team_id),
+                "mvp_pseudo": m_data["mvp_pseudo"],
+                "date_str": match.played_at.strftime("%H:%M")
+            })
+
+        # Déduire le classement final
+        placement = "Inconnu"
+        last_round_idx = len(rounds)
+        last_round = rounds[-1]
+        wins_in_last = sum(1 for g in last_round["games"] if g["won"])
+        losses_in_last = sum(1 for g in last_round["games"] if not g["won"])
+        
+        won_last_series = wins_in_last > losses_in_last
+        
+        if not won_last_series:
+            # Éliminé au tour N
+            if last_round_idx == 1: placement = "Top 32"
+            elif last_round_idx == 2: placement = "Top 16"
+            elif last_round_idx == 3: placement = "Top 8"
+            elif last_round_idx == 4: placement = "Top 4"
+            elif last_round_idx >= 5: placement = "Finaliste"
+        else:
+            # Vainqueur ? (5 tours gagnés minimum pour 32 joueurs)
+            if last_round_idx >= 5:
+                placement = "Vainqueur"
+            else:
+                tour_names = ["16èmes", "8èmes", "Quarts", "Demis", "Finale"]
+                next_tour = tour_names[last_round_idx] if last_round_idx < len(tour_names) else "Suivant"
+                placement = f"Qualifié en {next_tour}"
+
+        # Cumuler stats individuelles de la session
+        session_individual = defaultdict(lambda: {"score": 0, "goals": 0, "assists": 0, "saves": 0, "shots": 0, "mvps": 0, "matches": 0})
+        for r in rounds:
+            for g in r["games"]:
+                for ps in g["match"].player_stats:
+                    p_disp = ps.player.display_name
+                    p_name = member_map.get(p_disp, p_disp)
+                    if p_name in s_members_set:
+                        s = session_individual[p_name]
+                        s["score"] += ps.score
+                        s["goals"] += ps.goals
+                        s["assists"] += ps.assists
+                        s["saves"] += ps.saves
+                        s["shots"] += ps.shots
+                        s["matches"] += 1
+                        if p_disp == g["mvp_pseudo"]:
+                            s["mvps"] += 1
+        
+        # Convertir en format compatible templates (statistiques moyennes)
+        players_stats_list = []
+        for p_name in sorted(list(s_members_set)):
+            v = session_individual[p_name]
+            players_stats_list.append({
+                "name": p_name,
+                "score": v["score"],
+                "avg_score": safe_div(v["score"], v["matches"]),
+                "goals": v["goals"],
+                "avg_goals": safe_div(v["goals"], v["matches"]),
+                "assists": v["assists"],
+                "avg_assists": safe_div(v["assists"], v["matches"]),
+                "saves": v["saves"],
+                "avg_saves": safe_div(v["saves"], v["matches"]),
+                "shots": v["shots"],
+                "avg_shots": safe_div(v["shots"], v["matches"]),
+                "ratio": safe_div(v["goals"] * 100, v["shots"]),
+                "mvp_count": v["mvps"]
+            })
+
+        archives["tournaments"]["sessions"].append({
+            "date": s_date.strftime("%d/%m/%Y"),
+            "composition": " / ".join(sorted(list(s_members_set))),
+            "placement": placement,
+            "rounds": rounds,
+            "total_matches": len(s_matches_data),
+            "players": players_stats_list
+        })
+
+    # Trier les sessions par date décroissante
+    archives["tournaments"]["sessions"].sort(key=lambda x: datetime.strptime(x["date"], "%d/%m/%Y"), reverse=True)
+
     # Fetch all user-defined seasons
     seasons_meta = db.query(Season).order_by(Season.start_date.desc()).all()
 
     # Now calculate advanced stats for each group
     formatted_archives = []
     for fid, f_data in archives.items():
+        if fid == "tournaments":
+            # Tournaments use a different structure (sessions)
+            formatted_archives.append({
+                "fid": fid,
+                "name": f_data["name"],
+                "sessions": f_data["sessions"]
+            })
+            continue
+
         # Case where no matches found, we still keep the category if desired by user
         group_list = []
         for comp_name, comp_data in f_data["groups"].items():
-            matches_list = comp_data["matches"]
+            if fid == "private":
+                # Special Series logic for Private games
+                series_list_data = comp_data["series_list"]
+                
+                for series in series_list_data:
+                    our_wins = sum(1 for g in series["games"] if g["won"])
+                    their_wins = len(series["games"]) - our_wins
+                    series["score_str"] = f"{our_wins} - {their_wins}"
+                    series["our_wins"] = our_wins
+                    series["their_wins"] = their_wins
+                    series["won_series"] = (our_wins > their_wins)
+                    
+                    # Format detection
+                    if our_wins >= 4 or their_wins >= 4: series["format"] = "BO7"
+                    elif our_wins >= 3 or their_wins >= 3: series["format"] = "BO5"
+                    elif our_wins >= 2 or their_wins >= 2: series["format"] = "BO3"
+                    elif len(series["games"]) == 1: series["format"] = "Match unique"
+                    else: series["format"] = "Série"
+                
+                    # Flatten matches for season grouping logic below
+                    matches_list = []
+                    for s in series_list_data:
+                        matches_list.extend(s["games"])
+                
+                # Summary for private games
+                comp_data["series_summary"] = {
+                    "total": len(series_list_data),
+                    "wins": sum(1 for s in series_list_data if s["won_series"]),
+                    "losses": sum(1 for s in series_list_data if not s["won_series"])
+                }
+            else:
+                matches_list = comp_data["matches"]
+            
             streaks = comp_data["streaks"]
             
             # Calculate streaks and group by season
@@ -731,6 +1007,8 @@ def get_club_archives_data(db: Session) -> dict[str, Any]:
                 "format_prefix": format_prefix,
                 "clean_composition": clean_comp,
                 "seasons": season_list,
+                "series": comp_data.get("series_list", []),
+                "series_summary": comp_data.get("series_summary", {}), # Add summary to the group data
                 "max_win_streak": streaks["max_win"],
                 "max_loss_streak": streaks["max_loss"],
                 "total": {
@@ -747,10 +1025,42 @@ def get_club_archives_data(db: Session) -> dict[str, Any]:
         formatted_archives.append({
             "fid": fid,
             "name": f_data["name"],
-            "groups": group_list
+            "groups": group_list if fid != "tournaments" else [],
+            "sessions": f_data.get("sessions", []) if fid == "tournaments" else []
         })
 
-    return {"archives": formatted_archives}
+    # IF category_fid is provided, filter and return ONLY that category
+    if category_fid:
+        cat_data = next((a for a in formatted_archives if a["fid"] == category_fid), None)
+        return {"formation": cat_data} if cat_data else {}
+    
+    # ELSE, Return menu data (summary for each category)
+    menu = []
+    for a in formatted_archives:
+        total_matches = 0
+        total_wins = 0
+        if a["fid"] == "tournaments":
+            total_matches = sum(s["total_matches"] for s in a["sessions"])
+            menu.append({
+                "fid": a["fid"],
+                "name": a["name"],
+                "count": len(a["sessions"]),
+                "count_label": "sessions",
+                "total_matches": total_matches
+            })
+        else:
+            total_matches = sum(g["total"]["matches"] for g in a["groups"])
+            total_wins = sum(g["total"]["wins"] for g in a["groups"])
+            menu.append({
+                "fid": a["fid"],
+                "name": a["name"],
+                "count": len(a["groups"]),
+                "count_label": "compositions",
+                "total_matches": total_matches,
+                "winrate": safe_div(total_wins * 100, total_matches)
+            })
+    
+    return {"archives_menu": menu}
 
 
 def get_seasons(db: Session):
@@ -1239,22 +1549,24 @@ def get_rankings_data(db: Session, min_matches: int = 5, match_filter: str = "al
     }
 
 
-def check_and_update_rankings(db: Session):
+def check_and_update_rankings(db: Session, match_filter: str = "public"):
     """Compare current Hall of Fame with the last snapshot and generate notifications."""
     from app.services.stats_service import get_rankings_data, get_setting, set_setting
     
-    current_rankings = get_rankings_data(db, min_matches=5)
+    current_rankings = get_rankings_data(db, min_matches=5, match_filter=match_filter)
     if not current_rankings:
         return
 
     # Convert the ranking data to a simple format for comparison: Category -> [Top 1, Top 2, Top 3]
-    # We only care about names and their positions.
     current_snapshot = {}
     for cat, players in current_rankings.items():
         if isinstance(players, list):
             current_snapshot[cat] = [p["name"] for p in players]
 
-    last_snapshot_json = get_setting(db, "last_rankings_snapshot", "{}")
+    # Use separate snapshots for Public (Classé) and Private (Privé)
+    snapshot_key = f"last_rankings_snapshot_{match_filter}"
+    last_snapshot_json = get_setting(db, snapshot_key, "{}")
+    
     try:
         last_snapshot = json.loads(last_snapshot_json)
     except:
@@ -1262,6 +1574,11 @@ def check_and_update_rankings(db: Session):
 
     notifications = []
     
+    # Badge based on type
+    color_class = "badge-classe" if match_filter == "public" else "badge-prive"
+    label = "Classé" if match_filter == "public" else "Privé"
+    badge_html = f'<span class="notif-badge-type {color_class}">{label}</span> '
+
     friendly_category_names = {
         "best_overall": "Performance Globale",
         "best_mvp": "Titres de MVP",
@@ -1278,7 +1595,7 @@ def check_and_update_rankings(db: Session):
         "worst_score": "Score le plus Bas",
         "best_composition": "Compo la plus jouée",
         "best_win_composition": "Compo la plus efficace",
-        "best_streak_composition": "Plus longue série (Compo)",
+        "best_streak_composition": "Série Royale",
     }
 
     category_emojis = {
@@ -1309,20 +1626,25 @@ def check_and_update_rankings(db: Session):
             pos = i + 1
             if name not in old_top_names:
                 # New player in Top 3
-                notifications.append(f"{emoji} **{name}** a intégré le Top 3 du classement **{cat_name}** !")
+                notifications.append(f"{badge_html}{emoji} **{name}** a intégré le Top 3 en **{cat_name}** !")
             else:
                 # Player was already in Top 3, check if position improved
                 old_pos = old_top_names.index(name) + 1
                 if pos < old_pos:
                     if pos == 1:
-                        notifications.append(f"{emoji} **{name}** a détrôné ses rivaux et s'empare de la **1ère place** en **{cat_name}** !")
+                        notifications.append(f"{badge_html}{emoji} **{name}** s'empare de la **1ère place** en **{cat_name}** !")
                     else:
-                        notifications.append(f"{emoji} **{name}** a grimpé à la **{pos}ème place** du classement **{cat_name}** !")
+                        notifications.append(f"{badge_html}{emoji} **{name}** est monté à la **{pos}ème place** en **{cat_name}** !")
 
     # Add notifications to DB
     for msg in notifications:
         db.add(Notification(message=msg, type="hall_of_fame"))
     
+    # Update snapshot
+    set_setting(db, snapshot_key, json.dumps(current_snapshot))
+    db.commit()
+
+
     # Update snapshot
     set_setting(db, "last_rankings_snapshot", json.dumps(current_snapshot))
     db.commit()

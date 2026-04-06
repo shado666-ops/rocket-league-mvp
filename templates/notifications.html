@@ -43,10 +43,15 @@
             <div id="notifications-container" class="notifications-area">
                 {% for notif in notifications %}
                 <div class="notif-card" id="notif-{{ notif.id }}">
-                    <div class="notif-content">
-                        {{ notif.message | safe }}
+                    <div class="notif-header">
+                        <div class="notif-content">
+                            {{ notif.message | safe }}
+                        </div>
+                        <button class="notif-close" onclick="dismissNotification({{ notif.id }})">&times;</button>
                     </div>
-                    <button class="notif-close" onclick="dismissNotification({{ notif.id }})">&times;</button>
+                    <div class="notif-footer">
+                        <span class="notif-date">{{ notif.created_at.strftime('%d/%m %H:%M') }}</span>
+                    </div>
                 </div>
                 {% endfor %}
             </div>
@@ -65,7 +70,7 @@
 <script>
     async function dismissNotification(id) {
         try {
-            const response = await fetch(`/notifications/${notification_id}/read`, {
+            const response = await fetch(`/notifications/${id}/read`, {
                 method: 'POST'
             });
             if (response.ok) {
