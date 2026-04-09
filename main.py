@@ -1,5 +1,5 @@
 import os
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends
 from fastapi.staticfiles import StaticFiles
 from app.websocket_manager import manager
 import threading
@@ -12,6 +12,7 @@ from app.routes.analytics import router as analytics_router
 from app.routes.pepites import router as pepites_router
 from app.routes.admin import router as admin_router
 from app.routes.notifications import router as notifications_router
+from app.dependencies import get_current_user
 from sqlalchemy.orm import Session
 from database import Base, engine, SessionLocal
 from models import ClubMember
@@ -35,36 +36,20 @@ def seed_database():
 Base.metadata.create_all(bind=engine)
 seed_database()
 
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
-from fastapi import Depends, HTTPException, status
-import secrets
+# Authentication imports moved to app/dependencies.py
 
 app = FastAPI(title="Rocket League MVP Tracker")
 
-security = HTTPBasic()
+# Configuration and get_current_user moved to app/dependencies.py
 
-# Configuration des identifiants (à changer ou mettre en env var)
-USER_ADMIN = os.getenv("ADMIN_USER", "admin")
-PASS_ADMIN = os.getenv("ADMIN_PASSWORD", "rltracker")
-
-def get_current_user(credentials: HTTPBasicCredentials = Depends(security)):
-    correct_username = secrets.compare_digest(credentials.username, USER_ADMIN)
-    correct_password = secrets.compare_digest(credentials.password, PASS_ADMIN)
-    if not (correct_username and correct_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Identifiants incorrects",
-            headers={"WWW-Authenticate": "Basic"},
-        )
-    return credentials.username
-
-# Appliquer la sécurité sur tous les routeurs
-app.include_router(matches_router, dependencies=[Depends(get_current_user)])
-app.include_router(players_router, dependencies=[Depends(get_current_user)])
-app.include_router(analytics_router, dependencies=[Depends(get_current_user)])
-app.include_router(pepites_router, dependencies=[Depends(get_current_user)])
+# Appliquer la sécurité UNIQUEMENT sur le routeur admin
 app.include_router(admin_router, dependencies=[Depends(get_current_user)])
-app.include_router(notifications_router, dependencies=[Depends(get_current_user)])
+# Les autres sont publics
+app.include_router(matches_router)
+app.include_router(players_router)
+app.include_router(analytics_router)
+app.include_router(pepites_router)
+app.include_router(notifications_router)
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):

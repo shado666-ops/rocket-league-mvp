@@ -283,6 +283,8 @@
                                     <td>
                                         {% if 'inconnue' in row.playlist | lower or 'unknown' in row.playlist | lower %}
                                             <span class="playlist-unknown">{{ row.playlist }}</span>
+                                        {% elif 'tourn' in row.playlist | lower %}
+                                            <span class="playlist-tournament">{{ row.playlist }}</span>
                                         {% else %}
                                             <span class="playlist-badge">{{ row.playlist }}</span>
                                         {% endif %}

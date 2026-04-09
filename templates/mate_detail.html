@@ -48,7 +48,7 @@
             <section id="overview" class="section" style="margin-top: 0;">
                 <div class="page-header">
                     <a href="/joueurs" class="back-button">← Retour aux Stats Joueurs</a>
-                    <h1 class="section-title"><span>👤</span> Vue joueur <span>👤</span></h1>
+                    <h1 class="section-title"><span>🧑‍🚀</span> Vue joueur <span>🧑‍🚀</span></h1>
                     <p class="section-subtitle">
                         {% if is_main_player %}
                             Vue détaillée de mes statistiques personnelles.
@@ -69,7 +69,7 @@
                         ⏱️ 20 Derniers Classés
                     </div>
                     <div class="detail-tab" id="tab-btn-private" onclick="switchTab('private')">
-                        🔒 Matchs Privés
+                        ⚔️ Matchs Privés
                     </div>
                     <div class="detail-tab" id="tab-btn-tournament" onclick="switchTab('tournament')">
                         🏆 Tournois
@@ -78,32 +78,44 @@
 
                 <div class="player-banner">
                     <div class="player-banner-left">
-                        <div class="player-avatar">
+                        <div class="player-header-brand">
+                            <div class="player-avatar" style="width: 100px; height: 100px;">
+                                {% if mate_name.lower() == 'shado666' %}
+                                    <img src="/static/Avatar_Shado666.gif" alt="Avatar">
+                                {% elif mate_name.lower() == 'kalibakbak' %}
+                                    <img src="/static/Avatar_Kalibakbak.gif" alt="Avatar">
+                                {% elif mate_name.lower() == 'ezy' %}
+                                    <img src="/static/Avatar_Ezy.jpg" alt="Avatar">
+                                {% elif mate_name.lower() == 'xen0n666' %}
+                                    <img src="/static/Avatar_Xen0n666.jpg" alt="Avatar">
+                                {% elif mate_name.lower() == 'julienyo' %}
+                                    <img src="/static/Avatar_JulienYo.jpg" alt="Avatar">
+                                {% else %}
+                                    <img src="/static/logo-club.png" alt="Avatar">
+                                {% endif %}
+                            </div>
+                            
+                            {# Miniature de la Carte du Joueur #}
                             {% if mate_name.lower() == 'shado666' %}
-                                <img src="/static/Avatar_Shado666.gif" alt="Avatar">
+                                <img src="/static/player-card-shad0666.png" alt="Card" class="player-card-mini">
                             {% elif mate_name.lower() == 'kalibakbak' %}
-                                <img src="/static/Avatar_Kalibakbak.gif" alt="Avatar">
-                            {% elif mate_name.lower() == 'ezy' %}
-                                <img src="/static/Avatar_Ezy.jpg" alt="Avatar">
+                                <img src="/static/player-card-kalibakbak.png" alt="Card" class="player-card-mini">
                             {% elif mate_name.lower() == 'xen0n666' %}
-                                <img src="/static/Avatar_Xen0n666.jpg" alt="Avatar">
+                                <img src="/static/player-card-lasko-06.png" alt="Card" class="player-card-mini">
+                            {% elif mate_name.lower() == 'ezy' %}
+                                <img src="/static/player-card-stef067.png" alt="Card" class="player-card-mini">
                             {% elif mate_name.lower() == 'julienyo' %}
-                                <img src="/static/Avatar_JulienYo.jpg" alt="Avatar">
-                            {% else %}
-                                <img src="/static/logo-club.png" alt="Avatar">
+                                <img src="/static/player-card-julienyo.png" alt="Card" class="player-card-mini">
                             {% endif %}
                         </div>
 
                         <div class="player-info">
                             <div class="player-name">
                                 {{ mate_name }}
-
                             </div>
 
                             <div class="player-subtitle">
-                                {% if is_main_player %}
-                                    Suivi des performances personnelles Rocket League
-                                {% else %}
+                                {% if not is_main_player %}
                                     Membre du Club {{ club_name }}
                                 {% endif %}
                             </div>
@@ -200,202 +212,296 @@
 
                     <div class="player-banner-stats">
                         <!-- STATS GLOBAL (No Casual) -->
-                        <div id="stats-global" class="tab-pane" style="display: flex; gap: 20px; flex-wrap: wrap; justify-content: flex-end;">
-                            <div class="player-stat">
-                                <span class="player-stat-value">{{ summary_global.matches_together }}</span>
-                                <span class="player-stat-label">TOTAL MATCHS</span>
+                        <div id="stats-global" class="tab-pane stats-container active">
+                            <div class="stats-line line-1">
+                                <div class="player-stat">
+                                    <span class="player-stat-value">{{ summary_global.matches_together }}</span>
+                                    <span class="player-stat-label">TOTAL MATCHS</span>
+                                </div>
+                                <div class="player-stat" data-tooltip="Total de médailles MVP.">
+                                    <span class="player-stat-value" style="color: #fcd34d;">{{ summary_global.mvps }}</span>
+                                    <span class="player-stat-label">MVP</span>
+                                </div>
+                                <div class="player-stat">
+                                    <span class="player-stat-value">{{ summary_global.winrate }}%</span>
+                                    <span class="player-stat-label">WINRATE</span>
+                                </div>
                             </div>
-                            <div class="player-stat" data-tooltip="Taux de victoire global.">
-                                <span class="player-stat-value">{{ summary_global.winrate }}%</span>
-                                <span class="player-stat-label">WINRATE</span>
+                            <div class="stats-line line-2">
+                                <div class="player-stat">
+                                    <span class="player-stat-value">{{ summary_global.goals_per_match }}</span>
+                                    <span class="player-stat-label">BUTS / M</span>
+                                </div>
+                                <div class="player-stat">
+                                    <span class="player-stat-value">{{ summary_global.shots_per_match }}</span>
+                                    <span class="player-stat-label">TIRS / M</span>
+                                </div>
+                                <div class="player-stat">
+                                    <span class="player-stat-value">{{ summary_global.shooting_percentage }}%</span>
+                                    <span class="player-stat-label">RATIO B/T</span>
+                                </div>
+                                <div class="player-stat">
+                                    <span class="player-stat-value">{{ summary_global.assists_per_match }}</span>
+                                    <span class="player-stat-label">PASSES / M</span>
+                                </div>
+                                <div class="player-stat">
+                                    <span class="player-stat-value">{{ summary_global.saves_per_match }}</span>
+                                    <span class="player-stat-label">ARRÊTS / M</span>
+                                </div>
                             </div>
-                            <div class="player-stat" data-tooltip="Moyenne de buts.">
-                                <span class="player-stat-value">{{ summary_global.goals_per_match }}</span>
-                                <span class="player-stat-label">BUTS / M</span>
-                            </div>
-                            <div class="player-stat" data-tooltip="Moyenne de tirs.">
-                                <span class="player-stat-value">{{ summary_global.shots_per_match }}</span>
-                                <span class="player-stat-label">TIRS / M</span>
-                            </div>
-                            <div class="player-stat" data-tooltip="Moyenne de passes.">
-                                <span class="player-stat-value">{{ summary_global.assists_per_match }}</span>
-                                <span class="player-stat-label">PASSES / M</span>
-                            </div>
-                            <div class="player-stat" data-tooltip="Moyenne d'arrêts.">
-                                <span class="player-stat-value">{{ summary_global.saves_per_match }}</span>
-                                <span class="player-stat-label">ARRÊTS / M</span>
-                            </div>
-                            <div class="player-stat" data-tooltip="Nombre moyen de démolitions par match.">
-                                <span class="player-stat-value">{{ summary_global.demolishes_per_match }}</span>
-                                <span class="player-stat-label">DÉMOS / M</span>
-                            </div>
-                            <div class="player-stat" data-tooltip="Temps moyen de possession par match.">
-                                <span class="player-stat-value">{{ summary_global.possession_per_match }}</span>
-                                <span class="player-stat-label">POSSESSION / M</span>
-                            </div>
-                            <div class="player-stat" data-tooltip="Total de médailles MVP.">
-                                <span class="player-stat-value" style="color: #fcd34d;">{{ summary_global.mvps }}</span>
-                                <span class="player-stat-label">MVP</span>
+
+                            <div class="stats-line line-4">
+                                <div class="player-stat record-stat">
+                                    <span class="player-stat-value">{{ summary_global.goals_max }}</span>
+                                    <span class="player-stat-label">MAX BUTS</span>
+                                </div>
+                                <div class="player-stat record-stat">
+                                    <span class="player-stat-value">{{ summary_global.shots_max }}</span>
+                                    <span class="player-stat-label">MAX TIRS</span>
+                                </div>
+                                <div class="player-stat record-stat">
+                                    <span class="player-stat-value">{{ summary_global.assists_max }}</span>
+                                    <span class="player-stat-label">MAX PASSES</span>
+                                </div>
+                                <div class="player-stat record-stat">
+                                    <span class="player-stat-value">{{ summary_global.saves_max }}</span>
+                                    <span class="player-stat-label">MAX ARRÊTS</span>
+                                </div>
                             </div>
                         </div>
 
                         <!-- STATS RANKED (Ranked Only) -->
-                        <div id="stats-ranked" class="tab-pane" style="display: none; gap: 20px; flex-wrap: wrap; justify-content: flex-end;">
-                            <div class="player-stat">
-                                <span class="player-stat-value">{{ summary_ranked.matches_together }}</span>
-                                <span class="player-stat-label">MATCHS CLASSÉS</span>
+                        <div id="stats-ranked" class="tab-pane stats-container" style="display: none;">
+                            <div class="stats-line line-1">
+                                <div class="player-stat">
+                                    <span class="player-stat-value">{{ summary_ranked.matches_together }}</span>
+                                    <span class="player-stat-label">MATCHS CLASSÉS</span>
+                                </div>
+                                <div class="player-stat">
+                                    <span class="player-stat-value" style="color: #fcd34d;">{{ summary_ranked.mvps }}</span>
+                                    <span class="player-stat-label">MVP</span>
+                                </div>
+                                <div class="player-stat">
+                                    <span class="player-stat-value">{{ summary_ranked.winrate }}%</span>
+                                    <span class="player-stat-label">WINRATE</span>
+                                </div>
                             </div>
-                            <div class="player-stat" data-tooltip="Taux de victoire en matchs classés uniquement.">
-                                <span class="player-stat-value">{{ summary_ranked.winrate }}%</span>
-                                <span class="player-stat-label">WINRATE</span>
+                            <div class="stats-line line-2">
+                                <div class="player-stat">
+                                    <span class="player-stat-value">{{ summary_ranked.goals_per_match }}</span>
+                                    <span class="player-stat-label">BUTS / M</span>
+                                </div>
+                                <div class="player-stat">
+                                    <span class="player-stat-value">{{ summary_ranked.shots_per_match }}</span>
+                                    <span class="player-stat-label">TIRS / M</span>
+                                </div>
+                                <div class="player-stat">
+                                    <span class="player-stat-value">{{ summary_ranked.shooting_percentage }}%</span>
+                                    <span class="player-stat-label">RATIO B/T</span>
+                                </div>
+                                <div class="player-stat">
+                                    <span class="player-stat-value">{{ summary_ranked.assists_per_match }}</span>
+                                    <span class="player-stat-label">PASSES / M</span>
+                                </div>
+                                <div class="player-stat">
+                                    <span class="player-stat-value">{{ summary_ranked.saves_per_match }}</span>
+                                    <span class="player-stat-label">ARRÊTS / M</span>
+                                </div>
                             </div>
-                            <div class="player-stat" data-tooltip="Moyenne de buts en classé.">
-                                <span class="player-stat-value">{{ summary_ranked.goals_per_match }}</span>
-                                <span class="player-stat-label">BUTS / M</span>
-                            </div>
-                            <div class="player-stat" data-tooltip="Moyenne de tirs en classé.">
-                                <span class="player-stat-value">{{ summary_ranked.shots_per_match }}</span>
-                                <span class="player-stat-label">TIRS / M</span>
-                            </div>
-                            <div class="player-stat" data-tooltip="Moyenne de passes en classé.">
-                                <span class="player-stat-value">{{ summary_ranked.assists_per_match }}</span>
-                                <span class="player-stat-label">PASSES / M</span>
-                            </div>
-                            <div class="player-stat" data-tooltip="Moyenne d'arrêts en classé.">
-                                <span class="player-stat-value">{{ summary_ranked.saves_per_match }}</span>
-                                <span class="player-stat-label">ARRÊTS / M</span>
-                            </div>
-                            <div class="player-stat" data-tooltip="Nombre moyen de démolitions en classé.">
-                                <span class="player-stat-value">{{ summary_ranked.demolishes_per_match }}</span>
-                                <span class="player-stat-label">DÉMOS / M</span>
-                            </div>
-                            <div class="player-stat" data-tooltip="Temps moyen de possession en classé.">
-                                <span class="player-stat-value">{{ summary_ranked.possession_per_match }}</span>
-                                <span class="player-stat-label">POSSESSION / M</span>
-                            </div>
-                            <div class="player-stat" data-tooltip="Total de médailles MVP en classé.">
-                                <span class="player-stat-value" style="color: #fcd34d;">{{ summary_ranked.mvps }}</span>
-                                <span class="player-stat-label">MVP</span>
+
+                            <div class="stats-line line-4">
+                                <div class="player-stat record-stat">
+                                    <span class="player-stat-value">{{ summary_ranked.goals_max }}</span>
+                                    <span class="player-stat-label">MAX BUTS</span>
+                                </div>
+                                <div class="player-stat record-stat">
+                                    <span class="player-stat-value">{{ summary_ranked.shots_max }}</span>
+                                    <span class="player-stat-label">MAX TIRS</span>
+                                </div>
+                                <div class="player-stat record-stat">
+                                    <span class="player-stat-value">{{ summary_ranked.assists_max }}</span>
+                                    <span class="player-stat-label">MAX PASSES</span>
+                                </div>
+                                <div class="player-stat record-stat">
+                                    <span class="player-stat-value">{{ summary_ranked.saves_max }}</span>
+                                    <span class="player-stat-label">MAX ARRÊTS</span>
+                                </div>
                             </div>
                         </div>
 
                         <!-- STATS RECENT -->
-                        <div id="stats-recent" class="tab-pane" style="display: none; gap: 20px; flex-wrap: wrap; justify-content: flex-end;">
-                            <div class="player-stat">
-                                <span class="player-stat-value">{{ summary.matches_together }}</span>
-                                <span class="player-stat-label">20 DERS CLASSÉS</span>
+                        <div id="stats-recent" class="tab-pane stats-container" style="display: none;">
+                            <div class="stats-line line-1">
+                                <div class="player-stat">
+                                    <span class="player-stat-value">{{ summary.matches_together }}</span>
+                                    <span class="player-stat-label">RÉCENTS</span>
+                                </div>
+                                <div class="player-stat">
+                                    <span class="player-stat-value" style="color: #fcd34d;">{{ summary.mvps }}</span>
+                                    <span class="player-stat-label">MVP</span>
+                                </div>
+                                <div class="player-stat">
+                                    <span class="player-stat-value">{{ summary.winrate }}%</span>
+                                    <span class="player-stat-label">WINRATE</span>
+                                </div>
                             </div>
-                            <div class="player-stat" data-tooltip="Pourcentage de victoires sur les 20 derniers matchs classés.">
-                                <span class="player-stat-value">{{ summary.winrate }}%</span>
-                                <span class="player-stat-label">WINRATE</span>
+                            <div class="stats-line line-2">
+                                <div class="player-stat">
+                                    <span class="player-stat-value">{{ summary.goals_per_match }}</span>
+                                    <span class="player-stat-label">BUTS / M</span>
+                                </div>
+                                <div class="player-stat">
+                                    <span class="player-stat-value">{{ summary.shots_per_match }}</span>
+                                    <span class="player-stat-label">TIRS / M</span>
+                                </div>
+                                <div class="player-stat">
+                                    <span class="player-stat-value">{{ summary.shooting_percentage }}%</span>
+                                    <span class="player-stat-label">RATIO B/T</span>
+                                </div>
+                                <div class="player-stat">
+                                    <span class="player-stat-value">{{ summary.assists_per_match }}</span>
+                                    <span class="player-stat-label">PASSES / M</span>
+                                </div>
+                                <div class="player-stat">
+                                    <span class="player-stat-value">{{ summary.saves_per_match }}</span>
+                                    <span class="player-stat-label">ARRÊTS / M</span>
+                                </div>
                             </div>
-                            <div class="player-stat" data-tooltip="Nombre moyen de buts par match (20 derniers classés).">
-                                <span class="player-stat-value">{{ summary.goals_per_match }}</span>
-                                <span class="player-stat-label">BUTS / M</span>
-                            </div>
-                            <div class="player-stat" data-tooltip="Nombre moyen de tirs par match (20 derniers classés).">
-                                <span class="player-stat-value">{{ summary.shots_per_match }}</span>
-                                <span class="player-stat-label">TIRS / M</span>
-                            </div>
-                            <div class="player-stat" data-tooltip="Nombre moyen de passes par match (20 derniers classés).">
-                                <span class="player-stat-value">{{ summary.assists_per_match }}</span>
-                                <span class="player-stat-label">PASSES / M</span>
-                            </div>
-                            <div class="player-stat" data-tooltip="Nombre moyen d'arrêts par match (20 derniers classés).">
-                                <span class="player-stat-value">{{ summary.saves_per_match }}</span>
-                                <span class="player-stat-label">ARRÊTS / M</span>
-                            </div>
-                            <div class="player-stat" data-tooltip="Nombre moyen de démolitions (20 derniers classés).">
-                                <span class="player-stat-value">{{ summary.demolishes_per_match }}</span>
-                                <span class="player-stat-label">DÉMOS / M</span>
-                            </div>
-                            <div class="player-stat" data-tooltip="Temps moyen de possession (20 derniers classés).">
-                                <span class="player-stat-value">{{ summary.possession_per_match }}</span>
-                                <span class="player-stat-label">POSSESSION / M</span>
-                            </div>
-                            <div class="player-stat" data-tooltip="Titres MVP sur les 20 derniers classés.">
-                                <span class="player-stat-value" style="color: #fcd34d;">{{ summary.mvps }}</span>
-                                <span class="player-stat-label">MVP</span>
+
+                            <div class="stats-line line-4">
+                                <div class="player-stat record-stat">
+                                    <span class="player-stat-value">{{ summary.goals_max }}</span>
+                                    <span class="player-stat-label">MAX BUTS</span>
+                                </div>
+                                <div class="player-stat record-stat">
+                                    <span class="player-stat-value">{{ summary.shots_max }}</span>
+                                    <span class="player-stat-label">MAX TIRS</span>
+                                </div>
+                                <div class="player-stat record-stat">
+                                    <span class="player-stat-value">{{ summary.assists_max }}</span>
+                                    <span class="player-stat-label">MAX PASSES</span>
+                                </div>
+                                <div class="player-stat record-stat">
+                                    <span class="player-stat-value">{{ summary.saves_max }}</span>
+                                    <span class="player-stat-label">MAX ARRÊTS</span>
+                                </div>
                             </div>
                         </div>
 
                         <!-- STATS PRIVATE -->
-                        <div id="stats-private" class="tab-pane" style="display: none; gap: 20px; flex-wrap: wrap; justify-content: flex-end;">
-                            <div class="player-stat">
-                                <span class="player-stat-value">{{ summary_private.matches_together }}</span>
-                                <span class="player-stat-label">MATCHS PRIVÉS</span>
+                        <div id="stats-private" class="tab-pane stats-container" style="display: none;">
+                            <div class="stats-line line-1">
+                                <div class="player-stat">
+                                    <span class="player-stat-value">{{ summary_private.matches_together }}</span>
+                                    <span class="player-stat-label">MATCHS PRIVÉS</span>
+                                </div>
+                                <div class="player-stat">
+                                    <span class="player-stat-value" style="color: #fcd34d;">{{ summary_private.mvps }}</span>
+                                    <span class="player-stat-label">MVP</span>
+                                </div>
+                                <div class="player-stat">
+                                    <span class="player-stat-value">{{ summary_private.winrate }}%</span>
+                                    <span class="player-stat-label">WINRATE</span>
+                                </div>
                             </div>
-                            <div class="player-stat" data-tooltip="Pourcentage de victoires en matchs privés.">
-                                <span class="player-stat-value">{{ summary_private.winrate }}%</span>
-                                <span class="player-stat-label">WINRATE</span>
+                            <div class="stats-line line-2">
+                                <div class="player-stat">
+                                    <span class="player-stat-value">{{ summary_private.goals_per_match }}</span>
+                                    <span class="player-stat-label">BUTS / M</span>
+                                </div>
+                                <div class="player-stat">
+                                    <span class="player-stat-value">{{ summary_private.shots_per_match }}</span>
+                                    <span class="player-stat-label">TIRS / M</span>
+                                </div>
+                                <div class="player-stat">
+                                    <span class="player-stat-value">{{ summary_private.shooting_percentage }}%</span>
+                                    <span class="player-stat-label">RATIO B/T</span>
+                                </div>
+                                <div class="player-stat">
+                                    <span class="player-stat-value">{{ summary_private.assists_per_match }}</span>
+                                    <span class="player-stat-label">PASSES / M</span>
+                                </div>
+                                <div class="player-stat">
+                                    <span class="player-stat-value">{{ summary_private.saves_per_match }}</span>
+                                    <span class="player-stat-label">ARRÊTS / M</span>
+                                </div>
                             </div>
-                            <div class="player-stat" data-tooltip="Nombre moyen de buts par match (Privé).">
-                                <span class="player-stat-value">{{ summary_private.goals_per_match }}</span>
-                                <span class="player-stat-label">BUTS / M</span>
-                            </div>
-                            <div class="player-stat" data-tooltip="Nombre moyen de tirs par match (Privé).">
-                                <span class="player-stat-value">{{ summary_private.shots_per_match }}</span>
-                                <span class="player-stat-label">TIRS / M</span>
-                            </div>
-                            <div class="player-stat" data-tooltip="Nombre moyen de passes par match (Privé).">
-                                <span class="player-stat-value">{{ summary_private.assists_per_match }}</span>
-                                <span class="player-stat-label">PASSES / M</span>
-                            </div>
-                            <div class="player-stat" data-tooltip="Nombre moyen d'arrêts par match (Privé).">
-                                <span class="player-stat-value">{{ summary_private.saves_per_match }}</span>
-                                <span class="player-stat-label">ARRÊTS / M</span>
-                            </div>
-                            <div class="player-stat" data-tooltip="Nombre moyen de démolitions par match (Privé).">
-                                <span class="player-stat-value">{{ summary_private.demolishes_per_match }}</span>
-                                <span class="player-stat-label">DÉMOS / M</span>
-                            </div>
-                            <div class="player-stat" data-tooltip="Temps moyen de possession par match (Privé).">
-                                <span class="player-stat-value">{{ summary_private.possession_per_match }}</span>
-                                <span class="player-stat-label">POSSESSION / M</span>
-                            </div>
-                            <div class="player-stat" data-tooltip="Titres MVP en matchs privés.">
-                                <span class="player-stat-value" style="color: #fcd34d;">{{ summary_private.mvps }}</span>
-                                <span class="player-stat-label">MVP</span>
+
+                            <div class="stats-line line-4">
+                                <div class="player-stat record-stat">
+                                    <span class="player-stat-value">{{ summary_private.goals_max }}</span>
+                                    <span class="player-stat-label">MAX BUTS</span>
+                                </div>
+                                <div class="player-stat record-stat">
+                                    <span class="player-stat-value">{{ summary_private.shots_max }}</span>
+                                    <span class="player-stat-label">MAX TIRS</span>
+                                </div>
+                                <div class="player-stat record-stat">
+                                    <span class="player-stat-value">{{ summary_private.assists_max }}</span>
+                                    <span class="player-stat-label">MAX PASSES</span>
+                                </div>
+                                <div class="player-stat record-stat">
+                                    <span class="player-stat-value">{{ summary_private.saves_max }}</span>
+                                    <span class="player-stat-label">MAX ARRÊTS</span>
+                                </div>
                             </div>
                         </div>
 
                         <!-- STATS TOURNAMENT -->
-                        <div id="stats-tournament" class="tab-pane" style="display: none; gap: 20px; flex-wrap: wrap; justify-content: flex-end;">
-                            <div class="player-stat">
-                                <span class="player-stat-value">{{ summary_tournament.matches_together }}</span>
-                                <span class="player-stat-label">MATCHS TOURNOI</span>
+                        <div id="stats-tournament" class="tab-pane stats-container" style="display: none;">
+                            <div class="stats-line line-1">
+                                <div class="player-stat">
+                                    <span class="player-stat-value">{{ summary_tournament.matches_together }}</span>
+                                    <span class="player-stat-label">TOURNAMENT</span>
+                                </div>
+                                <div class="player-stat">
+                                    <span class="player-stat-value" style="color: #fcd34d;">{{ summary_tournament.mvps }}</span>
+                                    <span class="player-stat-label">MVP</span>
+                                </div>
+                                <div class="player-stat">
+                                    <span class="player-stat-value">{{ summary_tournament.winrate }}%</span>
+                                    <span class="player-stat-label">WINRATE</span>
+                                </div>
                             </div>
-                            <div class="player-stat" data-tooltip="Pourcentage de victoires en tournoi.">
-                                <span class="player-stat-value">{{ summary_tournament.winrate }}%</span>
-                                <span class="player-stat-label">WINRATE</span>
+                            <div class="stats-line line-2">
+                                <div class="player-stat">
+                                    <span class="player-stat-value">{{ summary_tournament.goals_per_match }}</span>
+                                    <span class="player-stat-label">BUTS / M</span>
+                                </div>
+                                <div class="player-stat">
+                                    <span class="player-stat-value">{{ summary_tournament.shots_per_match }}</span>
+                                    <span class="player-stat-label">TIRS / M</span>
+                                </div>
+                                <div class="player-stat">
+                                    <span class="player-stat-value">{{ summary_tournament.shooting_percentage }}%</span>
+                                    <span class="player-stat-label">RATIO B/T</span>
+                                </div>
+                                <div class="player-stat">
+                                    <span class="player-stat-value">{{ summary_tournament.assists_per_match }}</span>
+                                    <span class="player-stat-label">PASSES / M</span>
+                                </div>
+                                <div class="player-stat">
+                                    <span class="player-stat-value">{{ summary_tournament.saves_per_match }}</span>
+                                    <span class="player-stat-label">ARRÊTS / M</span>
+                                </div>
                             </div>
-                            <div class="player-stat" data-tooltip="Nombre moyen de buts par match (Tournoi).">
-                                <span class="player-stat-value">{{ summary_tournament.goals_per_match }}</span>
-                                <span class="player-stat-label">BUTS / M</span>
-                            </div>
-                            <div class="player-stat" data-tooltip="Nombre moyen de tirs par match (Tournoi).">
-                                <span class="player-stat-value">{{ summary_tournament.shots_per_match }}</span>
-                                <span class="player-stat-label">TIRS / M</span>
-                            </div>
-                            <div class="player-stat" data-tooltip="Nombre moyen de passes par match (Tournoi).">
-                                <span class="player-stat-value">{{ summary_tournament.assists_per_match }}</span>
-                                <span class="player-stat-label">PASSES / M</span>
-                            </div>
-                            <div class="player-stat" data-tooltip="Nombre moyen d'arrêts par match (Tournoi).">
-                                <span class="player-stat-value">{{ summary_tournament.saves_per_match }}</span>
-                                <span class="player-stat-label">ARRÊTS / M</span>
-                            </div>
-                            <div class="player-stat" data-tooltip="Nombre moyen de démolitions par match (Tournoi).">
-                                <span class="player-stat-value">{{ summary_tournament.demolishes_per_match }}</span>
-                                <span class="player-stat-label">DÉMOS / M</span>
-                            </div>
-                            <div class="player-stat" data-tooltip="Temps moyen de possession par match (Tournoi).">
-                                <span class="player-stat-value">{{ summary_tournament.possession_per_match }}</span>
-                                <span class="player-stat-label">POSSESSION / M</span>
-                            </div>
-                            <div class="player-stat" data-tooltip="Nombre total de titres MVP (Tournoi).">
-                                <span class="player-stat-value" style="color: #fcd34d;">{{ summary_tournament.mvps }}</span>
-                                <span class="player-stat-label">MVP</span>
+                            <div class="stats-line line-4">
+                                <div class="player-stat record-stat">
+                                    <span class="player-stat-value">{{ summary_tournament.goals_max }}</span>
+                                    <span class="player-stat-label">MAX BUTS</span>
+                                </div>
+                                <div class="player-stat record-stat">
+                                    <span class="player-stat-value">{{ summary_tournament.shots_max }}</span>
+                                    <span class="player-stat-label">MAX TIRS</span>
+                                </div>
+                                <div class="player-stat record-stat">
+                                    <span class="player-stat-value">{{ summary_tournament.assists_max }}</span>
+                                    <span class="player-stat-label">MAX PASSES</span>
+                                </div>
+                                <div class="player-stat record-stat">
+                                    <span class="player-stat-value">{{ summary_tournament.saves_max }}</span>
+                                    <span class="player-stat-label">MAX ARRÊTS</span>
+                                </div>
                             </div>
                         </div>
                     </div>

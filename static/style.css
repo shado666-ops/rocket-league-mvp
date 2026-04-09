@@ -354,18 +354,39 @@ a:hover {
 }
 
 .player-banner {
+    position: relative; /* Nécessaire pour le positionnement de l'image de fond droite */
+    overflow: hidden; /* Pour que l'image ne dépasse pas des coins arrondis */
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 24px;
+    gap: 12px; /* Réduit de 24px à 12px pour rapprocher les indicateurs des stats */
     flex-wrap: wrap;
-    background: linear-gradient(rgba(30, 41, 59, 0.85), rgba(15, 23, 42, 0.85)), url('/static/rl_bg.png');
-    background-size: cover;
-    background-position: center;
+    background: rgba(30, 41, 59, 0.4); /* Légèrement assombri pour le contraste */
     border-radius: 16px;
     padding: 24px;
     box-shadow: 0 10px 25px rgba(0,0,0,0.35);
     border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.player-banner::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 50%; /* Occupe la moitié droite où se trouvent les stats */
+    height: 100%;
+    background: url('/static/banner_background.png') no-repeat center right;
+    background-size: cover;
+    z-index: 1;
+    opacity: 0.6;
+    mask-image: linear-gradient(to left, rgba(0,0,0,1) 60%, rgba(0,0,0,0));
+    -webkit-mask-image: linear-gradient(to left, rgba(0,0,0,1) 60%, rgba(0,0,0,0));
+    pointer-events: none;
+}
+
+.player-banner-left, .player-banner-stats {
+    position: relative;
+    z-index: 2; /* S'assure que le contenu reste au-dessus de l'image de fond */
 }
 
 * {
@@ -560,8 +581,8 @@ html {
 
 .player-banner-left {
     display: flex;
-    align-items: center;
-    gap: 16px;
+    align-items: flex-start;
+    gap: 24px; /* Augmenté pour correspondre au padding interne du banner (24px) pour une symétrie parfaite */
     min-width: 320px;
     flex: 1;
 }
@@ -585,11 +606,38 @@ html {
     object-fit: cover;
 }
 
+.player-header-brand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 30px; /* Place la miniature à exactement 130px du haut (100px avatar + 30px gap) */
+    width: 100px;
+    flex-shrink: 0;
+}
+
+.player-card-mini {
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+    cursor: pointer;
+}
+
+.player-card-mini:hover {
+    transform: scale(1.15) translateY(-5px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+    border-color: var(--text-highlight);
+    z-index: 10;
+}
+
 
 .player-info {
     display: flex;
     flex-direction: column;
     min-width: 260px;
+    margin-top: 0; /* Remonté pour s'aligner parfaitement avec le haut de l'avatar */
 }
 
 .player-name {
@@ -659,12 +707,20 @@ html {
 }
 
 .player-indicators {
-    margin-top: 14px;
+    margin-top: 58px; /* Descendu de 8px supplémentaire pour le centrage visuel */
+    width: 100%;
+    max-width: 630px; /* Augmenté de 75% (360px -> 630px) */
+}
+
+/* S'assure que les indicateurs dans l'onglet actif sont bien espacés */
+.player-indicators .tab-pane {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    width: 100%;
-    max-width: 360px;
+    gap: 24px; /* Augmenté pour bien écarter chaque groupe label+barre */
+}
+
+.player-indicators .tab-pane[style*="display: none"] {
+    display: none !important;
 }
 
 .player-progress-wrapper {
@@ -673,8 +729,8 @@ html {
 
 .player-progress-label {
     font-size: 12px;
-    color: #94a3b8;
-    margin-bottom: 6px;
+    color: white;
+    margin-bottom: 2px; /* Réduit drastiquement pour "coller" le label à sa barre */
 }
 
 .player-progress-bar {
@@ -687,9 +743,13 @@ html {
 
 .player-progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, #22c55e, #38bdf8);
+    background: linear-gradient(90deg, #38bdf8, #22c55e); /* Default gradient */
     border-radius: 999px;
     transition: width 0.3s ease;
+}
+
+.winrate-fill {
+    background: linear-gradient(90deg, #00b894, #00d1a0); /* Couleur des tableaux */
 }
 
 .score-fill {
@@ -713,18 +773,55 @@ html {
 }
 
 .player-banner-stats {
+    flex: 1;
     display: flex;
-    gap: 20px;
-    flex-wrap: wrap;
-    justify-content: flex-end;
+    justify-content: center;
     align-items: center;
+    min-height: 240px; /* Hauteur pour accommoder les 4 lignes de l'image (4x60px) */
+}
+
+.stats-container {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.stats-line {
+    display: flex;
+    justify-content: center;
+    gap: 40px; /* Réduit de 50px à 40px pour accommoder le 5ème élément de la ligne 2 */
+    height: 60px;
+    align-items: center;
+}
+
+.stats-line.line-1 {
+    margin-top: 35px; /* Ajusté pour rester sur le terrain tout en étant plus proche de L2 */
+}
+
+.stats-line.line-4 {
+    margin-top: 20px; /* Ajusté pour rester sur le terrain */
+}
+
+.stats-line.line-2 {
+    height: 80px; /* Réduit pour rapprocher L1 et L4 du centre, tout en gardant L2 au centre exact */
 }
 
 .player-stat {
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-width: 90px;
+    min-width: 80px;
+    text-align: center;
+}
+
+.record-stat .player-stat-value {
+    color: #fcd34d; /* Couleur dorée pour les records */
+}
+
+.record-stat .player-stat-label {
+    color: #fcd34d;
+    opacity: 0.8;
 }
 
 /* --- CUSTOM PREMIUM TOOLTIP (GENERIC) --- */
@@ -781,14 +878,17 @@ html {
 }
 
 .player-stat-value {
-    font-size: 22px;
+    font-size: 25px;
     font-weight: bold;
+    line-height: 1.1;
 }
 
 .player-stat-label {
-    font-size: 11px;
+    font-size: 12px;
     color: #94a3b8;
     text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .club-list {
@@ -809,20 +909,28 @@ html {
 
 table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     margin-top: 12px;
-    overflow: hidden;
 }
 
 th,
 td {
     padding: 10px;
     border-bottom: 1px solid #334155;
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
     text-align: left;
+}
+
+th:last-child, td:last-child {
+    border-right: none;
 }
 
 th {
     background: #0f172a;
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 
 .win {
@@ -916,12 +1024,12 @@ canvas {
     padding: 4px 8px;
     border-radius: 6px;
 }
-
-.playlist-unknown {
-    background: rgba(120, 53, 15, 0.6);
-    color: #facc15;
+.playlist-tournament {
+    background: rgba(251, 191, 36, 0.2);
+    color: #fbbf24;
     padding: 4px 8px;
     border-radius: 6px;
+    border: 1px solid rgba(251, 191, 36, 0.3);
 }
 
 .filter-btn, .filter-btn-club, .filter-btn-recent, .filter-btn-global, .filter-btn-private, .filter-btn-ranked, .filter-btn-tournament {
@@ -1805,6 +1913,8 @@ input:checked + .slider:before {
 }
 
 .notif-close {
+    position: relative;
+    z-index: 2; /* Ensure close button is above the stretched link */
     background: transparent;
     border: none;
     color: #64748b;
@@ -1818,6 +1928,34 @@ input:checked + .slider:before {
 .notif-close:hover {
     color: #ef4444;
     transform: scale(1.2);
+}
+
+.notif-card {
+    background: rgba(30, 41, 59, 0.7);
+    backdrop-filter: blur(12px);
+    border-left: 4px solid #3b82f6;
+    border-radius: 12px;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column; 
+    gap: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    animation: slideInNotif 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transition: all 0.3s ease;
+    position: relative;
+    cursor: pointer; /* Indicate the card is clickable */
+}
+
+.notif-card:hover {
+    background: rgba(30, 41, 59, 0.9);
+    border-left-color: #38bdf8;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+}
+
+.notif-link {
+    text-decoration: none;
+    color: inherit;
 }
 
 @keyframes slideInNotif {

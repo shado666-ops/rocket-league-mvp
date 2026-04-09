@@ -42,7 +42,7 @@
             
             <div id="notifications-container" class="notifications-area">
                 {% for notif in notifications %}
-                <div class="notif-card" id="notif-{{ notif.id }}">
+                <div class="notif-card" id="notif-{{ notif.id }}" onclick="handleCardClick(event, this)">
                     <div class="notif-header">
                         <div class="notif-content">
                             {{ notif.message | safe }}
@@ -68,6 +68,17 @@
 </div>
 
 <script>
+    function handleCardClick(event, card) {
+        // Si on clique sur le bouton de fermeture, on ne fait rien
+        if (event.target.closest('.notif-close')) return;
+        
+        // On cherche un lien dans la carte
+        const link = card.querySelector('a.notif-link');
+        if (link) {
+            window.location.href = link.href;
+        }
+    }
+
     async function dismissNotification(id) {
         try {
             const response = await fetch(`/notifications/${id}/read`, {

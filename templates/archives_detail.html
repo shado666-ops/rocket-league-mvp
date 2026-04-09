@@ -279,90 +279,148 @@
         <div class="content-container">
             <div class="page-header">
                 <a href="/club" class="back-button">← Retour aux catégories</a>
-                <h1 class="section-title"><span>🛡️</span> {{ formation.name }} <span>🛡️</span></h1>
+                <h1 class="section-title">
+                    <span>
+                        {% if formation.fid == '3v3_club' %}🛡️
+                        {% elif formation.fid == '3v3_random' %}🤝
+                        {% elif formation.fid == '2v2_club' %}🌪️
+                        {% elif formation.fid == '4v4_club' %}🔥
+                        {% elif formation.fid == 'private' %}⚔️
+                        {% elif formation.fid == 'tournaments' %}🏆
+                        {% else %}📊{% endif %}
+                    </span>
+                    {{ formation.name }}
+                    <span>
+                        {% if formation.fid == '3v3_club' %}🛡️
+                        {% elif formation.fid == '3v3_random' %}🤝
+                        {% elif formation.fid == '2v2_club' %}🌪️
+                        {% elif formation.fid == '4v4_club' %}🔥
+                        {% elif formation.fid == 'private' %}⚔️
+                        {% elif formation.fid == 'tournaments' %}🏆
+                        {% else %}📊{% endif %}
+                    </span>
+                </h1>
                 <p class="section-subtitle">Détails des compositions et performances historiques.</p>
             </div>
 
             <div class="archives-container">
-                <div class="formation-content" style="display: grid;">
+                <div class="formation-content" style="display: grid; gap: 32px;">
                     {% if formation.fid == 'tournaments' %}
-                        {% for session in formation.sessions %}
-                        <div class="composition-card" style="border-left: 4px solid var(--accent-blue); margin-bottom: 30px;">
-                            <div class="composition-hero">
-                                <div class="composition-players">
-                                    <span class="format-label" style="background: rgba(56, 189, 248, 0.2); color: #fff;">SESSION DU {{ session.date }}</span>
-                                    {% for member in session.composition.split(' / ') %}
-                                        <span class="player-chip">{{ member }}</span>
-                                    {% endfor %}
-                                </div>
-                                
-                                <div class="composition-main-stats">
-                                    <div class="stat-group">
-                                        <span class="stat-label">Classement</span>
-                                        <span class="stat-value" style="color: #fcd34d; font-size: 1.5rem;">{{ session.placement }}</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="performance-box" style="background: rgba(30, 41, 59, 0.5);">
-                                <div class="winrate-title" style="margin-bottom: 12px; opacity: 0.7; font-size: 0.8rem; text-transform: uppercase;">Parcours du tournoi</div>
-                                <div style="display: flex; flex-direction: column; gap: 8px;">
-                                    {% for round in session.rounds %}
-                                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; background: rgba(15, 23, 42, 0.4); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
-                                        <div style="display: flex; align-items: center; gap: 12px;">
-                                            <span style="font-size: 0.75rem; font-weight: 800; color: var(--accent-blue); min-width: 60px;">ROUND {{ loop.index }}</span>
-                                            <span style="font-size: 0.85rem; font-weight: 600;">vs {{ round.opponent }}</span>
-                                        </div>
-                                        <div style="display: flex; align-items: center; gap: 16px;">
-                                            {% for game in round.games %}
-                                            <div style="text-align: right;">
-                                                <span style="font-size: 0.7rem; opacity: 0.5; display: block;">{{ game.date_str }}</span>
-                                                <span style="font-weight: 800; color: {% if game.won %}var(--accent-green){% else %}var(--accent-red){% endif %};">
-                                                    {{ game.score_club }} - {{ game.score_opp }}
-                                                </span>
-                                            </div>
-                                            {% endfor %}
-                                        </div>
-                                    </div>
-                                    {% endfor %}
-                                </div>
-                            </div>
-
-                            <div class="table-wrapper" style="margin-top: 16px; background: rgba(56, 189, 248, 0.03);">
-                                <div class="section-header-row">Stats cumulées de la session</div>
-                                <table class="modern-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Joueur</th>
-                                            <th>Matchs</th>
-                                            <th><span class="table-icon">✨</span>Score (Moy.)</th>
-                                            <th><span class="table-icon">⚽</span>Buts (Moy.)</th>
-                                            <th><span class="table-icon">🎯</span>Tirs (Moy.)</th>
-                                            <th><span class="table-icon">📊</span>Ratio</th>
-                                            <th><span class="table-icon">🤝</span>Passes (Moy.)</th>
-                                            <th><span class="table-icon">🛡️</span>Arrêts (Moy.)</th>
-                                            <th><span class="table-icon">🏆</span>MVP</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for player in session.players %}
-                                        <tr>
-                                            <td><a href="/mates/{{ player.name }}" class="player-chip-link"><span class="player-chip" style="font-size: 0.8rem; padding: 4px 10px;">{{ player.name }}</span></a></td>
-                                            <td style="font-weight: 700;">{{ session.total_matches }}</td>
-                                            <td style="font-weight: 700; color: #38bdf8;">{{ player.score }} <span style="font-size: 0.7rem; opacity: 0.5;">({{ player.avg_score | round(1) }})</span></td>
-                                            <td style="font-weight: 700; color: var(--accent-green);">{{ player.goals }} <span style="font-size: 0.7rem; opacity: 0.5;">({{ player.avg_goals | round(1) }})</span></td>
-                                            <td style="font-weight: 700; color: #3b82f6;">{{ player.shots }} <span style="font-size: 0.7rem; opacity: 0.5;">({{ player.avg_shots | round(1) }})</span></td>
-                                            <td style="font-weight: 800;">{{ player.ratio | round(1) }}%</td>
-                                            <td style="font-weight: 700; color: #f59e0b;">{{ player.assists }} <span style="font-size: 0.7rem; opacity: 0.5;">({{ player.avg_assists | round(1) }})</span></td>
-                                            <td style="font-weight: 700; color: #a78bfa;">{{ player.saves }} <span style="font-size: 0.7rem; opacity: 0.5;">({{ player.avg_saves | round(1) }})</span></td>
-                                            <td style="font-weight: 900; color: #fcd34d;">{{ player.mvp_count }}</td>
-                                        </tr>
+                        {% for group in formation.groups %}
+                        <details class="composition-card tourney-card" style="margin-bottom: 0px; border: none; background: rgba(15, 23, 42, 0.6); border-radius: 16px; overflow: hidden; border: 1px solid #fbbf24;">
+                            <summary style="list-style: none; cursor: pointer; padding: 16px 24px; user-select: none; transition: background 0.3s; display: flex; align-items: center; justify-content: space-between;" onmouseover="this.style.background='rgba(56, 189, 248, 0.05)'" onmouseout="this.style.background='transparent'">
+                                <div class="composition-players" style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+                                    <span class="format-label" style="background: rgba(251, 191, 36, 0.2); color: #fbbf24; padding: 6px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 800; border: 1px solid rgba(251, 191, 36, 0.3);">TOURNOIS</span>
+                                    <div style="display: flex; gap: 8px;">
+                                        {% for member in group.composition.split(' / ') %}
+                                            <span class="player-chip">{{ member }}</span>
                                         {% endfor %}
-                                    </tbody>
-                                </table>
+                                    </div>
+                                </div>
+
+                                <div class="header-total-summary" style="display: flex; align-items: center; gap: 15px; margin-left: 20px;">
+                                    <div style="text-align: right; border-right: 1px solid rgba(255,255,255,0.1); padding-right: 15px;">
+                                        <div style="font-size: 0.6rem; color: #94a3b8; text-transform: uppercase; font-weight: 800; letter-spacing: 1px;">TOTAL SESSIONS</div>
+                                        <div style="font-size: 1.2rem; font-weight: 900; color: #fff;">{{ group.total.sessions }}</div>
+                                    </div>
+                                    {% if group.total.wins > 0 %}
+                                    <div style="text-align: right; border-right: 1px solid rgba(255,255,255,0.1); padding-right: 15px;">
+                                        <div style="font-size: 0.6rem; color: #fbbf24; text-transform: uppercase; font-weight: 800; letter-spacing: 1px;">VICTOIRES</div>
+                                        <div style="font-size: 1.2rem; font-weight: 900; color: #fbbf24;">{{ group.total.wins }}</div>
+                                    </div>
+                                    {% endif %}
+                                    <div style="text-align: right;">
+                                        <div style="font-size: 0.6rem; color: #38bdf8; text-transform: uppercase; font-weight: 800; letter-spacing: 1px;">TOTAL MATCHS</div>
+                                        <div style="font-size: 1.2rem; font-weight: 900; color: #38bdf8;">{{ group.total.matches }}</div>
+                                    </div>
+                                    <div style="color: #fbbf24; opacity: 0.5; margin-left: 10px;">
+                                        <i class="fas fa-chevron-down tourney-toggle-icon" style="font-size: 1rem; transition: transform 0.3s;"></i>
+                                    </div>
+                                </div>
+                            </summary>
+
+                            <div class="sessions-container" style="padding: 0 24px 24px 24px; border-top: 1px solid rgba(255,255,255,0.05); background: rgba(0,0,0,0.2);">
+                                <div style="display: flex; flex-direction: column; gap: 30px; padding-top: 24px;">
+                                    {% for session in group.sessions %}
+                                    <div class="session-block" style="background: rgba(15, 23, 42, 0.4); border-radius: 12px; border: 1px solid rgba(251, 191, 36, 0.2); padding: 20px;">
+                                        <div class="session-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 15px;">
+                                            <div>
+                                                <span style="font-size: 0.75rem; font-weight: 800; color: #fbbf24; text-transform: uppercase; letter-spacing: 1px;">SESSION DU {{ session.date }}</span>
+                                                <div style="font-size: 1.3rem; font-weight: 900; color: #fcd34d; margin-top: 4px;">{{ session.placement }}</div>
+                                            </div>
+                                            <div style="text-align: right;">
+                                                <span style="display: block; font-size: 0.65rem; color: #94a3b8; text-transform: uppercase; font-weight: 800;">TOTAL MATCHS</span>
+                                                <span style="font-size: 1.1rem; font-weight: 900;">{{ session.total_matches }}</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="performance-box" style="background: rgba(30, 41, 59, 0.5); margin-bottom: 16px;">
+                                            <div class="winrate-title" style="margin-bottom: 12px; opacity: 0.7; font-size: 0.8rem; text-transform: uppercase;">Parcours du tournoi</div>
+                                            <div style="display: flex; flex-direction: column; gap: 8px;">
+                                                {% for round in session.rounds | reverse %}
+                                                <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; background: rgba(15, 23, 42, 0.4); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+                                                    <div style="display: flex; align-items: center; gap: 12px;">
+                                                        <span style="font-size: 0.75rem; font-weight: 800; color: #fbbf24; min-width: 60px;">ROUND {{ session.rounds|length - loop.index + 1 }}</span>
+                                                        <span style="font-size: 0.85rem; font-weight: 600;">vs {{ round.opponent }}</span>
+                                                    </div>
+                                                    <div style="display: flex; align-items: center; gap: 16px;">
+                                                        {% for game in round.games %}
+                                                        <a href="/matches/{{ game.match.id }}" style="text-decoration: none; text-align: right; transition: transform 0.2s; display: block;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+                                                            <span style="font-size: 0.7rem; opacity: 0.5; display: block;">{{ game.date_str }}</span>
+                                                            <span style="font-weight: 800; color: {% if game.won %}var(--accent-green){% else %}var(--accent-red){% endif %};">
+                                                                {{ game.score_club }} - {{ game.score_opp }}
+                                                            </span>
+                                                        </a>
+                                                        {% endfor %}
+                                                    </div>
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+
+                                        <div class="table-wrapper" style="margin-top: 0; background: rgba(56, 189, 248, 0.03);">
+                                            <div class="section-header-row">Stats cumulées de la session</div>
+                                            <table class="modern-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Joueur</th>
+                                                        <th>Matchs</th>
+                                                        <th><span class="table-icon">✨</span>Score (Moy.)</th>
+                                                        <th><span class="table-icon">⚽</span>Buts (Moy.)</th>
+                                                        <th><span class="table-icon">🎯</span>Tirs (Moy.)</th>
+                                                        <th><span class="table-icon">📊</span>Ratio</th>
+                                                        <th><span class="table-icon">🤝</span>Passes (Moy.)</th>
+                                                        <th><span class="table-icon">🛡️</span>Arrêts (Moy.)</th>
+                                                        <th><span class="table-icon">🏆</span>MVP</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for player in session.players %}
+                                                    <tr>
+                                                        <td><a href="/mates/{{ player.name }}" class="player-chip-link"><span class="player-chip" style="font-size: 0.8rem; padding: 4px 10px;">{{ player.name }}</span></a></td>
+                                                        <td style="font-weight: 700;">{{ player.matches }}</td>
+                                                        <td style="font-weight: 700; color: #38bdf8;">{{ player.score }} <span style="font-size: 0.7rem; opacity: 0.5;">({{ player.avg_score | round(1) }})</span></td>
+                                                        <td style="font-weight: 700; color: var(--accent-green);">{{ player.goals }} <span style="font-size: 0.7rem; opacity: 0.5;">({{ player.avg_goals | round(1) }})</span></td>
+                                                        <td style="font-weight: 700; color: #3b82f6;">{{ player.shots }} <span style="font-size: 0.7rem; opacity: 0.5;">({{ player.avg_shots | round(1) }})</span></td>
+                                                        <td style="font-weight: 800;">{{ player.ratio | round(1) }}%</td>
+                                                        <td style="font-weight: 700; color: #f59e0b;">{{ player.assists }} <span style="font-size: 0.7rem; opacity: 0.5;">({{ player.avg_assists | round(1) }})</span></td>
+                                                        <td style="font-weight: 700; color: #a78bfa;">{{ player.saves }} <span style="font-size: 0.7rem; opacity: 0.5;">({{ player.avg_saves | round(1) }})</span></td>
+                                                        <td style="font-weight: 900; color: #fcd34d;">{{ player.mvp_count }}</td>
+                                                    </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
                             </div>
-                        </div>
+                        </details>
                         {% endfor %}
+                        <style>
+                            .tourney-card[open] .tourney-toggle-icon { transform: rotate(180deg); }
+                            .tourney-card summary::-webkit-details-marker { display: none; }
+                        </style>
                     {% elif formation.fid == 'private' %}
                         {% for group in formation.groups %}
                         <details class="composition-card private-card" style="margin-bottom: 12px; border: none; background: rgba(15, 23, 42, 0.6); border-radius: 16px; overflow: hidden; border: 1px solid rgba(56, 189, 248, 0.1);">

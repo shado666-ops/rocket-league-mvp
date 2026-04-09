@@ -63,13 +63,13 @@
                     <p class="section-subtitle">Les meilleurs joueurs du club par catégorie (minimum 5 matchs).</p>
                 </div>
 
-                {% macro render_hof_section(r, type_label, type_emoji) %}
+                {% macro render_hof_section(r, type_label, type_emoji, prefix) %}
                 <div class="hof-column">
                     <h2 class="hof-column-title"><span>{{ type_emoji }}</span> {{ type_label }}</h2>
                     <div class="hof-grid">
                         {% if r and r.best_overall %}
                         {# Maître de l'Arène (Overall Rating) #}
-                        <div class="hof-card hof-card-featured" style="background: linear-gradient(rgba(30, 41, 59, 1), rgba(15, 23, 42, 0.95)); border-color: #f59e0b; box-shadow: 0 0 40px rgba(245, 158, 11, 0.15);">
+                        <div class="hof-card hof-card-featured" id="ranking-{{ prefix }}-best_overall" style="background: linear-gradient(rgba(30, 41, 59, 1), rgba(15, 23, 42, 0.95)); border-color: #f59e0b; box-shadow: 0 0 40px rgba(245, 158, 11, 0.15);">
                             <div class="hof-icon" style="font-size: 3.5rem;">👑</div>
                             <div class="hof-title" style="color: #f59e0b; font-size: 1.1rem;">Maître de l'Arène</div>
                             <div class="hof-winner-name"><a href="/mates/{{ r.best_overall[0].name }}" class="hof-link">{{ r.best_overall[0].name }}</a></div>
@@ -103,7 +103,7 @@
 
                         {% for icon, title, key in indiv_categories %}
                         {% if r[key] and r[key]|length > 0 %}
-                        <div class="hof-card {{ 'hof-card-alt' if 'worst' in key else '' }}">
+                        <div class="hof-card {{ 'hof-card-alt' if 'worst' in key else '' }}" id="ranking-{{ prefix }}-{{ key }}">
                             <div class="hof-icon" style="font-size: 2.5rem;">{{ icon }}</div>
                             <div class="hof-title">{{ title }}</div>
                             <div class="hof-winner-name" style="font-size: 1.5rem;"><a href="/mates/{{ r[key][0].name }}" class="hof-link">{{ r[key][0].name }}</a></div>
@@ -123,7 +123,7 @@
 
                         {# Compositions #}
                         {% if r.best_composition and r.best_composition|length > 0 %}
-                        <div class="hof-card hof-card-featured" style="border-color: #38bdf8; background: linear-gradient(rgba(30,58,138,0.2), rgba(15,23,42,0.7));">
+                        <div class="hof-card hof-card-featured" id="ranking-{{ prefix }}-best_composition" style="border-color: #38bdf8; background: linear-gradient(rgba(30,58,138,0.2), rgba(15,23,42,0.7));">
                             <div class="hof-icon" style="font-size: 2.5rem;">🧩</div>
                             <div class="hof-title" style="color: #38bdf8;">Compo la plus jouée</div>
                             <div class="hof-winner-name" style="font-size: 1.5rem;">{{ r.best_composition[0].name }}</div>
@@ -141,7 +141,7 @@
                         {% endif %}
 
                         {% if r.best_win_composition and r.best_win_composition|length > 0 %}
-                        <div class="hof-card hof-card-featured" style="border-color: #10b981; background: linear-gradient(rgba(6,78,59,0.2), rgba(15,23,42,0.7));">
+                        <div class="hof-card hof-card-featured" id="ranking-{{ prefix }}-best_win_composition" style="border-color: #10b981; background: linear-gradient(rgba(6,78,59,0.2), rgba(15,23,42,0.7));">
                             <div class="hof-icon" style="font-size: 2.5rem;">⚡</div>
                             <div class="hof-title" style="color: #10b981;">Compo la plus efficace</div>
                             <div class="hof-winner-name" style="font-size: 1.5rem;">{{ r.best_win_composition[0].name }}</div>
@@ -159,7 +159,7 @@
                         {% endif %}
 
                         {% if r.best_streak_composition and r.best_streak_composition|length > 0 %}
-                        <div class="hof-card hof-card-featured" style="border-color: #a855f7; background: linear-gradient(rgba(88,28,135,0.2), rgba(15,23,42,0.7));">
+                        <div class="hof-card hof-card-featured" id="ranking-{{ prefix }}-best_streak_composition" style="border-color: #a855f7; background: linear-gradient(rgba(88,28,135,0.2), rgba(15,23,42,0.7));">
                             <div class="hof-icon" style="font-size: 2.5rem;">🔥</div>
                             <div class="hof-title" style="color: #a855f7;">Série Royale</div>
                             <div class="hof-winner-name" style="font-size: 1.5rem;">{{ r.best_streak_composition[0].name }}</div>
@@ -187,8 +187,8 @@
                 {% endmacro %}
 
                 <div class="hof-split-container">
-                    {{ render_hof_section(rankings_public, "Hall of Fame Classé", "🥇") }}
-                    {{ render_hof_section(rankings_private, "Hall of Fame Privé", "🕵️") }}
+                    {{ render_hof_section(rankings_public, "Hall of Fame Classé", "🔥", "public") }}
+                    {{ render_hof_section(rankings_private, "Hall of Fame Privé", "⚔️", "private") }}
                 </div>
             </section>
         </div>

@@ -8,6 +8,8 @@ from app.services.stats_service import get_unread_notifications_count, get_club_
 router = APIRouter(prefix="/notifications", tags=["notifications"])
 templates = Jinja2Templates(directory="templates")
 
+# No security dependency here as notifications and their actions are public
+
 @router.get("/")
 def notifications_page(request: Request, db: Session = Depends(get_db)):
     notifications = db.query(Notification).filter(Notification.is_read.is_(False)).order_by(Notification.created_at.desc()).all()

@@ -16,9 +16,25 @@ function initPlayerDetailCharts(data) {
     const pieData = data.pie || [];
     const playerName = data.player_name || "Joueur";
 
-    // Shared playlist color mapping
-    const playlistColors = ["#ef4444", "#22c55e", "#f59e0b", "#a855f7", "#06b6d4"];
-    const allPlaylists = Object.keys(ratingByPlaylist).sort();
+    // Shared playlist color mapping - Expanded palette for better distinction
+    const playlistColors = [
+        "#38bdf8", // Sky Blue
+        "#4ade80", // Green
+        "#fb7185", // Rose
+        "#fbbf24", // Amber
+        "#a78bfa", // Violet
+        "#2dd4bf", // Teal
+        "#f472b6", // Pink
+        "#818cf8", // Indigo
+        "#c084fc", // Purple
+        "#fb923c"  // Orange
+    ];
+    
+    // Union of all playlists from both sources to ensure color consistency across charts
+    const allPlaylists = Array.from(new Set([
+        ...Object.keys(ratingByPlaylist),
+        ...Object.keys(scoreByPlaylist)
+    ])).sort();
 
     const getPlaylistColor = (pName) => {
         const idx = allPlaylists.indexOf(pName);
@@ -36,7 +52,8 @@ function initPlayerDetailCharts(data) {
                 borderColor: getPlaylistColor(playlist),
                 backgroundColor: getPlaylistColor(playlist) + "20",
                 fill: true,
-                tension: 0
+                tension: 0,
+                spanGaps: false
             };
         });
 
@@ -46,7 +63,7 @@ function initPlayerDetailCharts(data) {
             options: {
                 responsive: true,
                 plugins: {
-                    legend: { display: true, position: 'top', labels: { color: '#e2e8f0' } }
+                    legend: { display: false }
                 },
                 scales: {
                     x: {
@@ -55,8 +72,6 @@ function initPlayerDetailCharts(data) {
                         grid: { color: 'rgba(255,255,255,0.05)' }
                     },
                     y: {
-                        beginAtZero: true,
-                        max: 100,
                         ticks: { color: '#94a3b8' },
                         grid: { color: 'rgba(255,255,255,0.05)' }
                     }
@@ -76,7 +91,8 @@ function initPlayerDetailCharts(data) {
                 borderColor: getPlaylistColor(playlist),
                 backgroundColor: getPlaylistColor(playlist) + "20",
                 fill: true,
-                tension: 0
+                tension: 0,
+                spanGaps: false
             };
         });
 
@@ -86,11 +102,11 @@ function initPlayerDetailCharts(data) {
             options: {
                 responsive: true,
                 plugins: {
-                    legend: { display: true, position: 'top', labels: { color: '#e2e8f0' } }
+                    legend: { display: false }
                 },
                 scales: {
                     x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-                    y: { beginAtZero: true, ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+                    y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } }
                 }
             }
         });
@@ -185,4 +201,89 @@ function initPlayerDetailCharts(data) {
             }
         });
     }
+
+    // Initialize custom filters for main interactive charts
+    if (chartInstances.rating) {
+        chartInstances.rating._originalData = {
+            labels: [...chartInstances.rating.data.labels],
+            datasets: [...chartInstances.rating.data.datasets.map(ds => ({...ds}))]
+        };
+        createChartFilters(chartInstances.rating, 'ratingChartFilters', allPlaylists, ratingByPlaylist);
+    }
+    if (chartInstances.score) {
+        chartInstances.score._originalData = {
+            labels: [...chartInstances.score.data.labels],
+            datasets: [...chartInstances.score.data.datasets.map(ds => ({...ds}))]
+        };
+        createChartFilters(chartInstances.score, 'scoreChartFilters', allPlaylists, scoreByPlaylist);
+    }
 }
+
+/**
+ * Creates custom filter buttons for a chart to allow exclusive selection and auto-scaling.
+ */
+function createChartFilters(chart, containerId, playlists, playlistDataMap) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = '';
+
+    // "Tous" Button (Reset)
+    const btnAll = document.createElement('button');
+    btnAll.className = 'chart-filter-btn active';
+    btnAll.textContent = 'Tous';
+    btnAll.onclick = () => {
+        container.querySelectorAll('.chart-filter-btn').forEach(b => b.classList.remove('active'));
+        btnAll.classList.add('active');
+        
+        // Restore original datasets
+        chart.data.labels = []; // Empty labels to let auto-inference happen (original behavior)
+        chart.data.datasets = [...chart._originalData.datasets.map(ds => ({...ds}))];
+        chart.data.datasets.forEach(ds => { ds.hidden = false; });
+        
+        // Reset scale options
+        if (chart.options.scales && chart.options.scales.x) {
+            delete chart.options.scales.x.min;
+            delete chart.options.scales.x.max;
+        }
+        
+        chart.update();
+    };
+    container.appendChild(btnAll);
+
+    // Individual Playlist Buttons
+    playlists.forEach(playlist => {
+        const originalDs = chart._originalData.datasets.find(ds => ds.label === playlist);
+        const color = originalDs ? originalDs.borderColor : '#3b82f6';
+        
+        const btn = document.createElement('button');
+        btn.className = 'chart-filter-btn';
+        btn.innerHTML = `<span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:${color}; margin-right:6px;"></span>${playlist}`;
+        
+        btn.onclick = () => {
+            container.querySelectorAll('.chart-filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            const pData = playlistDataMap[playlist] || [];
+            
+            // Set labels to ONLY this playlist's dates (removes gaps)
+            chart.data.labels = pData.map(d => d.label);
+            
+            // Set datasets to ONLY this single playlist dataset
+            chart.data.datasets = [{
+                ...originalDs,
+                hidden: false,
+                data: pData.map(d => ({ x: d.label, y: d.value }))
+            }];
+            
+            // Reset scale options (they will auto-adjust to the new labels/data)
+            if (chart.options.scales && chart.options.scales.x) {
+                delete chart.options.scales.x.min;
+                delete chart.options.scales.x.max;
+            }
+
+            chart.update();
+        };
+        container.appendChild(btn);
+    });
+}
+
