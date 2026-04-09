@@ -5,8 +5,8 @@
     <title>{{ mate_name }} - Rocket League MVP Tracker</title>
     <link rel="stylesheet" href="/static/style.css?v=2">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="/static/player_detail.js?v=4"></script>
     <script src="/static/common.js"></script>
+    <script src="/static/player_detail.js?v=4"></script>
 </head>
 <body>
 <div class="layout">
@@ -768,35 +768,30 @@
             </section>
 
             <!-- SECTION HISTORIQUE RECENT -->
-            <section id="history-recent" class="section" style="display: none;">
+            <section id="history-recent" class="section">
                 <div class="history-section-header">
                     <div>
-                        <h2 class="section-title" style="margin-bottom: 4px;">20 Derniers Matchs Classés</h2>
-                        <p class="section-subtitle">Détails des 20 derniers matchs de compétition pour {{ mate_name }}.</p>
+                        <h2 class="section-title" style="margin-bottom: 4px;">Historique des 20 derniers matchs</h2>
+                        <p class="section-subtitle">Détails des derniers matchs classés joués avec {{ mate_name }}.</p>
                     </div>
                     <button class="history-toggle-btn" id="toggleHistoryRecent">
                         <span id="btnTextRecent">Afficher les matchs</span>
                         <span class="icon">▼</span>
                     </button>
                 </div>
-
-                <div class="history-controls">
-                    <button class="filter-btn-recent active" data-filter="all">Tous</button>
-                    <button class="filter-btn-recent" data-filter="win">Victoires</button>
-                    <button class="filter-btn-recent" data-filter="loss">Défaites</button>
-                </div>
                 
-                <p class="history-summary">
+                <p class="history-summary" style="text-align:center;">
                     Affichés : <span id="historyCountRecent">0</span> |
                     Victoires : <span id="historyWinsRecent">0</span> |
-                    Défaites : <span id="historyLossesRecent">0</span>
+                    Défaites : <span id="historyLossesRecent">0</span> |
+                    <button class="history-reset-btn" data-action="reset" title="Réinitialiser filtres et tri">🔄 DÉFAUT</button>
                 </p>
 
                 <div class="history-scroll-container" id="historyContainerRecent">
                     <div class="card" style="padding: 0; background: transparent; box-shadow: none; border: none;">
-                        <table style="margin-top: 0;">
+                        <table style="margin-top: 0;" class="filterable-history-table">
                             <thead>
-                                <tr>
+                                <tr class="header-labels">
                                     <th>Date</th>
                                     <th>Playlist</th>
                                     <th>Résultat</th>
@@ -808,10 +803,31 @@
                                     <th>Démos</th>
                                     <th>Possession</th>
                                 </tr>
+                                <tr class="header-filters">
+                                    <th><button class="filter-btn-col" data-sort="date">TRI <span class="sort-icon">▼</span></button></th>
+                                    <th><button class="filter-btn-col cycle-btn" data-filter-type="playlist" id="filterPlaylistRecent">TOUS</button></th>
+                                    <th><button class="filter-btn-col cycle-btn" data-filter-type="result" id="filterResultRecent">TOUS</button></th>
+                                    <th><button class="filter-btn-col" data-sort="score">TRI <span class="sort-icon">▼</span></button></th>
+                                    <th><button class="filter-btn-col" data-sort="goals">TRI <span class="sort-icon">▼</span></button></th>
+                                    <th><button class="filter-btn-col" data-sort="assists">TRI <span class="sort-icon">▼</span></button></th>
+                                    <th><button class="filter-btn-col" data-sort="saves">TRI <span class="sort-icon">▼</span></button></th>
+                                    <th><button class="filter-btn-col" data-sort="shots">TRI <span class="sort-icon">▼</span></button></th>
+                                    <th><button class="filter-btn-col" data-sort="demolishes">TRI <span class="sort-icon">▼</span></button></th>
+                                    <th><button class="filter-btn-col" data-sort="possession">TRI <span class="sort-icon">▼</span></button></th>
+                                </tr>
                             </thead>
                             <tbody id="historyTableBodyRecent">
                             {% for row in history %}
-                                <tr data-result="{{ 'win' if row.result == 'Victoire' else 'loss' }}" data-playlist="{{ row.playlist | lower }}">
+                                <tr data-result="{{ 'win' if row.result == 'Victoire' else 'loss' }}" 
+                                    data-playlist="{{ row.playlist | lower }}"
+                                    data-date="{{ row.played_at_iso }}"
+                                    data-score="{{ row.score }}"
+                                    data-goals="{{ row.goals }}"
+                                    data-assists="{{ row.assists }}"
+                                    data-saves="{{ row.saves }}"
+                                    data-shots="{{ row.shots }}"
+                                    data-demolishes="{{ row.demolishes }}"
+                                    data-possession="{{ row.possession_time }}">
                                     <td>{{ row.date }}</td>
                                     <td>
                                         {% if 'inconnue' in row.playlist | lower or 'unknown' in row.playlist | lower %}
@@ -859,26 +875,18 @@
                     </button>
                 </div>
 
-                <div class="history-controls">
-                    <button class="filter-btn-global active" data-filter="all">Tous</button>
-                    <button class="filter-btn-global" data-filter="win">Victoires</button>
-                    <button class="filter-btn-global" data-filter="loss">Défaites</button>
-                    <button class="filter-btn-global" data-filter="ranked">Matchs Classés</button>
-                    <button class="filter-btn-global" data-filter="private">Matchs Privés</button>
-                    <button class="filter-btn-global" data-filter="tournament">Tournois</button>
-                </div>
-                
-                <p class="history-summary">
+                <p class="history-summary" style="text-align: center;">
                     Affichés : <span id="historyCountGlobal">0</span> |
                     Victoires : <span id="historyWinsGlobal">0</span> |
-                    Défaites : <span id="historyLossesGlobal">0</span>
+                    Défaites : <span id="historyLossesGlobal">0</span> |
+                    <button class="history-reset-btn" data-action="reset" title="Réinitialiser filtres et tri">🔄 DÉFAUT</button>
                 </p>
 
                 <div class="history-scroll-container" id="historyContainerGlobal">
                     <div class="card" style="padding: 0; background: transparent; box-shadow: none; border: none;">
-                        <table style="margin-top: 0;">
+                        <table style="margin-top: 0;" class="filterable-history-table">
                             <thead>
-                                <tr>
+                                <tr class="header-labels">
                                     <th>Date</th>
                                     <th>Playlist</th>
                                     <th>Résultat</th>
@@ -890,10 +898,31 @@
                                     <th>Démos</th>
                                     <th>Possession</th>
                                 </tr>
+                                <tr class="header-filters">
+                                    <th><button class="filter-btn-col" data-sort="date">TRI <span class="sort-icon">▼</span></button></th>
+                                    <th><button class="filter-btn-col cycle-btn" data-filter-type="playlist" id="filterPlaylistGlobal">TOUS</button></th>
+                                    <th><button class="filter-btn-col cycle-btn" data-filter-type="result" id="filterResultGlobal">TOUS</button></th>
+                                    <th><button class="filter-btn-col" data-sort="score">TRI <span class="sort-icon">▼</span></button></th>
+                                    <th><button class="filter-btn-col" data-sort="goals">TRI <span class="sort-icon">▼</span></button></th>
+                                    <th><button class="filter-btn-col" data-sort="assists">TRI <span class="sort-icon">▼</span></button></th>
+                                    <th><button class="filter-btn-col" data-sort="saves">TRI <span class="sort-icon">▼</span></button></th>
+                                    <th><button class="filter-btn-col" data-sort="shots">TRI <span class="sort-icon">▼</span></button></th>
+                                    <th><button class="filter-btn-col" data-sort="demolishes">TRI <span class="sort-icon">▼</span></button></th>
+                                    <th><button class="filter-btn-col" data-sort="possession">TRI <span class="sort-icon">▼</span></button></th>
+                                </tr>
                             </thead>
                             <tbody id="historyTableBodyGlobal">
                             {% for row in history_global %}
-                                <tr data-result="{{ 'win' if row.result == 'Victoire' else 'loss' }}" data-playlist="{{ row.playlist | lower }}">
+                                <tr data-result="{{ 'win' if row.result == 'Victoire' else 'loss' }}" 
+                                    data-playlist="{{ row.playlist | lower }}"
+                                    data-date="{{ row.played_at_iso }}"
+                                    data-score="{{ row.score }}"
+                                    data-goals="{{ row.goals }}"
+                                    data-assists="{{ row.assists }}"
+                                    data-saves="{{ row.saves }}"
+                                    data-shots="{{ row.shots }}"
+                                    data-demolishes="{{ row.demolishes }}"
+                                    data-possession="{{ row.possession_time }}">
                                     <td>{{ row.date }}</td>
                                     <td>
                                         {% if 'inconnue' in row.playlist | lower or 'unknown' in row.playlist | lower %}
@@ -940,24 +969,19 @@
                         <span class="icon">▼</span>
                     </button>
                 </div>
-
-                <div class="history-controls">
-                    <button class="filter-btn-ranked active" data-filter="all">Tous</button>
-                    <button class="filter-btn-ranked" data-filter="win">Victoires</button>
-                    <button class="filter-btn-ranked" data-filter="loss">Défaites</button>
-                </div>
                 
-                <p class="history-summary">
+                <p class="history-summary" style="text-align:center;">
                     Affichés : <span id="historyCountRanked">0</span> |
                     Victoires : <span id="historyWinsRanked">0</span> |
-                    Défaites : <span id="historyLossesRanked">0</span>
+                    Défaites : <span id="historyLossesRanked">0</span> |
+                    <button class="history-reset-btn" data-action="reset" title="Réinitialiser filtres et tri">🔄 DÉFAUT</button>
                 </p>
 
                 <div class="history-scroll-container" id="historyContainerRanked">
                     <div class="card" style="padding: 0; background: transparent; box-shadow: none; border: none;">
-                        <table style="margin-top: 0;">
+                        <table style="margin-top: 0;" class="filterable-history-table">
                             <thead>
-                                <tr>
+                                <tr class="header-labels">
                                     <th>Date</th>
                                     <th>Playlist</th>
                                     <th>Résultat</th>
@@ -969,10 +993,31 @@
                                     <th>Démos</th>
                                     <th>Possession</th>
                                 </tr>
+                                <tr class="header-filters">
+                                    <th><button class="filter-btn-col" data-sort="date">TRI <span class="sort-icon">▼</span></button></th>
+                                    <th><button class="filter-btn-col cycle-btn" data-filter-type="playlist" id="filterPlaylistRanked">TOUS</button></th>
+                                    <th><button class="filter-btn-col cycle-btn" data-filter-type="result" id="filterResultRanked">TOUS</button></th>
+                                    <th><button class="filter-btn-col" data-sort="score">TRI <span class="sort-icon">▼</span></button></th>
+                                    <th><button class="filter-btn-col" data-sort="goals">TRI <span class="sort-icon">▼</span></button></th>
+                                    <th><button class="filter-btn-col" data-sort="assists">TRI <span class="sort-icon">▼</span></button></th>
+                                    <th><button class="filter-btn-col" data-sort="saves">TRI <span class="sort-icon">▼</span></button></th>
+                                    <th><button class="filter-btn-col" data-sort="shots">TRI <span class="sort-icon">▼</span></button></th>
+                                    <th><button class="filter-btn-col" data-sort="demolishes">TRI <span class="sort-icon">▼</span></button></th>
+                                    <th><button class="filter-btn-col" data-sort="possession">TRI <span class="sort-icon">▼</span></button></th>
+                                </tr>
                             </thead>
                             <tbody id="historyTableBodyRanked">
                             {% for row in history_ranked %}
-                                <tr data-result="{{ 'win' if row.result == 'Victoire' else 'loss' }}" data-playlist="{{ row.playlist | lower }}">
+                                <tr data-result="{{ 'win' if row.result == 'Victoire' else 'loss' }}" 
+                                    data-playlist="{{ row.playlist | lower }}"
+                                    data-date="{{ row.played_at_iso }}"
+                                    data-score="{{ row.score }}"
+                                    data-goals="{{ row.goals }}"
+                                    data-assists="{{ row.assists }}"
+                                    data-saves="{{ row.saves }}"
+                                    data-shots="{{ row.shots }}"
+                                    data-demolishes="{{ row.demolishes }}"
+                                    data-possession="{{ row.possession_time }}">
                                     <td>{{ row.date }}</td>
                                     <td>
                                         <span class="playlist-badge">{{ row.playlist }}</span>
@@ -1015,24 +1060,19 @@
                         <span class="icon">▼</span>
                     </button>
                 </div>
-
-                <div class="history-controls">
-                    <button class="filter-btn-private active" data-filter="all">Tous</button>
-                    <button class="filter-btn-private" data-filter="win">Victoires</button>
-                    <button class="filter-btn-private" data-filter="loss">Défaites</button>
-                </div>
                 
-                <p class="history-summary">
+                <p class="history-summary" style="text-align:center;">
                     Affichés : <span id="historyCountPrivate">0</span> |
                     Victoires : <span id="historyWinsPrivate">0</span> |
-                    Défaites : <span id="historyLossesPrivate">0</span>
+                    Défaites : <span id="historyLossesPrivate">0</span> |
+                    <button class="history-reset-btn" data-action="reset" title="Réinitialiser filtres et tri">🔄 DÉFAUT</button>
                 </p>
 
                 <div class="history-scroll-container" id="historyContainerPrivate">
                     <div class="card" style="padding: 0; background: transparent; box-shadow: none; border: none;">
-                        <table style="margin-top: 0;">
+                        <table style="margin-top: 0;" class="filterable-history-table">
                             <thead>
-                                <tr>
+                                <tr class="header-labels">
                                     <th>Date</th>
                                     <th>Playlist</th>
                                     <th>Résultat</th>
@@ -1044,10 +1084,31 @@
                                     <th>Démos</th>
                                     <th>Possession</th>
                                 </tr>
+                                <tr class="header-filters">
+                                    <th><button class="filter-btn-col" data-sort="date">TRI <span class="sort-icon">▼</span></button></th>
+                                    <th><button class="filter-btn-col cycle-btn" data-filter-type="playlist" id="filterPlaylistPrivate">TOUS</button></th>
+                                    <th><button class="filter-btn-col cycle-btn" data-filter-type="result" id="filterResultPrivate">TOUS</button></th>
+                                    <th><button class="filter-btn-col" data-sort="score">TRI <span class="sort-icon">▼</span></button></th>
+                                    <th><button class="filter-btn-col" data-sort="goals">TRI <span class="sort-icon">▼</span></button></th>
+                                    <th><button class="filter-btn-col" data-sort="assists">TRI <span class="sort-icon">▼</span></button></th>
+                                    <th><button class="filter-btn-col" data-sort="saves">TRI <span class="sort-icon">▼</span></button></th>
+                                    <th><button class="filter-btn-col" data-sort="shots">TRI <span class="sort-icon">▼</span></button></th>
+                                    <th><button class="filter-btn-col" data-sort="demolishes">TRI <span class="sort-icon">▼</span></button></th>
+                                    <th><button class="filter-btn-col" data-sort="possession">TRI <span class="sort-icon">▼</span></button></th>
+                                </tr>
                             </thead>
                             <tbody id="historyTableBodyPrivate">
                             {% for row in history_private %}
-                                <tr data-result="{{ 'win' if row.result == 'Victoire' else 'loss' }}" data-playlist="{{ row.playlist | lower }}">
+                                <tr data-result="{{ 'win' if row.result == 'Victoire' else 'loss' }}" 
+                                    data-playlist="{{ row.playlist | lower }}"
+                                    data-date="{{ row.played_at_iso }}"
+                                    data-score="{{ row.score }}"
+                                    data-goals="{{ row.goals }}"
+                                    data-assists="{{ row.assists }}"
+                                    data-saves="{{ row.saves }}"
+                                    data-shots="{{ row.shots }}"
+                                    data-demolishes="{{ row.demolishes }}"
+                                    data-possession="{{ row.possession_time }}">
                                     <td>{{ row.date }}</td>
                                     <td>
                                         <span class="playlist-badge">{{ row.playlist }}</span>
@@ -1090,24 +1151,19 @@
                         <span class="icon">▼</span>
                     </button>
                 </div>
-
-                <div class="history-controls">
-                    <button class="filter-btn-tournament active" data-filter="all">Tous</button>
-                    <button class="filter-btn-tournament" data-filter="win">Victoires</button>
-                    <button class="filter-btn-tournament" data-filter="loss">Défaites</button>
-                </div>
                 
-                <p class="history-summary">
+                <p class="history-summary" style="text-align:center;">
                     Affichés : <span id="historyCountTournament">0</span> |
                     Victoires : <span id="historyWinsTournament">0</span> |
-                    Défaites : <span id="historyLossesTournament">0</span>
+                    Défaites : <span id="historyLossesTournament">0</span> |
+                    <button class="history-reset-btn" data-action="reset" title="Réinitialiser filtres et tri">🔄 DÉFAUT</button>
                 </p>
 
                 <div class="history-scroll-container" id="historyContainerTournament">
                     <div class="card" style="padding: 0; background: transparent; box-shadow: none; border: none;">
-                        <table style="margin-top: 0;">
+                        <table style="margin-top: 0;" class="filterable-history-table">
                             <thead>
-                                <tr>
+                                <tr class="header-labels">
                                     <th>Date</th>
                                     <th>Playlist</th>
                                     <th>Résultat</th>
@@ -1119,10 +1175,31 @@
                                     <th>Démos</th>
                                     <th>Possession</th>
                                 </tr>
+                                <tr class="header-filters">
+                                    <th><button class="filter-btn-col" data-sort="date">TRI <span class="sort-icon">▼</span></button></th>
+                                    <th><button class="filter-btn-col cycle-btn" data-filter-type="playlist" id="filterPlaylistTournament">TOUS</button></th>
+                                    <th><button class="filter-btn-col cycle-btn" data-filter-type="result" id="filterResultTournament">TOUS</button></th>
+                                    <th><button class="filter-btn-col" data-sort="score">TRI <span class="sort-icon">▼</span></button></th>
+                                    <th><button class="filter-btn-col" data-sort="goals">TRI <span class="sort-icon">▼</span></button></th>
+                                    <th><button class="filter-btn-col" data-sort="assists">TRI <span class="sort-icon">▼</span></button></th>
+                                    <th><button class="filter-btn-col" data-sort="saves">TRI <span class="sort-icon">▼</span></button></th>
+                                    <th><button class="filter-btn-col" data-sort="shots">TRI <span class="sort-icon">▼</span></button></th>
+                                    <th><button class="filter-btn-col" data-sort="demolishes">TRI <span class="sort-icon">▼</span></button></th>
+                                    <th><button class="filter-btn-col" data-sort="possession">TRI <span class="sort-icon">▼</span></button></th>
+                                </tr>
                             </thead>
                             <tbody id="historyTableBodyTournament">
                             {% for row in history_tournament %}
-                                <tr data-result="{{ 'win' if row.result == 'Victoire' else 'loss' }}" data-playlist="{{ row.playlist | lower }}">
+                                <tr data-result="{{ 'win' if row.result == 'Victoire' else 'loss' }}" 
+                                    data-playlist="{{ row.playlist | lower }}"
+                                    data-date="{{ row.played_at_iso }}"
+                                    data-score="{{ row.score }}"
+                                    data-goals="{{ row.goals }}"
+                                    data-assists="{{ row.assists }}"
+                                    data-saves="{{ row.saves }}"
+                                    data-shots="{{ row.shots }}"
+                                    data-demolishes="{{ row.demolishes }}"
+                                    data-possession="{{ row.possession_time }}">
                                     <td>{{ row.date }}</td>
                                     <td>
                                         <span class="playlist-badge">{{ row.playlist }}</span>
@@ -1207,17 +1284,6 @@
                     </div>
                 </div>
 
-                <div class="grid grid-2" style="margin-top: 16px;">
-                    <div class="card chart-card">
-                        <h3>Radar stats</h3>
-                        <canvas id="radarChart"></canvas>
-                    </div>
-
-                    <div class="card chart-card">
-                        <h3>Victoires / Défaites</h3>
-                        <canvas id="pieChart"></canvas>
-                    </div>
-                </div>
             </section>
 
 
@@ -1324,109 +1390,7 @@
 
     // Initialisation par défaut sur l'onglet global
     switchTab('global');
-
-    // History Table Filter Logic (Generic helper)
-    function setupHistoryFilters(btnClass, tableBodyId, counterIds) {
-        const filterButtons = document.querySelectorAll(btnClass);
-        const tableBody = document.getElementById(tableBodyId);
-        
-        if (!tableBody) return;
-        const rows = tableBody.querySelectorAll("tr");
-
-        function updateCounters() {
-            const visibleRows = tableBody.querySelectorAll("tr:not(.hidden-row):not(.empty-row)");
-            const total = visibleRows.length;
-            const wins = Array.from(visibleRows).filter(r => r.dataset.result === "win").length;
-            const losses = Array.from(visibleRows).filter(r => r.dataset.result === "loss").length;
-
-            if (document.getElementById(counterIds.total)) document.getElementById(counterIds.total).textContent = total;
-            if (document.getElementById(counterIds.wins)) document.getElementById(counterIds.wins).textContent = wins;
-            if (document.getElementById(counterIds.losses)) document.getElementById(counterIds.losses).textContent = losses;
-            
-            // Show/hide empty row
-            const emptyRow = tableBody.querySelector(".empty-row");
-            if (total === 0) {
-                if (!emptyRow) {
-                    const tr = document.createElement("tr");
-                    tr.className = "empty-row";
-                    tr.innerHTML = `<td colspan="10" class="muted">Aucun match ne correspond aux critères.</td>`;
-                    tableBody.appendChild(tr);
-                }
-            } else if (emptyRow) {
-                emptyRow.remove();
-            }
-        }
-
-        function applyFilter(filter) {
-            rows.forEach(row => {
-                if (row.classList.contains("empty-row")) return;
-                const result = row.dataset.result;
-                const playlist = row.dataset.playlist || "";
-                let show = false;
-
-                if (filter === "all") show = true;
-                else if (filter === "win") show = (result === "win");
-                else if (filter === "loss") show = (result === "loss");
-                else if (filter === "ranked") show = playlist.includes("ranked") || playlist.includes("classé");
-                else if (filter === "casual") show = playlist.includes("casual") || playlist.includes("amical");
-                else if (filter === "private") show = playlist.includes("private") || playlist.includes("privé");
-                else if (filter === "tournament") show = playlist.includes("tournament") || playlist.includes("tournoi");
-                
-                row.classList.toggle("hidden-row", !show);
-            });
-            updateCounters();
-        }
-
-        filterButtons.forEach(btn => {
-            btn.addEventListener("click", () => {
-                filterButtons.forEach(b => b.classList.remove("active"));
-                btn.classList.add("active");
-                applyFilter(btn.dataset.filter);
-            });
-        });
-
-        updateCounters();
-    }
-
-    // Init Histories
-    setupHistoryFilters(".filter-btn-recent", "historyTableBodyRecent", {
-        total: "historyCountRecent", wins: "historyWinsRecent", losses: "historyLossesRecent"
-    });
-    setupHistoryFilters(".filter-btn-global", "historyTableBodyGlobal", {
-        total: "historyCountGlobal", wins: "historyWinsGlobal", losses: "historyLossesGlobal"
-    });
-    setupHistoryFilters(".filter-btn-ranked", "historyTableBodyRanked", {
-        total: "historyCountRanked", wins: "historyWinsRanked", losses: "historyLossesRanked"
-    });
-    setupHistoryFilters(".filter-btn-private", "historyTableBodyPrivate", {
-        total: "historyCountPrivate", wins: "historyWinsPrivate", losses: "historyLossesPrivate"
-    });
-    setupHistoryFilters(".filter-btn-tournament", "historyTableBodyTournament", {
-        total: "historyCountTournament", wins: "historyWinsTournament", losses: "historyLossesTournament"
-    });
-
-    // Toggle scroll container logic
-    function setupToggle(btnId, containerId, textId) {
-        const toggleBtn = document.getElementById(btnId);
-        const container = document.getElementById(containerId);
-        const btnText = document.getElementById(textId);
-
-        if (toggleBtn && container) {
-            toggleBtn.addEventListener("click", () => {
-                const isExpanded = container.classList.toggle("expanded");
-                toggleBtn.classList.toggle("active");
-                if (btnText) {
-                    btnText.textContent = isExpanded ? "Réduire le tableau" : "Afficher les matchs";
-                }
-            });
-        }
-    }
-
-    setupToggle("toggleHistoryRecent", "historyContainerRecent", "btnTextRecent");
-    setupToggle("toggleHistoryGlobal", "historyContainerGlobal", "btnTextGlobal");
-    setupToggle("toggleHistoryRanked", "historyContainerRanked", "btnTextRanked");
-    setupToggle("toggleHistoryPrivate", "historyContainerPrivate", "btnTextPrivate");
-    setupToggle("toggleHistoryTournament", "historyContainerTournament", "btnTextTournament");
+</script>
 </script>
 
 </body>

@@ -230,28 +230,18 @@
                     </button>
                 </div>
 
-                <div class="history-controls">
-                    <button class="filter-btn-global active" data-filter="all">Tous</button>
-                    <button class="filter-btn-global" data-filter="win">Victoires</button>
-                    <button class="filter-btn-global" data-filter="loss">Défaites</button>
-                    <button class="filter-btn-global" data-filter="ranked">Matchs Classés</button>
-                    <button class="filter-btn-global" data-filter="private">Matchs Privés</button>
-                    <button class="filter-btn-global" data-filter="tournament">Tournois</button>
-                </div>
-                
-                <p class="history-summary">
+                <p class="history-summary" style="text-align:center;">
                     Affichés : <span id="historyCountGlobal">0</span> |
                     Victoires : <span id="historyWinsGlobal">0</span> |
                     Défaites : <span id="historyLossesGlobal">0</span> |
-                    Privés : <span id="historyPrivateGlobal">0</span> |
-                    Tournois : <span id="historyTournamentGlobal">0</span>
+                    <button class="history-reset-btn" data-action="reset" title="Réinitialiser filtres et tri">🔄 DÉFAUT</button>
                 </p>
 
                 <div class="history-scroll-container" id="historyContainerGlobal">
                     <div class="card" style="padding: 0; background: transparent; box-shadow: none; border: none;">
-                        <table style="margin-top: 0;">
+                        <table style="margin-top: 0;" class="filterable-history-table">
                             <thead>
-                                <tr>
+                                <tr class="header-labels">
                                     <th>Date</th>
                                     <th>Playlist</th>
                                     <th>Composition</th>
@@ -262,6 +252,18 @@
                                     <th>Tirs</th>
                                     <th>Démos</th>
                                     <th>Possession</th>
+                                </tr>
+                                <tr class="header-filters">
+                                    <th><button class="filter-btn-col" data-sort="date">TRI <span class="sort-icon">▼</span></button></th>
+                                    <th><button class="filter-btn-col cycle-btn" data-filter-type="playlist" id="filterPlaylistGlobal">TOUS</button></th>
+                                    <th><button class="filter-btn-col" data-sort="players">TRI <span class="sort-icon">▼</span></button></th>
+                                    <th><button class="filter-btn-col cycle-btn" data-filter-type="result" id="filterResultGlobal">TOUS</button></th>
+                                    <th><button class="filter-btn-col" data-sort="goals">TRI <span class="sort-icon">▼</span></button></th>
+                                    <th><button class="filter-btn-col" data-sort="assists">TRI <span class="sort-icon">▼</span></button></th>
+                                    <th><button class="filter-btn-col" data-sort="saves">TRI <span class="sort-icon">▼</span></button></th>
+                                    <th><button class="filter-btn-col" data-sort="shots">TRI <span class="sort-icon">▼</span></button></th>
+                                    <th><button class="filter-btn-col" data-sort="demolishes">TRI <span class="sort-icon">▼</span></button></th>
+                                    <th><button class="filter-btn-col" data-sort="possession">TRI <span class="sort-icon">▼</span></button></th>
                                 </tr>
                             </thead>
                             <tbody id="historyTableBodyGlobal">
@@ -278,7 +280,17 @@
                                         {% endif %}
                                     {% endif %}
                                 {% endif %}
-                                <tr data-result="{{ 'win' if is_win else ('loss' if is_loss else 'none') }}" data-playlist="{{ row.playlist | lower }}">
+                                <tr data-result="{{ 'win' if is_win else ('loss' if is_loss else 'none') }}" 
+                                    data-playlist="{{ row.playlist | lower }}"
+                                    data-players="{{ row.players | lower }}"
+                                    data-date="{{ row.played_at_iso }}"
+                                    data-score="{{ row.goals }}"
+                                    data-goals="{{ row.goals }}"
+                                    data-assists="{{ row.assists }}"
+                                    data-saves="{{ row.saves }}"
+                                    data-shots="{{ row.shots }}"
+                                    data-demolishes="{{ row.demolishes }}"
+                                    data-possession="{{ row.possession_time }}">
                                     <td>{{ row.date }}</td>
                                     <td>
                                         {% if 'inconnue' in row.playlist | lower or 'unknown' in row.playlist | lower %}
@@ -324,94 +336,11 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="/static/common.js"></script>
     <script>
-    function setupHistoryFilters(btnClass, tableBodyId, counterIds) {
-        const filterButtons = document.querySelectorAll(btnClass);
-        const tableBody = document.getElementById(tableBodyId);
-        
-        if (!tableBody) return;
-        const rows = tableBody.querySelectorAll("tr");
-
-        function updateCounters() {
-            const visibleRows = tableBody.querySelectorAll("tr:not(.hidden-row):not(.empty-row)");
-            const total = visibleRows.length;
-            const wins = Array.from(visibleRows).filter(r => r.dataset.result === "win").length;
-            const losses = Array.from(visibleRows).filter(r => r.dataset.result === "loss").length;
-            const privates = Array.from(visibleRows).filter(r => r.dataset.playlist.includes("private") || r.dataset.playlist.includes("privé")).length;
-            const tournaments = Array.from(visibleRows).filter(r => r.dataset.playlist.includes("tournament") || r.dataset.playlist.includes("tournoi")).length;
-
-            if (document.getElementById(counterIds.total)) document.getElementById(counterIds.total).textContent = total;
-            if (document.getElementById(counterIds.wins)) document.getElementById(counterIds.wins).textContent = wins;
-            if (document.getElementById(counterIds.losses)) document.getElementById(counterIds.losses).textContent = losses;
-            if (document.getElementById(counterIds.private)) document.getElementById(counterIds.private).textContent = privates;
-            if (document.getElementById(counterIds.tournament)) document.getElementById(counterIds.tournament).textContent = tournaments;
-            
-            // Show/hide empty row
-            const emptyRow = tableBody.querySelector(".empty-row");
-            if (total === 0 && rows.length > 0) {
-                if (!emptyRow) {
-                    const tr = document.createElement("tr");
-                    tr.className = "empty-row";
-                    tr.innerHTML = `<td colspan="10" class="muted">Aucun match ne correspond aux critères.</td>`;
-                    tableBody.appendChild(tr);
-                }
-            } else if (emptyRow) {
-                emptyRow.remove();
-            }
-        }
-
-        function applyFilter(filter) {
-            rows.forEach(row => {
-                if (row.classList.contains("empty-row")) return;
-                const result = row.dataset.result;
-                const playlist = row.dataset.playlist || "";
-                let show = false;
-
-                if (filter === "all") show = true;
-                else if (filter === "win") show = (result === "win");
-                else if (filter === "loss") show = (result === "loss");
-                else if (filter === "ranked") show = playlist.includes("ranked") || playlist.includes("classé") || playlist.includes("tournament") || playlist.includes("tournoi");
-                else if (filter === "private") show = playlist.includes("private") || playlist.includes("privé");
-                else if (filter === "tournament") show = playlist.includes("tournament") || playlist.includes("tournoi");
-                
-                row.classList.toggle("hidden-row", !show);
-            });
-            updateCounters();
-        }
-
-        filterButtons.forEach(btn => {
-            btn.addEventListener("click", () => {
-                filterButtons.forEach(b => b.classList.remove("active"));
-                btn.classList.add("active");
-                applyFilter(btn.dataset.filter);
-            });
-        });
-
-        updateCounters();
-    }
-
-    function setupToggle(btnId, containerId, textId) {
-        const toggleBtn = document.getElementById(btnId);
-        const container = document.getElementById(containerId);
-        const btnText = document.getElementById(textId);
-
-        if (toggleBtn && container) {
-            toggleBtn.addEventListener("click", () => {
-                const isExpanded = container.classList.toggle("expanded");
-                toggleBtn.classList.toggle("active");
-                if (btnText) {
-                    btnText.textContent = isExpanded ? "Réduire le tableau" : "Afficher les matchs";
-                }
-            });
-        }
-    }
-
     document.addEventListener("DOMContentLoaded", () => {
-        setupHistoryFilters(".filter-btn-global", "historyTableBodyGlobal", {
+        setupAdvancedHistory("history-global", "historyTableBodyGlobal", {
             total: "historyCountGlobal", 
             wins: "historyWinsGlobal", 
-            losses: "historyLossesGlobal",
-            private: "historyPrivateGlobal",
-            tournament: "historyTournamentGlobal"
+            losses: "historyLossesGlobal"
         });
         setupToggle("toggleHistoryGlobal", "historyContainerGlobal", "btnTextGlobal");
     });

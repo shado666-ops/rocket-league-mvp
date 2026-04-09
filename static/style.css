@@ -295,19 +295,25 @@ a:hover {
 }
 
 .section {
-    margin-top: 28px;
+    margin-top: 64px;
     scroll-margin-top: 24px;
 }
 
 .section-title {
     font-size: 24px;
     margin: 0 0 16px;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
 }
 
 .section-subtitle {
     color: #94a3b8;
     font-size: 14px;
     margin-bottom: 18px;
+    text-align: center;
 }
 
 .card {
@@ -1070,9 +1076,11 @@ canvas {
 /* --- COLLAPSIBLE HISTORY --- */
 .history-section-header {
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
     align-items: center;
-    margin-bottom: 12px;
+    text-align: center;
+    margin-bottom: 24px;
+    gap: 16px;
 }
 
 .history-toggle-btn {
@@ -1102,19 +1110,138 @@ canvas {
     transform: rotate(180deg);
 }
 
+/* History Column Filters */
+.header-filters th {
+    padding: 6px 4px !important;
+    background: rgba(30, 41, 59, 0.4) !important;
+}
+
+.filter-btn-col {
+    width: 100%;
+    padding: 6px 2px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    background: #1e293b;
+    border: 1px solid #334155;
+    color: #94a3b8;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.filter-btn-col:hover {
+    background: #334155;
+    border-color: #475569;
+    color: #fff;
+    transform: translateY(-1px);
+}
+
+.filter-btn-col.active {
+    background: #2563eb;
+    color: white;
+    border-color: #3b82f6;
+    box-shadow: 0 0 10px rgba(37, 99, 235, 0.3);
+}
+
+.filter-btn-col .sort-icon {
+    font-size: 0.6rem;
+    opacity: 0.5;
+}
+
+.filter-btn-col.active .sort-icon {
+    opacity: 1;
+}
+
+.history-reset-btn {
+    background: rgba(30, 41, 59, 0.6);
+    border: 1px solid #334155;
+    color: #94a3b8;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.65rem;
+    font-weight: 800;
+    cursor: pointer;
+    margin-left: 12px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    vertical-align: middle;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.history-reset-btn:hover {
+    background: #ef444420;
+    color: #ef4444;
+    border-color: #ef4444;
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.1);
+}
+
+.history-reset-btn:active {
+    transform: scale(0.95);
+}
+
+.history-reset-btn {
+    background: rgba(30, 41, 59, 0.6);
+    border: 1px solid #334155;
+    color: #94a3b8;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.65rem;
+    font-weight: 800;
+    cursor: pointer;
+    margin-left: 12px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    vertical-align: middle;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.history-reset-btn:hover {
+    background: #ef444420;
+    color: #ef4444;
+    border-color: #ef4444;
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.1);
+}
+.filterable-history-table {
+    border-collapse: separate !important;
+    border-spacing: 0;
+    width: 100%;
+}
+
+.filterable-history-table thead th {
+    position: sticky;
+    z-index: 10;
+    background: #1e293b;
+}
+
+.filterable-history-table thead tr.header-labels th {
+    top: 0;
+    border-bottom: 2px solid #334155;
+    padding: 12px 8px !important;
+}
+
+.filterable-history-table thead tr.header-filters th {
+    top: 45px; /* Ajusté selon la hauteur moyenne de la ligne de titre */
+    background: #111827 !important;
+    border-bottom: 1px solid #334155;
+    z-index: 9;
+}
+
 .history-scroll-container {
     max-height: 0;
     overflow: hidden;
-    transition: max-height 0.4s ease-out, opacity 0.3s;
-    opacity: 0;
+    transition: max-height 0.4s ease-in-out;
 }
 
 .history-scroll-container.expanded {
-    max-height: 400px; /* Fits approx 6-7 rows */
+    max-height: 600px; /* Limiter la hauteur pour forcer le scroll interne */
     overflow-y: auto;
-    opacity: 1;
     border: 1px solid #334155;
-    border-radius: 12px;
+    border-radius: 8px;
     background: rgba(15, 23, 42, 0.5);
     margin-top: 10px;
 }

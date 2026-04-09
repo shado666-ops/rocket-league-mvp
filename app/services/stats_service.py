@@ -291,6 +291,7 @@ def build_player_history_and_charts(rows: list[MatchPlayerStat]) -> dict[str, An
             {
                 "match_id": row.match.id,
                 "date": row.match.played_at.strftime("%d/%m/%Y %H:%M"),
+                "played_at_iso": row.match.played_at.isoformat(),
                 "playlist": row.match.playlist,
                 "result": "Victoire" if row.won else "Défaite",
                 "goals": row.goals,
@@ -484,6 +485,7 @@ def get_club_overview_data(db: Session, limit: int | None = 20) -> dict[str, Any
             {
                 "match_id": match.id,
                 "date": match.played_at.strftime("%d/%m/%Y %H:%M"),
+                "played_at_iso": match.played_at.isoformat(),
                 "playlist": match.playlist,
                 "players": players_str,
                 "player_list": [] if is_private else player_list,
