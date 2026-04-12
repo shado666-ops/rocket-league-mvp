@@ -164,6 +164,14 @@
                             </div>
                             
                             <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 6px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                    <div style="font-size: 0.85rem; color: #94a3b8; font-weight: bold;">VOITURE FÉTICHE :</div>
+                                    <div style="display: flex; gap: 5px; width: 60%;">
+                                        <input type="text" id="carInput-{{ member.display_name }}" value="{{ member.favorite_car or '' }}" placeholder="Ex: Octane..." style="flex-grow: 1; font-size: 0.85rem; padding: 5px 10px;">
+                                        <button style="padding: 5px 10px; font-size: 0.85rem; background: #10b981;" onclick="updateMemberCar('{{ member.display_name }}')">Sauver</button>
+                                    </div>
+                                </div>
+                                <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.05); margin: 10px 0;">
                                 <div style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 8px; font-weight: bold;">PSEUDOS EN JEU (ALIAS) :</div>
                                 <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
                                     <span class="status-pill status-on" style="background: rgba(56, 189, 248, 0.1); color: #7dd3fc; border: 1px solid rgba(56, 189, 248, 0.2);">{{ member.display_name }} (Principal)</span>

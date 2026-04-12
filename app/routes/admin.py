@@ -139,6 +139,16 @@ async def add_member(name: str, db: Session = Depends(get_db)):
     db.commit()
     return {"status": "ok"}
 
+@router.post("/members/{name}/car")
+async def update_member_car(name: str, car: str, db: Session = Depends(get_db)):
+    member = db.query(ClubMember).filter(ClubMember.display_name == name).first()
+    if not member:
+        raise HTTPException(status_code=404, detail="Membre introuvable.")
+    
+    member.favorite_car = car
+    db.commit()
+    return {"status": "ok"}
+
 @router.delete("/members/{name}")
 async def delete_member(name: str, db: Session = Depends(get_db)):
     member = db.query(ClubMember).filter(ClubMember.display_name == name).first()

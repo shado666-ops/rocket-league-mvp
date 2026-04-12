@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -12,7 +13,11 @@ templates = Jinja2Templates(directory="templates")
 
 @router.get("/")
 def notifications_page(request: Request, db: Session = Depends(get_db)):
-    notifications = db.query(Notification).filter(Notification.is_read.is_(False)).order_by(Notification.created_at.desc()).all()
+    limit = datetime.utcnow() - timedelta(hours=48)
+    notifications = db.query(Notification).filter(
+        Notification.is_read.is_(False),
+        Notification.created_at >= limit
+    ).order_by(Notification.created_at.desc()).all()
     unread_notifications_count = len(notifications)
     
     return templates.TemplateResponse(
@@ -41,3 +46,12 @@ def mark_notification_as_read(notification_id: int, db: Session = Depends(get_db
     notification.is_read = True
     db.commit()
     return {"status": "ok"}
+
+@router.get("/ids")
+def get_active_notification_ids(db: Session = Depends(get_db)):
+    limit = datetime.utcnow() - timedelta(hours=48)
+    ids = db.query(Notification.id).filter(
+        Notification.is_read.is_(False),
+        Notification.created_at >= limit
+    ).all()
+    return [i[0] for i in ids]

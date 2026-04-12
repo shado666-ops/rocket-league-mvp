@@ -141,6 +141,23 @@ async function deleteAlias(aliasId) {
         alert("Erreur réseau.");
     }
 }
+
+async function updateMemberCar(name) {
+    const input = document.getElementById(`carInput-${name}`);
+    const car = input.value.trim();
+    
+    try {
+        const response = await fetch(`/admin/members/${encodeURIComponent(name)}/car?car=${encodeURIComponent(car)}`, { method: 'POST' });
+        if (response.ok) {
+            alert("Voiture mise à jour !");
+            window.location.reload();
+        } else {
+            alert("Erreur lors de la mise à jour de la voiture.");
+        }
+    } catch (error) {
+        alert("Erreur réseau.");
+    }
+}
 async function saveGeneralSettings() {
     const clubName = document.getElementById('clubNameInput').value;
     const clubTag = document.getElementById('clubTagInput').value;

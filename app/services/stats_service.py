@@ -32,7 +32,11 @@ def set_setting(db: Session, key: str, value: str):
 
 
 def get_unread_notifications_count(db: Session) -> int:
-    return db.query(func.count(Notification.id)).filter(Notification.is_read.is_(False)).scalar() or 0
+    limit = datetime.utcnow() - timedelta(hours=48)
+    return db.query(func.count(Notification.id)).filter(
+        Notification.is_read.is_(False),
+        Notification.created_at >= limit
+    ).scalar() or 0
 
 
 def get_club_name(db: Session) -> str:
@@ -253,7 +257,50 @@ def build_player_summary(rows: list[MatchPlayerStat]) -> dict[str, float | int]:
     }
 
 
-def build_player_history_and_charts(rows: list[MatchPlayerStat]) -> dict[str, Any]:
+def get_match_category_and_name(match: Match, member_map: dict[str, str]) -> tuple[str, str]:
+    playlist_lower = match.playlist.lower()
+    is_private_name = "private" in playlist_lower or "privé" in playlist_lower
+    
+    t0_club = sum(1 for ps in match.player_stats if ps.team == 0 and member_map.get(ps.player.display_name))
+    t1_club = sum(1 for ps in match.player_stats if ps.team == 1 and member_map.get(ps.player.display_name))
+    is_private_composition = (t0_club > 0 and t1_club > 0)
+    
+    is_private = is_private_name or is_private_composition
+    is_tournament = "tourn" in playlist_lower
+    club_memb_count = t0_club + t1_club
+    
+    category = "other"
+    cat_name = match.playlist
+    if is_tournament:
+        category = "tournaments"
+        cat_name = "Tournois"
+    elif is_private:
+        category = "private"
+        cat_name = "Matchs privés"
+    elif "3v3" in playlist_lower or "standard" in playlist_lower:
+        if club_memb_count >= 3: 
+            category = "3v3_club"
+            cat_name = "Entre nous (3v3)"
+        elif club_memb_count > 0: 
+            category = "3v3_random"
+            cat_name = "Avec Random (3v3)"
+    elif "2v2" in playlist_lower or "doubles" in playlist_lower:
+        if club_memb_count >= 2: 
+            category = "2v2_club"
+            cat_name = "Entre nous (2v2)"
+    elif "4v4" in playlist_lower or "chaos" in playlist_lower:
+        category = "4v4_club"
+        cat_name = "Mode Chaos (4v4)"
+    elif "1v1" in playlist_lower or "duel" in playlist_lower:
+        category = "1v1_ranked"
+        cat_name = "Duel"
+    elif "casual" in playlist_lower:
+        category = "casual"
+        cat_name = "Casual"
+    
+    return category, cat_name
+
+def build_player_history_and_charts(rows: list[MatchPlayerStat], member_map: dict[str, str] = None) -> dict[str, Any]:
     history = []
     rating_chart = []
     score_chart = []
@@ -287,12 +334,19 @@ def build_player_history_and_charts(rows: list[MatchPlayerStat]) -> dict[str, An
             playlist=row.match.playlist
         )
 
+        category = "other"
+        cat_name = row.match.playlist
+        if member_map:
+            category, cat_name = get_match_category_and_name(row.match, member_map)
+
         history.append(
             {
                 "match_id": row.match.id,
                 "date": row.match.played_at.strftime("%d/%m/%Y %H:%M"),
                 "played_at_iso": row.match.played_at.isoformat(),
-                "playlist": row.match.playlist,
+                "playlist": cat_name,
+                "category": category,
+                "cat_name": cat_name,
                 "result": "Victoire" if row.won else "Défaite",
                 "goals": row.goals,
                 "assists": row.assists,
@@ -325,10 +379,10 @@ def build_player_history_and_charts(rows: list[MatchPlayerStat]) -> dict[str, An
             }
         )
 
-        playlist_counter[row.match.playlist] += 1
-        playlist_scores[row.match.playlist].append(row.score)
-        score_by_playlist[row.match.playlist].append({"label": label, "value": row.score})
-        rating_by_playlist[row.match.playlist].append({"label": label, "value": match_rating})
+        playlist_counter[cat_name] += 1
+        playlist_scores[cat_name].append(row.score)
+        score_by_playlist[cat_name].append({"label": label, "value": row.score})
+        rating_by_playlist[cat_name].append({"label": label, "value": match_rating})
 
     matches_count = len(rows)
 
@@ -456,7 +510,9 @@ def get_club_overview_data(db: Session, limit: int | None = 20) -> dict[str, Any
         
         is_private = is_private_name or is_private_composition
         
-        players_str = ""
+        team0 = []
+        team1 = []
+        player_list = []
         if is_private:
             team0 = sorted([member_map.get(ps.player.display_name, ps.player.display_name) for ps in match.player_stats if ps.team == 0])
             team1 = sorted([member_map.get(ps.player.display_name, ps.player.display_name) for ps in match.player_stats if ps.team == 1])
@@ -481,14 +537,26 @@ def get_club_overview_data(db: Session, limit: int | None = 20) -> dict[str, Any
             loser_goals = sum(ps.goals for ps in match.player_stats if not ps.won)
             match_score = f"{winner_goals} - {loser_goals}" if won else f"{loser_goals} - {winner_goals}"
 
+        # Identify category (fid) for styling
+        is_tournament = "tourn" in playlist_lower
+        club_memb_count = len({member_map.get(r.player.display_name) for r in rows if member_map.get(r.player.display_name)})
+        
+        category = "other"
+        if is_tournament:
+            category = "tournaments"
+        category, cat_name = get_match_category_and_name(match, member_map)
+
         club_history.append(
             {
                 "match_id": match.id,
                 "date": match.played_at.strftime("%d/%m/%Y %H:%M"),
                 "played_at_iso": match.played_at.isoformat(),
-                "playlist": match.playlist,
+                "playlist": cat_name,
+                "category": category,
                 "players": players_str,
-                "player_list": [] if is_private else player_list,
+                "player_list": player_list,
+                "team0": team0,
+                "team1": team1,
                 "is_private": is_private,
                 "result": "Privé" if is_private else ("Victoire" if any(r.won for r in rows) else "Défaite"),
                 "match_score": match_score,
@@ -594,11 +662,11 @@ def get_club_archives_data(db: Session, category_fid: str | None = None) -> dict
     # key: formation_id (e.g. "3v3_club", "3v3_random", etc.)
     # value: { formation_name, player_combinations: { "Player A / Player B": { seasons: { "Season name": stats } } } }
     archives: dict[str, Any] = {
-        "3v3_club": {"name": "Équipes 3V3 entre nous", "groups": {}},
-        "3v3_random": {"name": "3V3 avec Random", "groups": {}},
-        "2v2_club": {"name": "Équipes 2V2 entre nous", "groups": {}},
-        "4v4_club": {"name": "Matchs 4v4", "groups": {}},
-        "private": {"name": "Matchs Privés", "groups": {}},
+        "2v2_club": {"name": "Entre nous (2v2)", "groups": {}},
+        "3v3_club": {"name": "Entre nous (3v3)", "groups": {}},
+        "3v3_random": {"name": "Avec Random (3v3)", "groups": {}},
+        "4v4_club": {"name": "Mode Chaos (4v4)", "groups": {}},
+        "private": {"name": "Matchs privés", "groups": {}},
         "tournaments": {"name": "Tournois", "groups": {}}, 
     }
 
@@ -786,7 +854,7 @@ def get_club_archives_data(db: Session, category_fid: str | None = None) -> dict
                 fid = "tournaments"
             elif "3v3" in playlist_lower or "standard" in playlist_lower:
                 if len(club_memb) >= 3: fid = "3v3_club"
-                elif len(club_memb) == 2: fid = "3v3_random"
+                elif 0 < len(club_memb) < 3: fid = "3v3_random"
             elif "2v2" in playlist_lower or "doubles" in playlist_lower:
                 if len(club_memb) >= 2: fid = "2v2_club"
             elif "4v4" in playlist_lower or "chaos" in playlist_lower:
@@ -796,7 +864,7 @@ def get_club_archives_data(db: Session, category_fid: str | None = None) -> dict
 
             # Group within fid by the specific combination of club members (using primary names)
             sorted_m = sorted(club_memb)
-            if ("3v3" in playlist_lower or "standard" in playlist_lower) and len(club_memb) == 2:
+            if ("3v3" in playlist_lower or "standard" in playlist_lower) and 0 < len(club_memb) < 3:
                 sorted_m.append("Random")
                 
             combination_name = " / ".join(sorted_m)
@@ -916,7 +984,13 @@ def get_club_archives_data(db: Session, category_fid: str | None = None) -> dict
                 "mvp_count": v["mvps"]
             })
 
-        comp_name = " / ".join(sorted(list(s_members_set)))
+        sorted_m = sorted(list(s_members_set))
+        # Si c'est un tournoi 3v3 et qu'il n'y a que 2 membres, on ajoute "Random" pour le regroupement
+        playlist_sample = s_matches_data[0]["match"].playlist.lower()
+        if ("3v3" in playlist_sample or "standard" in playlist_sample) and len(sorted_m) == 2:
+            sorted_m.append("Random")
+            
+        comp_name = " / ".join(sorted_m)
         if comp_name not in archives["tournaments"]["groups"]:
             archives["tournaments"]["groups"][comp_name] = {
                 "sessions": [],
@@ -1278,25 +1352,27 @@ def get_mate_detail_data(db: Session, mate_name: str) -> dict[str, Any] | None:
     # Tournament: Only tournament playlists
     tournament_rows = ps.filter_tournament_rows(rows)
     
+    member_map = get_active_club_member_map(db)
+
     # Calculate Summaries and Indicators
     summary_recent = build_player_summary(recent_rows)
-    extra_recent = build_player_history_and_charts(recent_rows)
+    extra_recent = build_player_history_and_charts(recent_rows, member_map)
     indicators_recent = build_progress_indicators(summary_recent)
 
     summary_global = build_player_summary(global_rows)
-    extra_global = build_player_history_and_charts(global_rows)
+    extra_global = build_player_history_and_charts(global_rows, member_map)
     indicators_global = build_progress_indicators(summary_global)
     
     summary_ranked = build_player_summary(ranked_rows)
-    extra_ranked = build_player_history_and_charts(ranked_rows)
+    extra_ranked = build_player_history_and_charts(ranked_rows, member_map)
     indicators_ranked = build_progress_indicators(summary_ranked)
     
     summary_private = build_player_summary(private_rows)
-    extra_private = build_player_history_and_charts(private_rows)
+    extra_private = build_player_history_and_charts(private_rows, member_map)
     indicators_private = build_progress_indicators(summary_private)
 
     summary_tournament = build_player_summary(tournament_rows)
-    extra_tournament = build_player_history_and_charts(tournament_rows)
+    extra_tournament = build_player_history_and_charts(tournament_rows, member_map)
     indicators_tournament = build_progress_indicators(summary_tournament)
 
     club_name = get_club_name(db)
@@ -1327,22 +1403,26 @@ def get_mate_detail_data(db: Session, mate_name: str) -> dict[str, Any] | None:
         "indicators_ranked": indicators_ranked,
         "indicators_private": indicators_private,
         "indicators_tournament": indicators_tournament,
-        "seasons_stats": get_seasonal_stats_for_rows(global_rows, seasons_meta),
-        "seasons_stats_ranked": get_seasonal_stats_for_rows(ranked_rows, seasons_meta),
-        "seasons_stats_private": get_seasonal_stats_for_rows(private_rows, seasons_meta),
-        "seasons_stats_tournament": get_seasonal_stats_for_rows(tournament_rows, seasons_meta),
+        "seasons_stats": get_seasonal_stats_for_rows(global_rows, seasons_meta, member_map),
+        "seasons_stats_ranked": get_seasonal_stats_for_rows(ranked_rows, seasons_meta, member_map),
+        "seasons_stats_private": get_seasonal_stats_for_rows(private_rows, seasons_meta, member_map),
+        "seasons_stats_tournament": get_seasonal_stats_for_rows(tournament_rows, seasons_meta, member_map),
         "unread_notifications_count": get_unread_notifications_count(db),
     }
 
-def get_seasonal_stats_for_rows(rows: list[MatchPlayerStat], seasons_meta: list[Season]) -> list[dict[str, Any]]:
-    # key: season_name -> key: playlist -> stats
+def get_seasonal_stats_for_rows(rows: list[MatchPlayerStat], seasons_meta: list[Season], member_map: dict[str, str] = None) -> list[dict[str, Any]]:
+    # key: season_name -> key: cat_name -> stats + category id
     seasonal_data = defaultdict(lambda: defaultdict(lambda: {
-        "matches": 0, "wins": 0, "goals": 0, "assists": 0, "saves": 0, "shots": 0, "score": 0, "mvps": 0
+        "matches": 0, "wins": 0, "goals": 0, "assists": 0, "saves": 0, "shots": 0, "score": 0, "mvps": 0, "category": "other"
     }))
 
     for r in rows:
         season_name = get_season_for_date(r.match.played_at, seasons_meta)
-        playlist = r.match.playlist
+        
+        category = "other"
+        cat_name = r.match.playlist
+        if member_map:
+            category, cat_name = get_match_category_and_name(r.match, member_map)
         
         # Calculate if this player was MVP
         all_stats = r.match.player_stats
@@ -1350,16 +1430,20 @@ def get_seasonal_stats_for_rows(rows: list[MatchPlayerStat], seasons_meta: list[
         if winning_team is not None:
             winning_team_stats = [ps for ps in all_stats if ps.team == winning_team]
             if winning_team_stats:
-                max_score = max(ps.score for ps in winning_team_stats)
+                max_score = max((ps.score for ps in winning_team_stats), default=0)
                 is_mvp = (r.team == winning_team and r.score == max_score)
             else:
                 is_mvp = False
         else:
-            max_overall = max(ps.score for ps in all_stats)
-            is_mvp = (r.score == max_overall)
+            if all_stats:
+                max_overall = max((ps.score for ps in all_stats), default=0)
+                is_mvp = (r.score == max_overall)
+            else:
+                is_mvp = False
 
-        s = seasonal_data[season_name][playlist]
+        s = seasonal_data[season_name][cat_name]
         s["matches"] += 1
+        s["category"] = category
         if r.won: s["wins"] += 1
         s["goals"] += r.goals
         s["assists"] += r.assists
@@ -1385,6 +1469,7 @@ def get_seasonal_stats_for_rows(rows: list[MatchPlayerStat], seasons_meta: list[
         for p_name, p_stats in seasonal_data[s_name].items():
             playlists_list.append({
                 "playlist": p_name,
+                "category": p_stats.get("category", "other"),
                 "matches": p_stats["matches"],
                 "winrate": safe_div(p_stats["wins"] * 100, p_stats["matches"]),
                 "goals_avg": safe_div(p_stats["goals"], p_stats["matches"]),
@@ -1418,12 +1503,21 @@ def get_seasonal_stats_for_rows(rows: list[MatchPlayerStat], seasons_meta: list[
     return formatted_seasons
 
 def build_progress_indicators(summary: dict[str, float | int]) -> dict[str, dict[str, float | str]]:
-    winrate = float(summary.get("winrate", 0))
-    score_per_match = float(summary.get("score_per_match", 0))
-    goals_per_match = float(summary.get("goals_per_match", 0))
-    saves_per_match = float(summary.get("saves_per_match", 0))
-    shots_per_match = float(summary.get("shots_per_match", 0))
-    assists_per_match = float(summary.get("assists_per_match", 0))
+    if not summary:
+        summary = {}
+        
+    def safe_float(val: Any) -> float:
+        try:
+            return float(val) if val is not None else 0.0
+        except (ValueError, TypeError):
+            return 0.0
+
+    winrate = safe_float(summary.get("winrate", 0))
+    score_per_match = safe_float(summary.get("score_per_match", 0))
+    goals_per_match = safe_float(summary.get("goals_per_match", 0))
+    saves_per_match = safe_float(summary.get("saves_per_match", 0))
+    shots_per_match = safe_float(summary.get("shots_per_match", 0))
+    assists_per_match = safe_float(summary.get("assists_per_match", 0))
 
     return {
         "winrate": {
@@ -1469,6 +1563,7 @@ def get_all_club_members(db: Session) -> list[dict[str, Any]]:
         {
             "id": row.id,
             "display_name": row.display_name,
+            "favorite_car": row.favorite_car,
             "is_active": row.is_active,
             "aliases": [{"id": a.id, "pseudo": a.pseudo} for a in row.aliases],
             "stats": build_player_summary(get_player_rows(db, row.display_name, exclude_casual=True))

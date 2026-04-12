@@ -71,6 +71,7 @@ class ClubMember(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     display_name = Column(String, unique=True, nullable=False, index=True)
+    favorite_car = Column(String, nullable=True)
     is_active = Column(Boolean, nullable=False, default=True)
 
     aliases = relationship("PlayerAlias", back_populates="member", cascade="all, delete-orphan")

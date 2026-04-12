@@ -50,6 +50,32 @@ document.addEventListener('DOMContentLoaded', function() {
 
     setupWebSocket();
 
+    // --- NOTIFICATION BADGE SYNC ---
+    async function syncNotificationBadge() {
+        const badge = document.querySelector('.notif-badge');
+        if (!badge) return;
+
+        try {
+            const res = await fetch("/notifications/ids");
+            if (!res.ok) return;
+            const activeIds = await res.json();
+            
+            const dismissed = JSON.parse(localStorage.getItem('rl_dismissed_notifications') || '[]');
+            const actualUnread = activeIds.filter(id => !dismissed.includes(id)).length;
+            
+            if (actualUnread > 0) {
+                badge.textContent = actualUnread;
+                badge.style.display = 'inline-block';
+            } else {
+                badge.style.display = 'none';
+            }
+        } catch (e) {
+            console.warn("Common: Notification sync failed:", e);
+        }
+    }
+
+    syncNotificationBadge();
+
     // Fallback Polling (15s)
     setInterval(async () => {
         if (!refreshToggle.checked) return;

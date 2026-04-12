@@ -132,86 +132,104 @@ def show_header():
     print(colorize("-" * 64, C_DIM))
 
 def show_menu():
-    print(f"{colorize('TRACKER', C_CYAN)}")
-    print(f" {colorize('1.', C_CYAN)} Demarrer le tracker")
-    print(f" {colorize('2.', C_CYAN)} Ouvrir le dashboard")
-    print(f" {colorize('3.', C_CYAN)} Voir le statut detaille (API)")
-    print(f" {colorize('4.', C_CYAN)} Sauvegarder la base")
-    print(f" {colorize('5.', C_CYAN)} Reset la base")
-    print(f" {colorize('6.', C_CYAN)} Ouvrir le dossier des replays")
-    print(f" {colorize('7.', C_CYAN)} Arreter le tracker")
+    print(f"{colorize('DEMARRAGE', C_CYAN)}")
+    print(f" {colorize('1.', C_CYAN)} TOUT DEMARRER (Serveur + Watcher)")
+    print(f" {colorize('2.', C_CYAN)} Lancer SEULEMENT le Serveur (Consultation)")
+    print(f" {colorize('3.', C_CYAN)} Lancer SEULEMENT le Watcher")
+    print()
+    print(f"{colorize('ARRET', C_RED)}")
+    print(f" {colorize('4.', C_RED)} TOUT ARRETER")
+    print(f" {colorize('5.', C_RED)} Arreter SEULEMENT le Watcher")
+    print()
+    print(f"{colorize('OUTILS', C_YELLOW)}")
+    print(f" {colorize('6.', C_YELLOW)} Ouvrir le dashboard")
+    print(f" {colorize('7.', C_YELLOW)} Sauvegarder la base")
+    print(f" {colorize('8.', C_YELLOW)} Reset la base")
+    print(f" {colorize('9.', C_YELLOW)} Ouvrir le dossier des replays")
     print()
     print(f"{colorize('CLUB', C_GREEN)}")
-    print(f" {colorize('8.', C_GREEN)} Voir les membres du club")
-    print(f" {colorize('9.', C_GREEN)} Ajouter un membre du club")
-    print(f" {colorize('10.', C_GREEN)} Supprimer un membre du club")
+    print(f" {colorize('10.', C_GREEN)} Voir les membres du club")
+    print(f" {colorize('11.', C_GREEN)} Ajouter un membre du club")
+    print(f" {colorize('12.', C_GREEN)} Supprimer un membre du club")
     print()
-    print(f"{colorize('LOGS', C_MAGENTA)}")
-    print(f" {colorize('11.', C_MAGENTA)} Ouvrir le dossier des logs")
-    print(f" {colorize('12.', C_MAGENTA)} Ouvrir server.log")
-    print(f" {colorize('13.', C_MAGENTA)} Ouvrir watcher.log")
+    print(f"{colorize('LOGS / NGROK', C_MAGENTA)}")
+    print(f" {colorize('13.', C_MAGENTA)} Ouvrir le dossier des logs")
     print(f" {colorize('14.', C_MAGENTA)} Vider les logs")
-    print()
-    print(f"{colorize('DISTANT (NGROK)', C_YELLOW)}")
-    print(f" {colorize('15.', C_YELLOW)} Démarrer ngrok (accès public)")
-    print(f" {colorize('16.', C_YELLOW)} Arrêter ngrok")
+    print(f" {colorize('15.', C_MAGENTA)} Démarrer ngrok (accès public)")
+    print(f" {colorize('16.', C_MAGENTA)} Arrêter ngrok")
     print()
     print(f" {colorize('17.', C_RED)} Quitter")
     print(colorize("-" * 64, C_DIM))
-    print(colorize("Conseil : demarre le tracker avant d'ouvrir le dashboard.", C_DIM))
+    print(colorize("Conseil : laisse le serveur tourner pour garder la page accessible.", C_DIM))
 
-def start_tracker():
+def start_server():
     states = get_process_states()
-    
     if not states["server_ok"]:
         print(colorize("\nDémarrage du serveur FastAPI...", C_CYAN))
-        # Unique title for robust killing, scripts will no longer override it
         cmd = f'start "RL_SERVER_WIN" "{PYTHON_EXE}" main.py'
         subprocess.Popen(cmd, cwd=PROJECT_DIR, shell=True)
-    
+        time.sleep(1.5)
+        return True
+    else:
+        print(colorize("\nLe serveur est déjà lancé.", C_YELLOW))
+        return False
+
+def start_watcher():
+    states = get_process_states()
     if not states["watcher_ok"]:
         print(colorize("Démarrage du Watcher...", C_CYAN))
         cmd = f'start "RL_WATCHER_WIN" "{PYTHON_EXE}" agent/watcher.py'
         subprocess.Popen(cmd, cwd=PROJECT_DIR, shell=True)
-    
-    # The status will be refreshed on next loop thanks to is_window_running
-    print(colorize("\nTracker démarré dans de nouvelles fenêtres.", C_GREEN))
-    
-    # Auto-open dashboard
-    time.sleep(2)
-    os.system("start http://localhost:8000")
-    
-    # Note: Ngrok est maintenant lancé automatiquement par main.py
-    
-    time.sleep(1.5)
+        time.sleep(1)
+        return True
+    else:
+        print(colorize("\nLe watcher est déjà lancé.", C_YELLOW))
+        return False
+
+def start_tracker():
+    """Démarre tout."""
+    s = start_server()
+    w = start_watcher()
+    if s or w:
+        print(colorize("\nSystème démarré.", C_GREEN))
+        time.sleep(1)
+        os.system("start http://localhost:8000")
+    time.sleep(1)
+
+def stop_process(pid_name, title_filter):
+    """Méthode générique pour arrêter un processus."""
+    try:
+        # 1. Par PID
+        pid_path = os.path.join(PROJECT_DIR, "data", pid_name)
+        if os.path.exists(pid_path):
+            try:
+                with open(pid_path, "r") as f:
+                    pid = f.read().strip()
+                if pid:
+                    os.system(f'taskkill /F /PID {pid} /T >nul 2>&1')
+                    os.remove(pid_path)
+                    return True
+            except: pass
+
+        # 2. Par Titre (Fallback)
+        os.system(f'taskkill /F /FI "WINDOWTITLE eq {title_filter}*" /T >nul 2>&1')
+        return True
+    except:
+        return False
+
+def stop_watcher():
+    print(colorize("\nArrêt du Watcher...", C_RED))
+    stop_process("watcher.pid", "RL_WATCHER_WIN")
+    print(colorize("Watcher arrêté.", C_GREEN))
+    time.sleep(1)
 
 def stop_tracker():
-    print(colorize("\nArrêt des processus Rocket League Tracker...", C_RED))
-    try:
-        # 1. Kill by PIDs (Stored in data/*.pid) - Most reliable method
-        for pid_name in ["server.pid", "watcher.pid"]:
-            pid_path = os.path.join(PROJECT_DIR, "data", pid_name)
-            if os.path.exists(pid_path):
-                try:
-                    with open(pid_path, "r") as f:
-                        pid = f.read().strip()
-                    if pid:
-                        # /T kills the tree (including the CMD window starting it)
-                        os.system(f'taskkill /F /PID {pid} /T >nul 2>&1')
-                        os.remove(pid_path)
-                except: pass
-
-        # 2. Fallback by titles (for windows started but whose scripts didn't write PID yet)
-        os.system('taskkill /F /FI "WINDOWTITLE eq RL_SERVER_WIN*" /T >nul 2>&1')
-        os.system('taskkill /F /FI "WINDOWTITLE eq RL_WATCHER_WIN*" /T >nul 2>&1')
-        
-        # Auto-stop ngrok
-        stop_ngrok()
-        
-    except: pass
-    
-    print(colorize("Processus arrêtés.", C_GREEN))
-    time.sleep(1.5)
+    print(colorize("\nArrêt complet (Serveur + Watcher)...", C_RED))
+    stop_process("server.pid", "RL_SERVER_WIN")
+    stop_process("watcher.pid", "RL_WATCHER_WIN")
+    stop_ngrok()
+    print(colorize("Tout est arrêté.", C_GREEN))
+    time.sleep(1)
 
 def start_ngrok():
     if is_process_running("ngrok.exe", is_python=False):
@@ -292,20 +310,20 @@ def main_loop():
         choice = input(colorize("Choix : ", C_YELLOW)).strip()
         
         if choice == "1": start_tracker(); pause()
-        elif choice == "2": os.system("start http://localhost:8000")
-        elif choice == "3": os.system("start http://localhost:8000/docs"); pause()
-        elif choice == "4": 
+        elif choice == "2": start_server(); pause()
+        elif choice == "3": start_watcher(); pause()
+        elif choice == "4": stop_tracker(); pause()
+        elif choice == "5": stop_watcher(); pause()
+        elif choice == "6": os.system("start http://localhost:8000")
+        elif choice == "7": 
              os.system(f"{PYTHON_EXE} -c \"import shutil, os, datetime; ts=datetime.datetime.now().strftime('%Y%m%d_%H%M%S'); os.makedirs('backups', exist_ok=True); shutil.copy2('data/app.db', f'backups/app_backup_{{ts}}.db'); print('Backup OK')\"")
              pause()
-        elif choice == "5": reset_database(); pause()
-        elif choice == "6": os.system(f"explorer \"{REPLAY_DIR}\"")
-        elif choice == "7": stop_tracker(); pause()
-        elif choice == "8": manage_members("list"); pause()
-        elif choice == "9": manage_members("add"); pause()
-        elif choice == "10": manage_members("delete"); pause()
-        elif choice == "11": os.system(f"explorer \"{LOGS_DIR}\"")
-        elif choice == "12": os.system(f"notepad \"{LOGS_DIR}/server.log\"")
-        elif choice == "13": os.system(f"notepad \"{LOGS_DIR}/watcher.log\"")
+        elif choice == "8": reset_database(); pause()
+        elif choice == "9": os.system(f"explorer \"{REPLAY_DIR}\"")
+        elif choice == "10": manage_members("list"); pause()
+        elif choice == "11": manage_members("add"); pause()
+        elif choice == "12": manage_members("delete"); pause()
+        elif choice == "13": os.system(f"explorer \"{LOGS_DIR}\"")
         elif choice == "14": 
             for f in ["server.log", "watcher.log"]:
                 with open(os.path.join(LOGS_DIR, f), "w") as log: log.write(f"--- Cleared at {datetime.now()} ---\n")

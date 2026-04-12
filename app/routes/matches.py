@@ -74,6 +74,28 @@ async def ingest_match(payload: MatchIngestPayload, db: Session = Depends(get_db
         if payload.playlist != "unknown" and (is_generic or is_replay):
             match.playlist = payload.playlist
             
+        # Harmonisation et détection 3v3 Ranked+R
+        playlist_lower = payload.playlist.lower()
+        if ("3v3" in playlist_lower or "standard" in playlist_lower) and "ranked" in playlist_lower:
+            member_map = get_active_club_member_map(db)
+            all_pseudos = set(member_map.keys())
+            
+            # Compte des membres du club par équipe
+            teams_club_count = {}
+            for p in payload.players:
+                if p.display_name in all_pseudos:
+                    teams_club_count[p.team] = teams_club_count.get(p.team, 0) + 1
+            
+            # On cherche l'équipe avec le plus de membres du club (notre équipe)
+            max_club_on_team = max(teams_club_count.values()) if teams_club_count else 0
+            
+            if 0 < max_club_on_team < 3:
+                payload.playlist = "3v3 (Ranked+R)"
+            else:
+                payload.playlist = "3v3 (Ranked)"
+            
+            match.playlist = payload.playlist
+
         # Detect private matches by composition if still generic
         if match.playlist == "unknown" or match.playlist == "BakkesMod CSV":
             member_map = get_active_club_member_map(db)
@@ -104,6 +126,24 @@ async def ingest_match(payload: MatchIngestPayload, db: Session = Depends(get_db
 
     if not payload.players:
         raise HTTPException(status_code=400, detail="Payload vide : aucun joueur fourni.")
+
+    # Harmonisation et détection 3v3 Ranked+R pour nouveaux matchs
+    playlist_lower = payload.playlist.lower()
+    if ("3v3" in playlist_lower or "standard" in playlist_lower) and "ranked" in playlist_lower:
+        member_map = get_active_club_member_map(db)
+        all_pseudos = set(member_map.keys())
+        
+        teams_club_count = {}
+        for p in payload.players:
+            if p.display_name in all_pseudos:
+                teams_club_count[p.team] = teams_club_count.get(p.team, 0) + 1
+        
+        max_club_on_team = max(teams_club_count.values()) if teams_club_count else 0
+        
+        if 0 < max_club_on_team < 3:
+            payload.playlist = "3v3 (Ranked+R)"
+        else:
+            payload.playlist = "3v3 (Ranked)"
 
     match = Match(
         replay_id=payload.replay_id,
@@ -212,7 +252,7 @@ async def upload_replay(replay_file: UploadFile = File(...), mtime: float = None
             10: "Duel (Ranked)",
             11: "Doubles (Ranked)",
             12: "Solo Standard (Ranked)",
-            13: "Standard (Ranked)",
+            13: "3v3 (Ranked)",
             15: "Snow Day",
             16: "Rocket Labs",
             17: "Hoops (Casual)",

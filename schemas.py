@@ -34,11 +34,13 @@ class MatchIngestPayload(BaseModel):
 class ClubMemberCreate(BaseModel):
     display_name: str = Field(..., min_length=1)
     is_active: bool = True
+    favorite_car: Optional[str] = None
 
 
 class ClubMemberOut(BaseModel):
     id: int
     display_name: str
+    favorite_car: Optional[str]
     is_active: bool
 
     class Config:

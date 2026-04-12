@@ -125,12 +125,22 @@
                                 {% endif %}
                             </div>
                             <div class="member-nav-info">
-                                <span class="member-nav-name">{{ member.display_name }}👑</span>
+                                <span class="member-nav-name">{{ member.display_name }}<span class="player-crown">👑</span></span>
                                 <span class="member-nav-status">
                                     <span class="status-badge status-me">{{ club_tag }}</span>
                                 </span>
                             </div>
                             <div class="member-nav-arrow">→</div>
+                            
+                            {% if member.favorite_car %}
+                            <div class="member-nav-car-label">Voiture Fétiche</div>
+                            <div class="member-nav-car-row">
+                                <img src="/static/cars/{{ member.favorite_car.lower().split(' ')[0].replace('(2016)', '').strip() }}.png" 
+                                     onerror="this.style.display='none'" 
+                                     class="car-mini-icon">
+                                <span>{{ member.favorite_car }}</span>
+                            </div>
+                            {% endif %}
                         </a>
                         {# Player Card Image #}
                         {% if member.display_name.lower() == 'shado666' %}
@@ -175,6 +185,16 @@
                                 </span>
                             </div>
                             <div class="member-nav-arrow">→</div>
+
+                            {% if member.favorite_car %}
+                            <div class="member-nav-car-label">Voiture Fétiche</div>
+                            <div class="member-nav-car-row">
+                                <img src="/static/cars/{{ member.favorite_car.lower().split(' ')[0].replace('(2016)', '').strip() }}.png" 
+                                     onerror="this.style.display='none'" 
+                                     class="car-mini-icon">
+                                <span>{{ member.favorite_car }}</span>
+                            </div>
+                            {% endif %}
                         </a>
                         {# Player Card Image #}
                         {% if member.display_name.lower() == 'shado666' %}
@@ -214,6 +234,21 @@
         img.addEventListener('click', () => {
             if (lightbox && lightboxImg) {
                 lightboxImg.src = img.src;
+                lightbox.classList.add('active');
+            }
+        });
+    });
+
+    // Lightbox for Car Miniatures (V2 version)
+    const carIcons = document.querySelectorAll('.car-mini-icon');
+    carIcons.forEach(img => {
+        img.addEventListener('click', (e) => {
+            e.preventDefault(); // Just in case
+            e.stopPropagation(); // Avoid card click
+            if (lightbox && lightboxImg) {
+                // Resolve V2 path: change xxx.png to xxx_v2.png
+                const v2Src = img.src.replace('.png', '_v2.png');
+                lightboxImg.src = v2Src;
                 lightbox.classList.add('active');
             }
         });

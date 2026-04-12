@@ -14,10 +14,26 @@ function initPlayerDetailCharts(data) {
     const scoreByPlaylist = data.score_by_playlist || {};
     const playerName = data.player_name || "Joueur";
 
-    // Colors
-    const playlistColors = ["#38bdf8", "#4ade80", "#fb7185", "#fbbf24", "#a78bfa", "#2dd4bf", "#f472b6", "#818cf8", "#c084fc", "#fb923c"];
+    // Colors matching the club's theme categories
+    const categoryColors = {
+        "Entre nous (2v2)": "#d946ef",  // Violet
+        "Entre nous (3v3)": "#38bdf8",  // Blue
+        "Avec Random (3v3)": "#2dd4bf", // Cyan
+        "Mode Chaos (4v4)": "#ef4444",  // Red
+        "Matchs privés": "#f97316",     // Orange
+        "Tournois": "#eab308",          // Yellow
+        "Casual": "#94a3b8",            // Gray
+        "Duel": "#4ade80"               // Green
+    };
+    
+    // Fallback colors for unknown playlists
+    const fallbackColors = ["#4ade80", "#fb7185", "#f472b6", "#818cf8", "#c084fc"];
     const allPlaylists = Array.from(new Set([...Object.keys(ratingByPlaylist), ...Object.keys(scoreByPlaylist)])).sort();
-    const getPlaylistColor = (pName) => playlistColors[allPlaylists.indexOf(pName) % playlistColors.length];
+    
+    const getPlaylistColor = (pName) => {
+        if (categoryColors[pName]) return categoryColors[pName];
+        return fallbackColors[allPlaylists.indexOf(pName) % fallbackColors.length];
+    };
 
     // 1. Rating Chart
     const ratingCtx = document.getElementById('ratingChart');

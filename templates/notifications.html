@@ -68,65 +68,105 @@
 </div>
 
 <script>
-    function handleCardClick(event, card) {
-        // Si on clique sur le bouton de fermeture, on ne fait rien
-        if (event.target.closest('.notif-close')) return;
-        
-        // On cherche un lien dans la carte
-        const link = card.querySelector('a.notif-link');
-        if (link) {
-            window.location.href = link.href;
+    // Chargement des IDs dismissés depuis localStorage
+    const getDismissed = () => JSON.parse(localStorage.getItem('rl_dismissed_notifications') || '[]');
+    const saveDismissed = (id) => {
+        const dismissed = getDismissed();
+        if (!dismissed.includes(id)) {
+            dismissed.push(id);
+            localStorage.setItem('rl_dismissed_notifications', JSON.stringify(dismissed));
         }
+    };
+
+    function applyLocalDismissals() {
+        const dismissed = getDismissed();
+        const cards = document.querySelectorAll('.notif-card');
+        let visibleCount = 0;
+        
+        cards.forEach(card => {
+            const id = parseInt(card.id.replace('notif-', ''));
+            if (dismissed.includes(id)) {
+                card.remove();
+            } else {
+                visibleCount++;
+            }
+        });
+        
+        updateBadge(visibleCount);
+        if (visibleCount === 0 && cards.length > 0) {
+            showEmptyState();
+        }
+    }
+
+    function updateBadge(count) {
+        const badges = document.querySelectorAll('.notif-badge');
+        badges.forEach(badge => {
+            if (count > 0) {
+                badge.textContent = count;
+                badge.style.display = 'inline-block';
+            } else {
+                badge.style.display = 'none';
+            }
+        });
+    }
+
+    function showEmptyState() {
+        const container = document.getElementById('notifications-container');
+        if (container) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">🔔</div>
+                    <h3>Tout est à jour !</h3>
+                    <p>Vous avez effacé toutes les notifications récentes (48h).</p>
+                    <a href="/" class="btn btn-primary" style="margin-top: 20px; display: inline-block;">Retour à l'accueil</a>
+                </div>
+            `;
+            const actions = document.querySelector('.notif-actions');
+            if (actions) actions.remove();
+        }
+    }
+
+    function handleCardClick(event, card) {
+        if (event.target.closest('.notif-close')) return;
+        const link = card.querySelector('a.notif-link');
+        if (link) window.location.href = link.href;
     }
 
     async function dismissNotification(id) {
-        try {
-            const response = await fetch(`/notifications/${id}/read`, {
-                method: 'POST'
-            });
-            if (response.ok) {
-                const card = document.getElementById(`notif-${id}`);
-                if (card) {
-                    card.style.opacity = '0';
-                    card.style.transform = 'translateX(20px)';
-                    setTimeout(() => {
-                        card.remove();
-                        checkEmptyContainer();
-                    }, 300);
-                }
-            }
-        } catch (error) {
-            console.error('Erreur:', error);
+        const card = document.getElementById(`notif-${id}`);
+        if (card) {
+            card.style.opacity = '0';
+            card.style.transform = 'translateX(20px)';
+            setTimeout(() => {
+                saveDismissed(id);
+                card.remove();
+                const remaining = document.querySelectorAll('.notif-card').length;
+                updateBadge(remaining);
+                if (remaining === 0) showEmptyState();
+            }, 300);
         }
     }
 
-    async function clearAllNotifications() {
-        if (!confirm('Voulez-vous vraiment marquer toutes les notifications comme lues ?')) return;
+    function clearAllNotifications() {
+        if (!confirm('Voulez-vous vraiment effacer toutes ces notifications ?')) return;
         
-        try {
-            const response = await fetch('/notifications/clear-all', {
-                method: 'POST'
-            });
-            if (response.ok) {
-                const container = document.getElementById('notifications-container');
-                if (container) {
-                    container.style.opacity = '0';
-                    setTimeout(() => {
-                        location.reload();
-                    }, 300);
-                }
-            }
-        } catch (error) {
-            console.error('Erreur:', error);
+        const cards = document.querySelectorAll('.notif-card');
+        cards.forEach(card => {
+            const id = parseInt(card.id.replace('notif-', ''));
+            saveDismissed(id);
+        });
+        
+        const container = document.getElementById('notifications-container');
+        if (container) {
+            container.style.opacity = '0';
+            setTimeout(() => {
+                showEmptyState();
+                updateBadge(0);
+            }, 300);
         }
     }
 
-    function checkEmptyContainer() {
-        const container = document.getElementById('notifications-container');
-        if (container && container.children.length === 0) {
-            location.reload(); // Reload to show empty state
-        }
-    }
+    document.addEventListener('DOMContentLoaded', applyLocalDismissals);
 </script>
 </body>
 </html>

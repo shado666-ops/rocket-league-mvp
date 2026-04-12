@@ -409,7 +409,7 @@ html {
     backdrop-filter: blur(10px);
     border-radius: 20px;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 60px 40px;
+    padding: 15px 40px 30px 40px; /* Réduction supplémentaire de l'espace en haut */
     text-align: center;
     margin-bottom: 40px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.3);
@@ -485,6 +485,7 @@ html {
     padding: 20px;
     display: flex;
     align-items: center;
+    flex-wrap: wrap; /* Added to support car row */
     gap: 16px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
@@ -568,6 +569,40 @@ html {
 .status-member {
     background: rgba(59, 130, 246, 0.2);
     color: #93c5fd;
+}
+
+.member-nav-car-label {
+    width: 100%;
+    font-size: 0.65rem;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 0px;
+    margin-bottom: 0px;
+    font-weight: 700;
+}
+
+.member-nav-car-row {
+    width: 100%;
+    margin-top: 0px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #f8fafc; /* Same as name */
+    font-size: 1rem; /* Slightly reduced */
+    font-weight: 700; /* Same as name */
+}
+
+.car-mini-icon {
+    height: 50px; /* Same as avatar */
+    width: auto;
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));
+    cursor: zoom-in; /* Indicate clickable */
+    transition: transform 0.2s ease;
+}
+
+.car-mini-icon:hover {
+    transform: scale(1.05);
 }
 
 .member-nav-arrow {
@@ -655,6 +690,16 @@ html {
     align-items: center;
     gap: 10px;
     flex-wrap: nowrap;
+}
+
+.player-crown {
+    display: inline-flex;
+    align-self: center;
+    vertical-align: middle;
+    margin-left: 6px;
+    font-size: 1em;
+    line-height: 1;
+    transform: translateY(-3px); /* Remonté pour un alignement parfait avec le texte */
 }
 
 .player-subtitle {
@@ -1024,18 +1069,71 @@ canvas {
     font-weight: bold;
 }
 
-.playlist-badge {
-    background: rgba(30, 64, 175, 0.6);
-    color: #93c5fd;
+.rating-badge {
+    background: rgba(244, 114, 182, 0.15);
+    color: #f472b6;
     padding: 4px 8px;
     border-radius: 6px;
+    font-weight: bold;
 }
-.playlist-tournament {
-    background: rgba(251, 191, 36, 0.2);
-    color: #fbbf24;
-    padding: 4px 8px;
+
+.playlist-badge {
+    background: rgba(30, 64, 175, 0.4);
+    color: #93c5fd;
+    padding: 4px 10px;
     border-radius: 6px;
-    border: 1px solid rgba(251, 191, 36, 0.3);
+    font-size: 0.8rem;
+    font-weight: 700;
+    border: 1px solid rgba(147, 197, 253, 0.1);
+    white-space: nowrap;
+}
+
+.playlist-badge.category-2v2_club {
+    background: rgba(168, 85, 247, 0.15);
+    color: #d8b4fe;
+    border: 1px solid rgba(168, 85, 247, 0.4);
+}
+
+.playlist-badge.category-3v3_club {
+    background: rgba(59, 130, 246, 0.15);
+    color: #93c5fd;
+    border: 1px solid rgba(59, 130, 246, 0.4);
+}
+
+.playlist-badge.category-3v3_random {
+    background: rgba(6, 182, 212, 0.15);
+    color: #67e8f9;
+    border: 1px solid rgba(6, 182, 212, 0.4);
+}
+
+.playlist-badge.category-private {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.playlist-badge.category-tournaments {
+    background: rgba(251, 191, 36, 0.15);
+    color: #fde68a;
+    border: 1px solid rgba(251, 191, 36, 0.4);
+}
+
+.playlist-badge.category-4v4_club {
+    background: rgba(239, 68, 68, 0.15);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.playlist-badge.category-1v1_ranked {
+    background: rgba(16, 185, 129, 0.15);
+    color: #6ee7b7;
+    border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.playlist-badge.category-casual, .playlist-badge.category-other {
+    background: rgba(100, 116, 139, 0.15);
+    color: #cbd5e1;
+    border: 1px solid rgba(100, 116, 139, 0.4);
 }
 
 .filter-btn, .filter-btn-club, .filter-btn-recent, .filter-btn-global, .filter-btn-private, .filter-btn-ranked, .filter-btn-tournament {
@@ -1238,7 +1336,7 @@ canvas {
 }
 
 .history-scroll-container.expanded {
-    max-height: 600px; /* Limiter la hauteur pour forcer le scroll interne */
+    max-height: 500px; /* Limiter la hauteur pour afficher environ 10 matchs + headers */
     overflow-y: auto;
     border: 1px solid #334155;
     border-radius: 8px;
@@ -2094,4 +2192,28 @@ input:checked + .slider:before {
         opacity: 1;
         transform: translateX(0);
     }
+}
+
+/* Clickable players in history */
+.history-player-link {
+    color: #93c5fd;
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s ease;
+}
+
+.history-player-link:hover {
+    color: #3b82f6;
+    text-decoration: underline;
+}
+
+.history-match-link {
+    text-decoration: none !important;
+    display: inline-block;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.history-match-link:hover {
+    transform: scale(1.05);
+    opacity: 0.85;
 }

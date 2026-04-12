@@ -97,15 +97,15 @@
                                     {% endif %}
                                 </div>
                                 <span class="badge badge-main">{{ club_tag }}</span>
-                                <span class="club-member-name">{{ main_player_name }}👑</span>
+                                <span class="club-member-name">{{ main_player_name }}<span class="player-crown">👑</span></span>
                             </div>
                             <div class="club-member-stats">
-                                <span class="stat-item"><span class="stat-label stat-rating">Rating</span> {{ summary.performance_rating }}</span>
-                                <span class="stat-item"><span class="stat-label stat-winrate">Winrate</span> {{ summary.winrate }}%</span>
-                                <span class="stat-item"><span class="stat-label stat-goals">Buts/m</span> {{ summary.goals_per_match }}</span>
-                                <span class="stat-item"><span class="stat-label stat-shots">Tirs/m</span> {{ summary.shots_per_match }}</span>
-                                <span class="stat-item"><span class="stat-label stat-assists">Passes/m</span> {{ summary.assists_per_match }}</span>
-                                <span class="stat-item"><span class="stat-label stat-saves">Arrêts/m</span> {{ summary.saves_per_match }}</span>
+                                <span class="stat-item" data-tooltip="Score de performance basé sur les statistiques moyennes."><span class="stat-label stat-rating">Rating</span> {{ summary.performance_rating }}</span>
+                                <span class="stat-item" data-tooltip="Pourcentage de victoires global."><span class="stat-label stat-winrate">Winrate</span> {{ summary.winrate }}%</span>
+                                <span class="stat-item" data-tooltip="Moyenne de buts par match."><span class="stat-label stat-goals">Buts/m</span> {{ summary.goals_per_match }}</span>
+                                <span class="stat-item" data-tooltip="Moyenne de tirs par match."><span class="stat-label stat-shots">Tirs/m</span> {{ summary.shots_per_match }}</span>
+                                <span class="stat-item" data-tooltip="Moyenne de passes décisives par match."><span class="stat-label stat-assists">Passes/m</span> {{ summary.assists_per_match }}</span>
+                                <span class="stat-item" data-tooltip="Moyenne d'arrêts par match."><span class="stat-label stat-saves">Arrêts/m</span> {{ summary.saves_per_match }}</span>
                             </div>
                         </a>
 
@@ -144,12 +144,12 @@
                                         </span>
                                     </div>
                                     <div class="club-member-stats">
-                                        <span class="stat-item"><span class="stat-label stat-rating">Rating</span> {{ member.stats.performance_rating }}</span>
-                                        <span class="stat-item"><span class="stat-label stat-winrate">Winrate</span> {{ member.stats.winrate }}%</span>
-                                        <span class="stat-item"><span class="stat-label stat-goals">Buts/m</span> {{ member.stats.goals_per_match }}</span>
-                                        <span class="stat-item"><span class="stat-label stat-shots">Tirs/m</span> {{ member.stats.shots_per_match }}</span>
-                                        <span class="stat-item"><span class="stat-label stat-assists">Passes/m</span> {{ member.stats.assists_per_match }}</span>
-                                        <span class="stat-item"><span class="stat-label stat-saves">Arrêts/m</span> {{ member.stats.saves_per_match }}</span>
+                                        <span class="stat-item" data-tooltip="Score de performance basé sur les statistiques moyennes."><span class="stat-label stat-rating">Rating</span> {{ member.stats.performance_rating }}</span>
+                                        <span class="stat-item" data-tooltip="Pourcentage de victoires global."><span class="stat-label stat-winrate">Winrate</span> {{ member.stats.winrate }}%</span>
+                                        <span class="stat-item" data-tooltip="Moyenne de buts par match."><span class="stat-label stat-goals">Buts/m</span> {{ member.stats.goals_per_match }}</span>
+                                        <span class="stat-item" data-tooltip="Moyenne de tirs par match."><span class="stat-label stat-shots">Tirs/m</span> {{ member.stats.shots_per_match }}</span>
+                                        <span class="stat-item" data-tooltip="Moyenne de passes décisives par match."><span class="stat-label stat-assists">Passes/m</span> {{ member.stats.assists_per_match }}</span>
+                                        <span class="stat-item" data-tooltip="Moyenne d'arrêts par match."><span class="stat-label stat-saves">Arrêts/m</span> {{ member.stats.saves_per_match }}</span>
                                     </div>
                                 </a>
                             {% endif %}
