@@ -10,7 +10,7 @@ class BoxcarsService:
     """
     
     # Chemin par défaut pour rrrocket.exe (à adapter selon l'installation)
-    RRROCKET_EXE = r"parsers\boxcars\rrrocket.exe"
+    RRROCKET_EXE = os.getenv("RRROCKET_PATH", r"parsers\boxcars\rrrocket.exe")
 
     @classmethod
     def parse_replay(cls, file_path: str, played_at_mtime: float = None) -> Dict[str, Any]:

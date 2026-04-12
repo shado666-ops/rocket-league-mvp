@@ -67,21 +67,25 @@ if __name__ == "__main__":
     with open("data/server.pid", "w") as f:
         f.write(str(os.getpid()))
         
-    # Lancement de Ngrok en arrière-plan pour que les logs apparaissent ici
-    def start_ngrok_bg():
-        time.sleep(2) # Attendre que le serveur soit prêt
-        print("\n" + "="*50)
-        print("DÉMARRAGE NGROK (ACCÈS PUBLIC)...")
-        print("="*50 + "\n")
-        # On utilise os.system pour que la sortie soit visible dans cette console
-        os.system("ngrok http 8000")
+    # Uniquement en mode développement
+    if os.getenv("ENV") != "production":
+        # Lancement de Ngrok en arrière-plan pour que les logs apparaissent ici
+        def start_ngrok_bg():
+            time.sleep(2) # Attendre que le serveur soit prêt
+            print("\n" + "="*50)
+            print("DÉMARRAGE NGROK (ACCÈS PUBLIC)...")
+            print("="*50 + "\n")
+            # On utilise os.system pour que la sortie soit visible dans cette console
+            os.system("ngrok http 8000")
 
-    ngrok_thread = threading.Thread(target=start_ngrok_bg, daemon=True)
-    ngrok_thread.start()
+        ngrok_thread = threading.Thread(target=start_ngrok_bg, daemon=True)
+        ngrok_thread.start()
         
     import uvicorn
     # Lancement du serveur sur le port 8000
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    # On désactive le reload en production pour plus de stabilité
+    is_prod = os.getenv("ENV") == "production"
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=not is_prod)
 
 # Optionnel : si tu ajoutes un dossier static plus tard
 try:
