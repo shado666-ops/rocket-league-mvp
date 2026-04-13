@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Notifications - {{ club_name }}</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/common.js"></script>
+</head>
+<body class="notifications-page">
+<div class="layout">
+    <aside class="sidebar">
+        <img src="/static/logo-club.png" alt="Club Logo" class="sidebar-logo">
+        <div class="sidebar-title">MVP Tracker</div>
+        <div class="sidebar-subtitle">Navigation rapide</div>
+        <nav class="sidebar-nav">
+            <a class="sidebar-link" href="/"><span>🏠</span> Accueil</a>
+            <a class="sidebar-link" href="/joueurs"><span>🧑‍🚀</span> Stats Joueurs</a>
+            <a class="sidebar-link" href="/club"><span>🛡️</span> Stats Club</a>
+            <a class="sidebar-link" href="/hof"><span>🏆</span> Hall of Fame</a>
+            <a class="sidebar-link" href="/pepites"><span>✨</span> Pépites</a>
+            {% if unread_notifications_count > 0 %}
+            <a class="sidebar-link active" href="/notifications"><span>🔔</span> Notifications <span class="notif-badge">{{ unread_notifications_count }}</span></a>
+            {% endif %}
+            <a class="sidebar-link" href="/admin/ui"><span>⚙️</span> Administration</a>
+        </nav>
+        <div class="sidebar-footer">
+            <img src="/static/logo.svg" alt="Rocket League Logo" class="sidebar-footer-logo">
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <div class="content-container">
+            <div class="page-header">
+                <h1 class="section-title">📢 Notifications du Hall of Fame</h1>
+                <p class="section-subtitle">Retrouvez ici les derniers changements majeurs dans les classements de votre club.</p>
+            </div>
+
+            {% if notifications %}
+            <div class="notif-actions" style="margin-bottom: 20px; text-align: right;">
+                <button class="btn btn-clear-all" onclick="clearAllNotifications()">Tout marquer comme lu</button>
+            </div>
+            
+            <div id="notifications-container" class="notifications-area">
+                {% for notif in notifications %}
+                <div class="notif-card" id="notif-{{ notif.id }}">
+                    <div class="notif-header">
+                        <div class="notif-content">
+                            {{ notif.message | safe }}
+                        </div>
+                        <button class="notif-close" onclick="dismissNotification({{ notif.id }})">&times;</button>
+                    </div>
+                    <div class="notif-footer">
+                        <span class="notif-date">{{ notif.created_at.strftime('%d/%m %H:%M') }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">🔔</div>
+                <h3>Tout est à jour !</h3>
+                <p>Aucune nouvelle notification pour le moment.</p>
+                <a href="/" class="btn btn-primary" style="margin-top: 20px; display: inline-block;">Retour à l'accueil</a>
+            </div>
+            {% endif %}
+        </div>
+    </main>
+</div>
+
+<script>
+    async function dismissNotification(id) {
+        try {
+            const response = await fetch(`/notifications/${id}/read`, {
+                method: 'POST'
+            });
+            if (response.ok) {
+                const card = document.getElementById(`notif-${id}`);
+                if (card) {
+                    card.style.opacity = '0';
+                    card.style.transform = 'translateX(20px)';
+                    setTimeout(() => {
+                        card.remove();
+                        checkEmptyContainer();
+                    }, 300);
+                }
+            }
+        } catch (error) {
+            console.error('Erreur:', error);
+        }
+    }
+
+    async function clearAllNotifications() {
+        if (!confirm('Voulez-vous vraiment marquer toutes les notifications comme lues ?')) return;
+        
+        try {
+            const response = await fetch('/notifications/clear-all', {
+                method: 'POST'
+            });
+            if (response.ok) {
+                const container = document.getElementById('notifications-container');
+                if (container) {
+                    container.style.opacity = '0';
+                    setTimeout(() => {
+                        location.reload();
+                    }, 300);
+                }
+            }
+        } catch (error) {
+            console.error('Erreur:', error);
+        }
+    }
+
+    function checkEmptyContainer() {
+        const container = document.getElementById('notifications-container');
+        if (container && container.children.length === 0) {
+            location.reload(); // Reload to show empty state
+        }
+    }
+</script>
+</body>
+</html>

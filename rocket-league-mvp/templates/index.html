@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Rocket League MVP Tracker</title>
+    <link rel="stylesheet" href="/static/style.css?v=3">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/static/dashboard.js"></script>
+    <script src="/static/common.js"></script>
+    <style>
+        .lightbox-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            cursor: zoom-out;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .lightbox-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
+        .lightbox-img {
+            max-width: 95%;
+            max-height: 95%;
+            border-radius: 10px;
+            box-shadow: 0 0 50px rgba(255, 255, 255, 0.1);
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+        .lightbox-overlay.active .lightbox-img {
+            transform: scale(1);
+        }
+    </style>
+</head>
+<body class="dashboard-page">
+<div class="layout">
+    <aside class="sidebar">
+        <img src="/static/logo-club.png" alt="Club Logo" class="sidebar-logo">
+        <div class="sidebar-title">MVP Tracker</div>
+
+        <div class="sidebar-subtitle">Navigation rapide</div>
+
+        <nav class="sidebar-nav">
+            <a class="sidebar-link active" href="/"><span>🏠</span> Accueil</a>
+            <a class="sidebar-link" href="/club"><span>🛡️</span> Stats Club</a>
+            <a class="sidebar-link" href="/joueurs"><span>🧑‍🚀</span> Stats Joueurs</a>
+            <a class="sidebar-link" href="/hof"><span>🏆</span> Hall of Fame</a>
+            <a class="sidebar-link" href="/pepites"><span>✨</span> Pépites</a>
+            {% if unread_notifications_count > 0 %}
+            <a class="sidebar-link" href="/notifications"><span>🔔</span> Notifications <span class="notif-badge">{{ unread_notifications_count }}</span></a>
+            {% endif %}
+            <a class="sidebar-link" href="/admin/ui"><span>⚙️</span> Administration</a>
+        </nav>
+
+        <div class="sidebar-subtitle">Paramètres</div>
+        <div class="sidebar-setting">
+            <span>Auto-Refresh (15s)</span>
+            <label class="switch">
+                <input type="checkbox" id="autoRefreshToggle" checked>
+                <span class="slider round"></span>
+            </label>
+        </div>
+
+        <div class="sidebar-footer">
+            <img src="/static/logo.svg" alt="Rocket League Logo" class="sidebar-footer-logo">
+        </div>
+    </aside>
+
+
+    <main class="main-content">
+        <div class="content-container">
+            <!-- Welcome Section -->
+            <section id="welcome" class="section" style="margin-top: 0;">
+                <div class="welcome-card">
+                    <div class="welcome-content">
+                        <h1 class="welcome-title">Bienvenue sur le RL MVP Tracker</h1>
+                        <p class="welcome-text">
+                            Retrouvez ici toutes les statistiques de votre club {{ club_name }}. Suivez vos performances individuelles, 
+                            analysez vos progressions par playlist et comparez vos résultats avec vos coéquipiers pour viser l'excellence sur le terrain.
+                        </p>
+                        <div class="welcome-stats-summary">
+                            <div class="mini-stat">
+                                <span class="mini-stat-value">{{ summary.db_total_matches }}</span>
+                                <span class="mini-stat-label">Matchs enregistrés</span>
+                            </div>
+                            <div class="mini-stat">
+                                <span class="mini-stat-value">{{ all_club_members | length }}</span>
+                                <span class="mini-stat-label">Membres actifs</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- Club Members Grid -->
+            <section id="club-members" class="section">
+                <h2 class="section-title">Membres du Club {{ club_name }}</h2>
+                <p class="section-subtitle">Sélectionnez un membre pour voir ses statistiques détaillées.</p>
+                
+                <div class="members-grid">
+                    {# First, display the main player #}
+                    {% for member in all_club_members %}
+                    {% if member.display_name == main_player_name %}
+                    <div class="member-wrapper">
+                        <a href="/mates/{{ member.display_name }}" class="member-nav-card main-player-nav">
+                            <div class="member-nav-avatar">
+                                {% if member.display_name.lower() == 'shado666' %}
+                                    <img src="/static/Avatar_Shado666.gif" alt="Avatar">
+                                {% elif member.display_name.lower() == 'kalibakbak' %}
+                                    <img src="/static/Avatar_Kalibakbak.gif" alt="Avatar">
+                                {% elif member.display_name.lower() == 'ezy' %}
+                                    <img src="/static/Avatar_Ezy.jpg" alt="Avatar">
+                                {% elif member.display_name.lower() == 'xen0n666' %}
+                                    <img src="/static/Avatar_Xen0n666.jpg" alt="Avatar">
+                                {% elif member.display_name.lower() == 'julienyo' %}
+                                    <img src="/static/Avatar_JulienYo.jpg" alt="Avatar">
+                                {% else %}
+                                    <img src="/static/logo-club.png" alt="Avatar">
+                                {% endif %}
+                            </div>
+                            <div class="member-nav-info">
+                                <span class="member-nav-name">{{ member.display_name }}👑</span>
+                                <span class="member-nav-status">
+                                    <span class="status-badge status-me">{{ club_tag }}</span>
+                                </span>
+                            </div>
+                            <div class="member-nav-arrow">→</div>
+                        </a>
+                        {# Player Card Image #}
+                        {% if member.display_name.lower() == 'shado666' %}
+                        <img src="/static/player-card-shad0666.png" alt="Player Card" class="member-player-card">
+                        {% elif member.display_name.lower() == 'kalibakbak' %}
+                        <img src="/static/player-card-kalibakbak.png" alt="Player Card" class="member-player-card">
+                        {% elif member.display_name.lower() == 'xen0n666' %}
+                        <img src="/static/player-card-lasko-06.png" alt="Player Card" class="member-player-card">
+                        {% elif member.display_name.lower() == 'ezy' %}
+                        <img src="/static/player-card-stef067.png" alt="Player Card" class="member-player-card">
+                        {% elif member.display_name.lower() == 'julienyo' %}
+                        <img src="/static/player-card-julienyo.png" alt="Player Card" class="member-player-card">
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+
+                    {# Then, display all other members #}
+                    {% for member in all_club_members %}
+                    {% if member.display_name != main_player_name %}
+                    <div class="member-wrapper">
+                        <a href="/mates/{{ member.display_name }}" class="member-nav-card">
+                            <div class="member-nav-avatar">
+                                {% if member.display_name.lower() == 'shado666' %}
+                                    <img src="/static/Avatar_Shado666.gif" alt="Avatar">
+                                {% elif member.display_name.lower() == 'kalibakbak' %}
+                                    <img src="/static/Avatar_Kalibakbak.gif" alt="Avatar">
+                                {% elif member.display_name.lower() == 'ezy' %}
+                                    <img src="/static/Avatar_Ezy.jpg" alt="Avatar">
+                                {% elif member.display_name.lower() == 'xen0n666' %}
+                                    <img src="/static/Avatar_Xen0n666.jpg" alt="Avatar">
+                                {% elif member.display_name.lower() == 'julienyo' %}
+                                    <img src="/static/Avatar_JulienYo.jpg" alt="Avatar">
+                                {% else %}
+                                    <img src="/static/logo-club.png" alt="Avatar">
+                                {% endif %}
+                            </div>
+                            <div class="member-nav-info">
+                                <span class="member-nav-name">{{ member.display_name }}</span>
+                                <span class="member-nav-status">
+                                    <span class="status-badge status-member">{% if member.is_active %}{{ club_tag }}{% else %}Inactif{% endif %}</span>
+                                </span>
+                            </div>
+                            <div class="member-nav-arrow">→</div>
+                        </a>
+                        {# Player Card Image #}
+                        {% if member.display_name.lower() == 'shado666' %}
+                        <img src="/static/player-card-shad0666.png" alt="Player Card" class="member-player-card">
+                        {% elif member.display_name.lower() == 'kalibakbak' %}
+                        <img src="/static/player-card-kalibakbak.png" alt="Player Card" class="member-player-card">
+                        {% elif member.display_name.lower() == 'xen0n666' %}
+                        <img src="/static/player-card-lasko-06.png" alt="Player Card" class="member-player-card">
+                        {% elif member.display_name.lower() == 'ezy' %}
+                        <img src="/static/player-card-stef067.png" alt="Player Card" class="member-player-card">
+                        {% elif member.display_name.lower() == 'julienyo' %}
+                        <img src="/static/player-card-julienyo.png" alt="Player Card" class="member-player-card">
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+
+            </section>
+
+        </div>
+    </main>
+</div>
+
+<!-- Lightbox Modal -->
+<div id="lightbox" class="lightbox-overlay" onclick="this.classList.remove('active')">
+    <img src="" class="lightbox-img" id="lightbox-img" alt="Player Card Full">
+</div>
+
+<script>
+    // Lightbox Toggle for all player cards
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImg = document.getElementById('lightbox-img');
+    const memberCards = document.querySelectorAll('.member-player-card');
+
+    memberCards.forEach(img => {
+        img.addEventListener('click', () => {
+            if (lightbox && lightboxImg) {
+                lightboxImg.src = img.src;
+                lightbox.classList.add('active');
+            }
+        });
+    });
+
+    async function dismissNotification(id) {
+        try {
+            const response = await fetch(`/notifications/${id}/read`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            if (response.ok) {
+                const card = document.getElementById(`notif-${id}`);
+                if (card) {
+                    card.style.opacity = '0';
+                    card.style.transform = 'translateX(20px)';
+                    setTimeout(() => {
+                        card.remove();
+                        const container = document.getElementById('notifications-container');
+                        if (container && container.children.length === 0) {
+                            container.remove();
+                        }
+                    }, 300);
+                }
+            }
+        } catch (error) {
+            console.error('Erreur lors de la suppression de la notification:', error);
+        }
+    }
+</script>
+
+</body>
+
+
+
+</html>

@@ -1,0 +1,43 @@
+import os
+from pathlib import Path
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import declarative_base, sessionmaker
+
+BASE_DIR = Path(__file__).resolve().parent
+
+# Support pour Render (DATABASE_URL env var)
+env_db_url = os.getenv("DATABASE_URL")
+if env_db_url:
+    # Si c'est juste un chemin de fichier, on ajoute le préfixe sqlite
+    if not env_db_url.startswith("sqlite:///"):
+        DATABASE_URL = f"sqlite:///{env_db_url}"
+    else:
+        DATABASE_URL = env_db_url
+else:
+    DATA_DIR = BASE_DIR / "data"
+    DATA_DIR.mkdir(exist_ok=True)
+    DATABASE_URL = f"sqlite:///{DATA_DIR / 'app.db'}"
+
+engine = create_engine(
+    DATABASE_URL,
+    connect_args={"check_same_thread": False},
+    future=True,
+)
+
+SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine,
+    future=True,
+)
+
+Base = declarative_base()
+
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+
+# Database
+*.db
+*.sqlite3
+
+# Project specific
+uploaded_replays/
+logs/
+backups/
+tracker_pids.json
+.vscode/
+.idea/
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Server PIDs
+data/server.pid
+data/watcher.pid

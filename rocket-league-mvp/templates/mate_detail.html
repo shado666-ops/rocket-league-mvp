@@ -1,0 +1,1327 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ mate_name }} - Rocket League MVP Tracker</title>
+    <link rel="stylesheet" href="/static/style.css?v=2">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/static/player_detail.js?v=4"></script>
+    <script src="/static/common.js"></script>
+</head>
+<body>
+<div class="layout">
+    <aside class="sidebar">
+        <img src="/static/logo-club.png" alt="Club Logo" class="sidebar-logo">
+        <div class="sidebar-title">MVP Tracker</div>
+
+        <div class="sidebar-subtitle">Navigation rapide</div>
+
+        <nav class="sidebar-nav">
+            <a class="sidebar-link" href="/"><span>🏠</span> Accueil</a>
+            <a class="sidebar-link" href="/club"><span>🛡️</span> Stats Club</a>
+            <a class="sidebar-link active" href="/joueurs"><span>🧑‍🚀</span> Stats Joueurs</a>
+            <a class="sidebar-link" href="/hof"><span>🏆</span> Hall of Fame</a>
+            <a class="sidebar-link" href="/pepites"><span>✨</span> Pépites</a>
+            {% if unread_notifications_count > 0 %}
+            <a class="sidebar-link" href="/notifications"><span>🔔</span> Notifications <span class="notif-badge">{{ unread_notifications_count }}</span></a>
+            {% endif %}
+            <a class="sidebar-link" href="/admin/ui"><span>⚙️</span> Administration</a>
+        </nav>
+
+        <div class="sidebar-subtitle">Paramètres</div>
+        <div class="sidebar-setting">
+            <span>Auto-Refresh (15s)</span>
+            <label class="switch">
+                <input type="checkbox" id="autoRefreshToggle" checked>
+                <span class="slider round"></span>
+            </label>
+        </div>
+
+        <div class="sidebar-footer">
+            <img src="/static/logo.svg" alt="Rocket League Logo" class="sidebar-footer-logo">
+        </div>
+    </aside>
+
+
+    <main class="main-content">
+        <div class="content-container">
+            <section id="overview" class="section" style="margin-top: 0;">
+                <div class="page-header">
+                    <a href="/joueurs" class="back-button">← Retour aux Stats Joueurs</a>
+                    <h1 class="section-title"><span>👤</span> Vue joueur <span>👤</span></h1>
+                    <p class="section-subtitle">
+                        {% if is_main_player %}
+                            Vue détaillée de mes statistiques personnelles.
+                        {% else %}
+                            Vue détaillée d’un membre du club {{ club_name }}.
+                        {% endif %}
+                    </p>
+                </div>
+
+                <div class="detail-tabs">
+                    <div class="detail-tab active" id="tab-btn-global" onclick="switchTab('global')">
+                        🌎 Stats Globales
+                    </div>
+                    <div class="detail-tab" id="tab-btn-ranked" onclick="switchTab('ranked')">
+                        🔥 Matchs Classés
+                    </div>
+                    <div class="detail-tab" id="tab-btn-recent" onclick="switchTab('recent')">
+                        ⏱️ 20 Derniers Classés
+                    </div>
+                    <div class="detail-tab" id="tab-btn-private" onclick="switchTab('private')">
+                        🔒 Matchs Privés
+                    </div>
+                    <div class="detail-tab" id="tab-btn-tournament" onclick="switchTab('tournament')">
+                        🏆 Tournois
+                    </div>
+                </div>
+
+                <div class="player-banner">
+                    <div class="player-banner-left">
+                        <div class="player-avatar">
+                            {% if mate_name.lower() == 'shado666' %}
+                                <img src="/static/Avatar_Shado666.gif" alt="Avatar">
+                            {% elif mate_name.lower() == 'kalibakbak' %}
+                                <img src="/static/Avatar_Kalibakbak.gif" alt="Avatar">
+                            {% elif mate_name.lower() == 'ezy' %}
+                                <img src="/static/Avatar_Ezy.jpg" alt="Avatar">
+                            {% elif mate_name.lower() == 'xen0n666' %}
+                                <img src="/static/Avatar_Xen0n666.jpg" alt="Avatar">
+                            {% elif mate_name.lower() == 'julienyo' %}
+                                <img src="/static/Avatar_JulienYo.jpg" alt="Avatar">
+                            {% else %}
+                                <img src="/static/logo-club.png" alt="Avatar">
+                            {% endif %}
+                        </div>
+
+                        <div class="player-info">
+                            <div class="player-name">
+                                {{ mate_name }}
+
+                            </div>
+
+                            <div class="player-subtitle">
+                                {% if is_main_player %}
+                                    Suivi des performances personnelles Rocket League
+                                {% else %}
+                                    Membre du Club {{ club_name }}
+                                {% endif %}
+                            </div>
+
+                            <div id="rating-global" class="player-rating" style="margin-top: 8px; font-size: 1.2rem; font-weight: bold; color: var(--text-highlight);">
+                                Performance Rating <span class="info-icon" data-tooltip="Bases (100%) - 2v2: Score (600), Arrêts (3), Buts (3), Tirs (4), Passes (1) | 3v3: Score (400), Arrêts (2), Buts (2), Tirs (3), Passes (1).">?</span> : <span style="font-size: 1.4rem;">{{ summary_global.performance_rating }} / 100</span>
+                            </div>
+                            <div id="rating-ranked" class="player-rating" style="display: none; margin-top: 8px; font-size: 1.2rem; font-weight: bold; color: var(--text-highlight);">
+                                Performance Rating <span class="info-icon" data-tooltip="Bases (100%) - 2v2: Score (600), Arrêts (3), Buts (3), Tirs (4), Passes (1) | 3v3: Score (400), Arrêts (2), Buts (2), Tirs (3), Passes (1).">?</span> : <span style="font-size: 1.4rem;">{{ summary_ranked.performance_rating }} / 100</span>
+                            </div>
+                            <div id="rating-recent" class="player-rating" style="display: none; margin-top: 8px; font-size: 1.2rem; font-weight: bold; color: var(--text-highlight);">
+                                Performance Rating <span class="info-icon" data-tooltip="Bases (100%) - 2v2: Score (600), Arrêts (3), Buts (3), Tirs (4), Passes (1) | 3v3: Score (400), Arrêts (2), Buts (2), Tirs (3), Passes (1).">?</span> : <span style="font-size: 1.4rem;">{{ summary.performance_rating }} / 100</span>
+                            </div>
+                            <div id="rating-private" class="player-rating" style="display: none; margin-top: 8px; font-size: 1.2rem; font-weight: bold; color: var(--text-highlight);">
+                                Performance Rating <span class="info-icon" data-tooltip="Bases (100%) - 2v2: Score (600), Arrêts (3), Buts (3), Tirs (4), Passes (1) | 3v3: Score (400), Arrêts (2), Buts (2), Tirs (3), Passes (1).">?</span> : <span style="font-size: 1.4rem;">{{ summary_private.performance_rating }} / 100</span>
+                            </div>
+                            <div id="rating-tournament" class="player-rating" style="display: none; margin-top: 8px; font-size: 1.2rem; font-weight: bold; color: var(--text-highlight);">
+                                Performance Rating <span class="info-icon" data-tooltip="Matchs de Tournoi Uniquement — Bases (100%) : Score (500), Arrêts (2.5), Buts (2), Tirs (4) et Passes (1).">?</span> : <span style="font-size: 1.4rem;">{{ summary_tournament.performance_rating }} / 100</span>
+                            </div>
+
+                            <div class="player-indicators">
+                                <!-- INDICATORS GLOBAL -->
+                                <div id="indicators-global" class="tab-pane active">
+                                    {% for key, ind in indicators_global.items() %}
+                                    <div class="player-progress-wrapper">
+                                        <div class="player-progress-label">
+                                            {{ ind.label }} — {{ ind.value }}{{ "%" if key == "winrate" else "" }}
+                                        </div>
+                                        <div class="player-progress-bar">
+                                            <div class="player-progress-fill {{ key }}-fill" style="width: {{ ind.percent }}%;"></div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+
+                                <!-- INDICATORS RANKED -->
+                                <div id="indicators-ranked" class="tab-pane" style="display: none;">
+                                    {% for key, ind in indicators_ranked.items() %}
+                                    <div class="player-progress-wrapper">
+                                        <div class="player-progress-label">
+                                            {{ ind.label }} — {{ ind.value }}{{ "%" if key == "winrate" else "" }}
+                                        </div>
+                                        <div class="player-progress-bar">
+                                            <div class="player-progress-fill {{ key }}-fill" style="width: {{ ind.percent }}%;"></div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+
+                                <!-- INDICATORS RECENT -->
+                                <div id="indicators-recent" class="tab-pane" style="display: none;">
+                                    {% for key, ind in indicators.items() %}
+                                    <div class="player-progress-wrapper">
+                                        <div class="player-progress-label">
+                                            {{ ind.label }} — {{ ind.value }}{{ "%" if key == "winrate" else "" }}
+                                        </div>
+                                        <div class="player-progress-bar">
+                                            <div class="player-progress-fill {{ key }}-fill" style="width: {{ ind.percent }}%;"></div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+
+                                <!-- INDICATORS PRIVATE -->
+                                <div id="indicators-private" class="tab-pane" style="display: none;">
+                                    {% for key, ind in indicators_private.items() %}
+                                    <div class="player-progress-wrapper">
+                                        <div class="player-progress-label">
+                                            {{ ind.label }} — {{ ind.value }}{{ "%" if key == "winrate" else "" }}
+                                        </div>
+                                        <div class="player-progress-bar">
+                                            <div class="player-progress-fill {{ key }}-fill" style="width: {{ ind.percent }}%;"></div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+
+                                <!-- INDICATORS TOURNAMENT -->
+                                <div id="indicators-tournament" class="tab-pane" style="display: none;">
+                                    {% for key, ind in indicators_tournament.items() %}
+                                    <div class="player-progress-wrapper">
+                                        <div class="player-progress-label">
+                                            {{ ind.label }} — {{ ind.value }}{{ "%" if key == "winrate" else "" }}
+                                        </div>
+                                        <div class="player-progress-bar">
+                                            <div class="player-progress-fill {{ key }}-fill" style="width: {{ ind.percent }}%;"></div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="player-banner-stats">
+                        <!-- STATS GLOBAL (No Casual) -->
+                        <div id="stats-global" class="tab-pane" style="display: flex; gap: 20px; flex-wrap: wrap; justify-content: flex-end;">
+                            <div class="player-stat">
+                                <span class="player-stat-value">{{ summary_global.matches_together }}</span>
+                                <span class="player-stat-label">TOTAL MATCHS</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Taux de victoire global.">
+                                <span class="player-stat-value">{{ summary_global.winrate }}%</span>
+                                <span class="player-stat-label">WINRATE</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Moyenne de buts.">
+                                <span class="player-stat-value">{{ summary_global.goals_per_match }}</span>
+                                <span class="player-stat-label">BUTS / M</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Moyenne de tirs.">
+                                <span class="player-stat-value">{{ summary_global.shots_per_match }}</span>
+                                <span class="player-stat-label">TIRS / M</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Moyenne de passes.">
+                                <span class="player-stat-value">{{ summary_global.assists_per_match }}</span>
+                                <span class="player-stat-label">PASSES / M</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Moyenne d'arrêts.">
+                                <span class="player-stat-value">{{ summary_global.saves_per_match }}</span>
+                                <span class="player-stat-label">ARRÊTS / M</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Nombre moyen de démolitions par match.">
+                                <span class="player-stat-value">{{ summary_global.demolishes_per_match }}</span>
+                                <span class="player-stat-label">DÉMOS / M</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Temps moyen de possession par match.">
+                                <span class="player-stat-value">{{ summary_global.possession_per_match }}</span>
+                                <span class="player-stat-label">POSSESSION / M</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Total de médailles MVP.">
+                                <span class="player-stat-value" style="color: #fcd34d;">{{ summary_global.mvps }}</span>
+                                <span class="player-stat-label">MVP</span>
+                            </div>
+                        </div>
+
+                        <!-- STATS RANKED (Ranked Only) -->
+                        <div id="stats-ranked" class="tab-pane" style="display: none; gap: 20px; flex-wrap: wrap; justify-content: flex-end;">
+                            <div class="player-stat">
+                                <span class="player-stat-value">{{ summary_ranked.matches_together }}</span>
+                                <span class="player-stat-label">MATCHS CLASSÉS</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Taux de victoire en matchs classés uniquement.">
+                                <span class="player-stat-value">{{ summary_ranked.winrate }}%</span>
+                                <span class="player-stat-label">WINRATE</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Moyenne de buts en classé.">
+                                <span class="player-stat-value">{{ summary_ranked.goals_per_match }}</span>
+                                <span class="player-stat-label">BUTS / M</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Moyenne de tirs en classé.">
+                                <span class="player-stat-value">{{ summary_ranked.shots_per_match }}</span>
+                                <span class="player-stat-label">TIRS / M</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Moyenne de passes en classé.">
+                                <span class="player-stat-value">{{ summary_ranked.assists_per_match }}</span>
+                                <span class="player-stat-label">PASSES / M</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Moyenne d'arrêts en classé.">
+                                <span class="player-stat-value">{{ summary_ranked.saves_per_match }}</span>
+                                <span class="player-stat-label">ARRÊTS / M</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Nombre moyen de démolitions en classé.">
+                                <span class="player-stat-value">{{ summary_ranked.demolishes_per_match }}</span>
+                                <span class="player-stat-label">DÉMOS / M</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Temps moyen de possession en classé.">
+                                <span class="player-stat-value">{{ summary_ranked.possession_per_match }}</span>
+                                <span class="player-stat-label">POSSESSION / M</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Total de médailles MVP en classé.">
+                                <span class="player-stat-value" style="color: #fcd34d;">{{ summary_ranked.mvps }}</span>
+                                <span class="player-stat-label">MVP</span>
+                            </div>
+                        </div>
+
+                        <!-- STATS RECENT -->
+                        <div id="stats-recent" class="tab-pane" style="display: none; gap: 20px; flex-wrap: wrap; justify-content: flex-end;">
+                            <div class="player-stat">
+                                <span class="player-stat-value">{{ summary.matches_together }}</span>
+                                <span class="player-stat-label">20 DERS CLASSÉS</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Pourcentage de victoires sur les 20 derniers matchs classés.">
+                                <span class="player-stat-value">{{ summary.winrate }}%</span>
+                                <span class="player-stat-label">WINRATE</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Nombre moyen de buts par match (20 derniers classés).">
+                                <span class="player-stat-value">{{ summary.goals_per_match }}</span>
+                                <span class="player-stat-label">BUTS / M</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Nombre moyen de tirs par match (20 derniers classés).">
+                                <span class="player-stat-value">{{ summary.shots_per_match }}</span>
+                                <span class="player-stat-label">TIRS / M</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Nombre moyen de passes par match (20 derniers classés).">
+                                <span class="player-stat-value">{{ summary.assists_per_match }}</span>
+                                <span class="player-stat-label">PASSES / M</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Nombre moyen d'arrêts par match (20 derniers classés).">
+                                <span class="player-stat-value">{{ summary.saves_per_match }}</span>
+                                <span class="player-stat-label">ARRÊTS / M</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Nombre moyen de démolitions (20 derniers classés).">
+                                <span class="player-stat-value">{{ summary.demolishes_per_match }}</span>
+                                <span class="player-stat-label">DÉMOS / M</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Temps moyen de possession (20 derniers classés).">
+                                <span class="player-stat-value">{{ summary.possession_per_match }}</span>
+                                <span class="player-stat-label">POSSESSION / M</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Titres MVP sur les 20 derniers classés.">
+                                <span class="player-stat-value" style="color: #fcd34d;">{{ summary.mvps }}</span>
+                                <span class="player-stat-label">MVP</span>
+                            </div>
+                        </div>
+
+                        <!-- STATS PRIVATE -->
+                        <div id="stats-private" class="tab-pane" style="display: none; gap: 20px; flex-wrap: wrap; justify-content: flex-end;">
+                            <div class="player-stat">
+                                <span class="player-stat-value">{{ summary_private.matches_together }}</span>
+                                <span class="player-stat-label">MATCHS PRIVÉS</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Pourcentage de victoires en matchs privés.">
+                                <span class="player-stat-value">{{ summary_private.winrate }}%</span>
+                                <span class="player-stat-label">WINRATE</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Nombre moyen de buts par match (Privé).">
+                                <span class="player-stat-value">{{ summary_private.goals_per_match }}</span>
+                                <span class="player-stat-label">BUTS / M</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Nombre moyen de tirs par match (Privé).">
+                                <span class="player-stat-value">{{ summary_private.shots_per_match }}</span>
+                                <span class="player-stat-label">TIRS / M</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Nombre moyen de passes par match (Privé).">
+                                <span class="player-stat-value">{{ summary_private.assists_per_match }}</span>
+                                <span class="player-stat-label">PASSES / M</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Nombre moyen d'arrêts par match (Privé).">
+                                <span class="player-stat-value">{{ summary_private.saves_per_match }}</span>
+                                <span class="player-stat-label">ARRÊTS / M</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Nombre moyen de démolitions par match (Privé).">
+                                <span class="player-stat-value">{{ summary_private.demolishes_per_match }}</span>
+                                <span class="player-stat-label">DÉMOS / M</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Temps moyen de possession par match (Privé).">
+                                <span class="player-stat-value">{{ summary_private.possession_per_match }}</span>
+                                <span class="player-stat-label">POSSESSION / M</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Titres MVP en matchs privés.">
+                                <span class="player-stat-value" style="color: #fcd34d;">{{ summary_private.mvps }}</span>
+                                <span class="player-stat-label">MVP</span>
+                            </div>
+                        </div>
+
+                        <!-- STATS TOURNAMENT -->
+                        <div id="stats-tournament" class="tab-pane" style="display: none; gap: 20px; flex-wrap: wrap; justify-content: flex-end;">
+                            <div class="player-stat">
+                                <span class="player-stat-value">{{ summary_tournament.matches_together }}</span>
+                                <span class="player-stat-label">MATCHS TOURNOI</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Pourcentage de victoires en tournoi.">
+                                <span class="player-stat-value">{{ summary_tournament.winrate }}%</span>
+                                <span class="player-stat-label">WINRATE</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Nombre moyen de buts par match (Tournoi).">
+                                <span class="player-stat-value">{{ summary_tournament.goals_per_match }}</span>
+                                <span class="player-stat-label">BUTS / M</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Nombre moyen de tirs par match (Tournoi).">
+                                <span class="player-stat-value">{{ summary_tournament.shots_per_match }}</span>
+                                <span class="player-stat-label">TIRS / M</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Nombre moyen de passes par match (Tournoi).">
+                                <span class="player-stat-value">{{ summary_tournament.assists_per_match }}</span>
+                                <span class="player-stat-label">PASSES / M</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Nombre moyen d'arrêts par match (Tournoi).">
+                                <span class="player-stat-value">{{ summary_tournament.saves_per_match }}</span>
+                                <span class="player-stat-label">ARRÊTS / M</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Nombre moyen de démolitions par match (Tournoi).">
+                                <span class="player-stat-value">{{ summary_tournament.demolishes_per_match }}</span>
+                                <span class="player-stat-label">DÉMOS / M</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Temps moyen de possession par match (Tournoi).">
+                                <span class="player-stat-value">{{ summary_tournament.possession_per_match }}</span>
+                                <span class="player-stat-label">POSSESSION / M</span>
+                            </div>
+                            <div class="player-stat" data-tooltip="Nombre total de titres MVP (Tournoi).">
+                                <span class="player-stat-value" style="color: #fcd34d;">{{ summary_tournament.mvps }}</span>
+                                <span class="player-stat-label">MVP</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <!-- SECTION BILAN PAR SAISON - GLOBAL -->
+            <section id="seasonal-stats-global" class="section">
+                <h2 class="section-title">Bilan par Saison (Global)</h2>
+                <p class="section-subtitle">Statistiques cumulées pour chaque saison.</p>
+
+                {% for season in seasons_stats %}
+                    <div class="card seasonal-card {% if loop.first %}active{% endif %}" style="margin-bottom: 24px;">
+                        <h3 class="seasonal-header" onclick="this.parentElement.classList.toggle('active')">
+                            {{ season.name }}
+                            <span class="chevron">▼</span>
+                        </h3>
+                        <div class="seasonal-content">
+                            <table class="seasonal-table">
+                                <thead>
+                                    <tr>
+                                        <th>Playlist</th>
+                                        <th class="text-center">Matchs</th>
+                                        <th class="text-center">Winrate</th>
+                                        <th class="text-center">Score/M</th>
+                                        <th class="text-center">Buts/M</th>
+                                        <th class="text-center">Tirs/M</th>
+                                        <th class="text-center">Ratio</th>
+                                        <th class="text-center">Passes/M</th>
+                                        <th class="text-center">Arrêts/M</th>
+                                        <th class="text-center"><img src="/static/mvp_icon.png" alt="MVP" style="height: 20px; vertical-align: middle;" title="Nombre de fois MVP"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for p in season.playlists %}
+                                        <tr>
+                                            <td><span class="playlist-badge">{{ p.playlist }}</span></td>
+                                            <td class="text-center">{{ p.matches }}</td>
+                                            <td class="text-center" style="color: #00b894; font-weight: 600;">{{ p.winrate }}%</td>
+                                            <td class="text-center" style="font-weight: 600; color: #38bdf8;">{{ p.score_avg }}</td>
+                                            <td class="text-center" style="color: #4ade80; font-weight: 600;">{{ p.goals_avg }}</td>
+                                            <td class="text-center" style="color: #3b82f6; font-weight: 600;">{{ p.shots_avg }}</td>
+                                            <td class="text-center" style="font-weight: 600; color: #ffffff;">{{ p.ratio }}%</td>
+                                            <td class="text-center" style="color: #f59e0b; font-weight: 600;">{{ p.assists_avg }}</td>
+                                            <td class="text-center" style="color: #a78bfa; font-weight: 600;">{{ p.saves_avg }}</td>
+                                            <td class="text-center" style="font-weight: 600; color: #fcd34d;">{{ p.mvps }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                                <tfoot>
+                                    <tr class="total-row">
+                                        <td>TOTAL GLOBAL</td>
+                                        <td class="text-center">{{ season.total.matches }}</td>
+                                        <td class="text-center" style="color: #00b894;">{{ season.total.winrate }}%</td>
+                                        <td class="text-center" style="color: #38bdf8;">{{ season.total.score_avg }}</td>
+                                        <td class="text-center" style="color: #4ade80;">{{ season.total.goals_avg }}</td>
+                                        <td class="text-center" style="color: #3b82f6;">{{ season.total.shots_avg }}</td>
+                                        <td class="text-center" style="color: #ffffff;">{{ season.total.ratio }}%</td>
+                                        <td class="text-center" style="color: #f59e0b;">{{ season.total.assists_avg }}</td>
+                                        <td class="text-center" style="color: #a78bfa;">{{ season.total.saves_avg }}</td>
+                                        <td class="text-center" style="color: #fcd34d;">{{ season.total.mvps }}</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                {% else %}
+                    <p class="muted">Aucune donnée saisonnière disponible.</p>
+                {% endfor %}
+            </section>
+
+            <!-- SECTION BILAN PAR SAISON - RANKED -->
+            <section id="seasonal-stats-ranked" class="section" style="display: none;">
+                <h2 class="section-title">Bilan par Saison (Classé)</h2>
+                <p class="section-subtitle">Statistiques cumulées uniquement pour les matchs classés.</p>
+
+                {% for season in seasons_stats_ranked %}
+                    <div class="card seasonal-card {% if loop.first %}active{% endif %}" style="margin-bottom: 24px;">
+                        <h3 class="seasonal-header" onclick="this.parentElement.classList.toggle('active')">
+                            {{ season.name }}
+                            <span class="chevron">▼</span>
+                        </h3>
+                        <div class="seasonal-content">
+                            <table class="seasonal-table">
+                                <thead>
+                                    <tr>
+                                        <th>Playlist</th>
+                                        <th class="text-center">Matchs</th>
+                                        <th class="text-center">Winrate</th>
+                                        <th class="text-center">Score/M</th>
+                                        <th class="text-center">Buts/M</th>
+                                        <th class="text-center">Tirs/M</th>
+                                        <th class="text-center">Ratio</th>
+                                        <th class="text-center">Passes/M</th>
+                                        <th class="text-center">Arrêts/M</th>
+                                        <th class="text-center"><img src="/static/mvp_icon.png" alt="MVP" style="height: 20px; vertical-align: middle;" title="Nombre de fois MVP"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for p in season.playlists %}
+                                        <tr>
+                                            <td><span class="playlist-badge">{{ p.playlist }}</span></td>
+                                            <td class="text-center">{{ p.matches }}</td>
+                                            <td class="text-center" style="color: #00b894; font-weight: 600;">{{ p.winrate }}%</td>
+                                            <td class="text-center" style="font-weight: 600; color: #38bdf8;">{{ p.score_avg }}</td>
+                                            <td class="text-center" style="color: #4ade80; font-weight: 600;">{{ p.goals_avg }}</td>
+                                            <td class="text-center" style="color: #3b82f6; font-weight: 600;">{{ p.shots_avg }}</td>
+                                            <td class="text-center" style="font-weight: 600; color: #ffffff;">{{ p.ratio }}%</td>
+                                            <td class="text-center" style="color: #f59e0b; font-weight: 600;">{{ p.assists_avg }}</td>
+                                            <td class="text-center" style="color: #a78bfa; font-weight: 600;">{{ p.saves_avg }}</td>
+                                            <td class="text-center" style="font-weight: 600; color: #fcd34d;">{{ p.mvps }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                                <tfoot>
+                                    <tr class="total-row">
+                                        <td>TOTAL CLASSÉ</td>
+                                        <td class="text-center">{{ season.total.matches }}</td>
+                                        <td class="text-center" style="color: #00b894;">{{ season.total.winrate }}%</td>
+                                        <td class="text-center" style="color: #38bdf8;">{{ season.total.score_avg }}</td>
+                                        <td class="text-center" style="color: #4ade80;">{{ season.total.goals_avg }}</td>
+                                        <td class="text-center" style="color: #3b82f6;">{{ season.total.shots_avg }}</td>
+                                        <td class="text-center" style="color: #ffffff;">{{ season.total.ratio }}%</td>
+                                        <td class="text-center" style="color: #f59e0b;">{{ season.total.assists_avg }}</td>
+                                        <td class="text-center" style="color: #a78bfa;">{{ season.total.saves_avg }}</td>
+                                        <td class="text-center" style="color: #fcd34d;">{{ season.total.mvps }}</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                {% else %}
+                    <p class="muted">Aucune donnée saisonnière disponible.</p>
+                {% endfor %}
+            </section>
+
+            <!-- SECTION BILAN PAR SAISON - PRIVÉ -->
+            <section id="seasonal-stats-private" class="section" style="display: none;">
+                <h2 class="section-title">Bilan par Saison (Privé)</h2>
+                <p class="section-subtitle">Statistiques cumulées uniquement pour les matchs privés.</p>
+
+                {% for season in seasons_stats_private %}
+                    <div class="card seasonal-card {% if loop.first %}active{% endif %}" style="margin-bottom: 24px;">
+                        <h3 class="seasonal-header" onclick="this.parentElement.classList.toggle('active')">
+                            {{ season.name }}
+                            <span class="chevron">▼</span>
+                        </h3>
+                        <div class="seasonal-content">
+                            <table class="seasonal-table">
+                                <thead>
+                                    <tr>
+                                        <th>Playlist</th>
+                                        <th class="text-center">Matchs</th>
+                                        <th class="text-center">Winrate</th>
+                                        <th class="text-center">Score/M</th>
+                                        <th class="text-center">Buts/M</th>
+                                        <th class="text-center">Tirs/M</th>
+                                        <th class="text-center">Ratio</th>
+                                        <th class="text-center">Passes/M</th>
+                                        <th class="text-center">Arrêts/M</th>
+                                        <th class="text-center"><img src="/static/mvp_icon.png" alt="MVP" style="height: 20px; vertical-align: middle;" title="Nombre de fois MVP"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for p in season.playlists %}
+                                        <tr>
+                                            <td><span class="playlist-badge">{{ p.playlist }}</span></td>
+                                            <td class="text-center">{{ p.matches }}</td>
+                                            <td class="text-center" style="color: #00b894; font-weight: 600;">{{ p.winrate }}%</td>
+                                            <td class="text-center" style="font-weight: 600; color: #38bdf8;">{{ p.score_avg }}</td>
+                                            <td class="text-center" style="color: #4ade80; font-weight: 600;">{{ p.goals_avg }}</td>
+                                            <td class="text-center" style="color: #3b82f6; font-weight: 600;">{{ p.shots_avg }}</td>
+                                            <td class="text-center" style="font-weight: 600; color: #ffffff;">{{ p.ratio }}%</td>
+                                            <td class="text-center" style="color: #f59e0b; font-weight: 600;">{{ p.assists_avg }}</td>
+                                            <td class="text-center" style="color: #a78bfa; font-weight: 600;">{{ p.saves_avg }}</td>
+                                            <td class="text-center" style="font-weight: 600; color: #fcd34d;">{{ p.mvps }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                                <tfoot>
+                                    <tr class="total-row">
+                                        <td>TOTAL PRIVÉ</td>
+                                        <td class="text-center">{{ season.total.matches }}</td>
+                                        <td class="text-center" style="color: #00b894;">{{ season.total.winrate }}%</td>
+                                        <td class="text-center" style_avg="color: #38bdf8;">{{ season.total.score_avg }}</td>
+                                        <td class="text-center" style="color: #4ade80;">{{ season.total.goals_avg }}</td>
+                                        <td class="text-center" style="color: #3b82f6;">{{ season.total.shots_avg }}</td>
+                                        <td class="text-center" style="color: #ffffff;">{{ season.total.ratio }}%</td>
+                                        <td class="text-center" style="color: #f59e0b;">{{ season.total.assists_avg }}</td>
+                                        <td class="text-center" style="color: #a78bfa;">{{ season.total.saves_avg }}</td>
+                                        <td class="text-center" style="color: #fcd34d;">{{ season.total.mvps }}</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                {% else %}
+                    <p class="muted">Aucune donnée saisonnière disponible.</p>
+                {% endfor %}
+            </section>
+
+            <!-- SECTION BILAN PAR SAISON - TOURNOI -->
+            <section id="seasonal-stats-tournament" class="section" style="display: none;">
+                <h2 class="section-title">Bilan par Saison (Tournoi)</h2>
+                <p class="section-subtitle">Statistiques cumulées uniquement pour les matchs de tournoi.</p>
+
+                {% for season in seasons_stats_tournament %}
+                    <div class="card seasonal-card {% if loop.first %}active{% endif %}" style="margin-bottom: 24px;">
+                        <h3 class="seasonal-header" onclick="this.parentElement.classList.toggle('active')">
+                            {{ season.name }}
+                            <span class="chevron">▼</span>
+                        </h3>
+                        <div class="seasonal-content">
+                            <table class="seasonal-table">
+                                <thead>
+                                    <tr>
+                                        <th>Playlist</th>
+                                        <th class="text-center">Matchs</th>
+                                        <th class="text-center">Winrate</th>
+                                        <th class="text-center">Score/M</th>
+                                        <th class="text-center">Buts/M</th>
+                                        <th class="text-center">Tirs/M</th>
+                                        <th class="text-center">Ratio</th>
+                                        <th class="text-center">Passes/M</th>
+                                        <th class="text-center">Arrêts/M</th>
+                                        <th class="text-center"><img src="/static/mvp_icon.png" alt="MVP" style="height: 20px; vertical-align: middle;" title="Nombre de fois MVP"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for p in season.playlists %}
+                                        <tr>
+                                            <td><span class="playlist-badge">{{ p.playlist }}</span></td>
+                                            <td class="text-center">{{ p.matches }}</td>
+                                            <td class="text-center" style="color: #00b894; font-weight: 600;">{{ p.winrate }}%</td>
+                                            <td class="text-center" style="font-weight: 600; color: #38bdf8;">{{ p.score_avg }}</td>
+                                            <td class="text-center" style="color: #4ade80; font-weight: 600;">{{ p.goals_avg }}</td>
+                                            <td class="text-center" style="color: #3b82f6; font-weight: 600;">{{ p.shots_avg }}</td>
+                                            <td class="text-center" style="font-weight: 600; color: #ffffff;">{{ p.ratio }}%</td>
+                                            <td class="text-center" style="color: #f59e0b; font-weight: 600;">{{ p.assists_avg }}</td>
+                                            <td class="text-center" style="color: #a78bfa; font-weight: 600;">{{ p.saves_avg }}</td>
+                                            <td class="text-center" style="font-weight: 600; color: #fcd34d;">{{ p.mvps }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                                <tfoot>
+                                    <tr class="total-row">
+                                        <td>TOTAL TOURNOI</td>
+                                        <td class="text-center">{{ season.total.matches }}</td>
+                                        <td class="text-center" style="color: #00b894;">{{ season.total.winrate }}%</td>
+                                        <td class="text-center" style="color: #38bdf8;">{{ season.total.score_avg }}</td>
+                                        <td class="text-center" style="color: #4ade80;">{{ season.total.goals_avg }}</td>
+                                        <td class="text-center" style="color: #3b82f6;">{{ season.total.shots_avg }}</td>
+                                        <td class="text-center" style="color: #ffffff;">{{ season.total.ratio }}%</td>
+                                        <td class="text-center" style="color: #f59e0b;">{{ season.total.assists_avg }}</td>
+                                        <td class="text-center" style="color: #a78bfa;">{{ season.total.saves_avg }}</td>
+                                        <td class="text-center" style="color: #fcd34d;">{{ season.total.mvps }}</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                {% else %}
+                    <p class="muted">Aucune donnée saisonnière disponible.</p>
+                {% endfor %}
+            </section>
+
+            <!-- SECTION HISTORIQUE RECENT -->
+            <section id="history-recent" class="section" style="display: none;">
+                <div class="history-section-header">
+                    <div>
+                        <h2 class="section-title" style="margin-bottom: 4px;">20 Derniers Matchs Classés</h2>
+                        <p class="section-subtitle">Détails des 20 derniers matchs de compétition pour {{ mate_name }}.</p>
+                    </div>
+                    <button class="history-toggle-btn" id="toggleHistoryRecent">
+                        <span id="btnTextRecent">Afficher les matchs</span>
+                        <span class="icon">▼</span>
+                    </button>
+                </div>
+
+                <div class="history-controls">
+                    <button class="filter-btn-recent active" data-filter="all">Tous</button>
+                    <button class="filter-btn-recent" data-filter="win">Victoires</button>
+                    <button class="filter-btn-recent" data-filter="loss">Défaites</button>
+                </div>
+                
+                <p class="history-summary">
+                    Affichés : <span id="historyCountRecent">0</span> |
+                    Victoires : <span id="historyWinsRecent">0</span> |
+                    Défaites : <span id="historyLossesRecent">0</span>
+                </p>
+
+                <div class="history-scroll-container" id="historyContainerRecent">
+                    <div class="card" style="padding: 0; background: transparent; box-shadow: none; border: none;">
+                        <table style="margin-top: 0;">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Playlist</th>
+                                    <th>Résultat</th>
+                                    <th>Score</th>
+                                    <th>Buts</th>
+                                    <th>Passes</th>
+                                    <th>Arrêts</th>
+                                    <th>Tirs</th>
+                                    <th>Démos</th>
+                                    <th>Possession</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyTableBodyRecent">
+                            {% for row in history %}
+                                <tr data-result="{{ 'win' if row.result == 'Victoire' else 'loss' }}" data-playlist="{{ row.playlist | lower }}">
+                                    <td>{{ row.date }}</td>
+                                    <td>
+                                        {% if 'inconnue' in row.playlist | lower or 'unknown' in row.playlist | lower %}
+                                            <span class="playlist-unknown">{{ row.playlist }}</span>
+                                        {% else %}
+                                            <span class="playlist-badge">{{ row.playlist }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if row.result == 'Victoire' %}
+                                            <span class="result-badge result-win">Victoire</span>
+                                        {% else %}
+                                            <span class="result-badge result-loss">Défaite</span>
+                                        {% endif %}
+                                    </td>
+                                    <td><span class="score-badge">{{ row.score }}</span></td>
+                                    <td>{{ row.goals }}</td>
+                                    <td>{{ row.assists }}</td>
+                                    <td>{{ row.saves }}</td>
+                                    <td>{{ row.shots }}</td>
+                                    <td>{{ row.demolishes }}</td>
+                                    <td>{{ row.possession_time }}</td>
+                                </tr>
+                            {% else %}
+                                <tr>
+                                    <td colspan="10" class="muted">Aucun match disponible.</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION HISTORIQUE GLOBAL (Public no Casual) -->
+            <section id="history-global" class="section">
+                <div class="history-section-header">
+                    <div>
+                        <h2 class="section-title" style="margin-bottom: 4px;">Historique Global</h2>
+                        <p class="section-subtitle">Aperçu complet des matchs enregistrés pour {{ mate_name }}.</p>
+                    </div>
+                    <button class="history-toggle-btn" id="toggleHistoryGlobal">
+                        <span id="btnTextGlobal">Afficher les matchs</span>
+                        <span class="icon">▼</span>
+                    </button>
+                </div>
+
+                <div class="history-controls">
+                    <button class="filter-btn-global active" data-filter="all">Tous</button>
+                    <button class="filter-btn-global" data-filter="win">Victoires</button>
+                    <button class="filter-btn-global" data-filter="loss">Défaites</button>
+                    <button class="filter-btn-global" data-filter="ranked">Matchs Classés</button>
+                    <button class="filter-btn-global" data-filter="private">Matchs Privés</button>
+                    <button class="filter-btn-global" data-filter="tournament">Tournois</button>
+                </div>
+                
+                <p class="history-summary">
+                    Affichés : <span id="historyCountGlobal">0</span> |
+                    Victoires : <span id="historyWinsGlobal">0</span> |
+                    Défaites : <span id="historyLossesGlobal">0</span>
+                </p>
+
+                <div class="history-scroll-container" id="historyContainerGlobal">
+                    <div class="card" style="padding: 0; background: transparent; box-shadow: none; border: none;">
+                        <table style="margin-top: 0;">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Playlist</th>
+                                    <th>Résultat</th>
+                                    <th>Score</th>
+                                    <th>Buts</th>
+                                    <th>Passes</th>
+                                    <th>Arrêts</th>
+                                    <th>Tirs</th>
+                                    <th>Démos</th>
+                                    <th>Possession</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyTableBodyGlobal">
+                            {% for row in history_global %}
+                                <tr data-result="{{ 'win' if row.result == 'Victoire' else 'loss' }}" data-playlist="{{ row.playlist | lower }}">
+                                    <td>{{ row.date }}</td>
+                                    <td>
+                                        {% if 'inconnue' in row.playlist | lower or 'unknown' in row.playlist | lower %}
+                                            <span class="playlist-unknown">{{ row.playlist }}</span>
+                                        {% else %}
+                                            <span class="playlist-badge">{{ row.playlist }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if row.result == 'Victoire' %}
+                                            <span class="result-badge result-win">Victoire</span>
+                                        {% else %}
+                                            <span class="result-badge result-loss">Défaite</span>
+                                        {% endif %}
+                                    </td>
+                                    <td><span class="score-badge">{{ row.score }}</span></td>
+                                    <td>{{ row.goals }}</td>
+                                    <td>{{ row.assists }}</td>
+                                    <td>{{ row.saves }}</td>
+                                    <td>{{ row.shots }}</td>
+                                    <td>{{ row.demolishes }}</td>
+                                    <td>{{ row.possession_time }}</td>
+                                </tr>
+                            {% else %}
+                                <tr>
+                                    <td colspan="10" class="muted">Aucun match disponible.</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION HISTORIQUE CLASSÉ -->
+            <section id="history-ranked" class="section" style="display: none;">
+                <div class="history-section-header">
+                    <div>
+                        <h2 class="section-title" style="margin-bottom: 4px;">Historique des Matchs Classés</h2>
+                        <p class="section-subtitle">Historique limité uniquement aux matchs de compétition pour {{ mate_name }}.</p>
+                    </div>
+                    <button class="history-toggle-btn" id="toggleHistoryRanked">
+                        <span id="btnTextRanked">Afficher les matchs</span>
+                        <span class="icon">▼</span>
+                    </button>
+                </div>
+
+                <div class="history-controls">
+                    <button class="filter-btn-ranked active" data-filter="all">Tous</button>
+                    <button class="filter-btn-ranked" data-filter="win">Victoires</button>
+                    <button class="filter-btn-ranked" data-filter="loss">Défaites</button>
+                </div>
+                
+                <p class="history-summary">
+                    Affichés : <span id="historyCountRanked">0</span> |
+                    Victoires : <span id="historyWinsRanked">0</span> |
+                    Défaites : <span id="historyLossesRanked">0</span>
+                </p>
+
+                <div class="history-scroll-container" id="historyContainerRanked">
+                    <div class="card" style="padding: 0; background: transparent; box-shadow: none; border: none;">
+                        <table style="margin-top: 0;">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Playlist</th>
+                                    <th>Résultat</th>
+                                    <th>Score</th>
+                                    <th>Buts</th>
+                                    <th>Passes</th>
+                                    <th>Arrêts</th>
+                                    <th>Tirs</th>
+                                    <th>Démos</th>
+                                    <th>Possession</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyTableBodyRanked">
+                            {% for row in history_ranked %}
+                                <tr data-result="{{ 'win' if row.result == 'Victoire' else 'loss' }}" data-playlist="{{ row.playlist | lower }}">
+                                    <td>{{ row.date }}</td>
+                                    <td>
+                                        <span class="playlist-badge">{{ row.playlist }}</span>
+                                    </td>
+                                    <td>
+                                        {% if row.result == 'Victoire' %}
+                                            <span class="result-badge result-win">Victoire</span>
+                                        {% else %}
+                                            <span class="result-badge result-loss">Défaite</span>
+                                        {% endif %}
+                                    </td>
+                                    <td><span class="score-badge">{{ row.score }}</span></td>
+                                    <td>{{ row.goals }}</td>
+                                    <td>{{ row.assists }}</td>
+                                    <td>{{ row.saves }}</td>
+                                    <td>{{ row.shots }}</td>
+                                    <td>{{ row.demolishes }}</td>
+                                    <td>{{ row.possession_time }}</td>
+                                </tr>
+                            {% else %}
+                                <tr>
+                                    <td colspan="10" class="muted">Aucun match classé disponible.</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION HISTORIQUE PRIVÉ -->
+            <section id="history-private" class="section" style="display: none;">
+                <div class="history-section-header">
+                    <div>
+                        <h2 class="section-title" style="margin-bottom: 4px;">Historique des Matchs Privés</h2>
+                        <p class="section-subtitle">Aperçu complet de l'ensemble des matchs privés enregistrés pour {{ mate_name }}.</p>
+                    </div>
+                    <button class="history-toggle-btn" id="toggleHistoryPrivate">
+                        <span id="btnTextPrivate">Afficher les matchs</span>
+                        <span class="icon">▼</span>
+                    </button>
+                </div>
+
+                <div class="history-controls">
+                    <button class="filter-btn-private active" data-filter="all">Tous</button>
+                    <button class="filter-btn-private" data-filter="win">Victoires</button>
+                    <button class="filter-btn-private" data-filter="loss">Défaites</button>
+                </div>
+                
+                <p class="history-summary">
+                    Affichés : <span id="historyCountPrivate">0</span> |
+                    Victoires : <span id="historyWinsPrivate">0</span> |
+                    Défaites : <span id="historyLossesPrivate">0</span>
+                </p>
+
+                <div class="history-scroll-container" id="historyContainerPrivate">
+                    <div class="card" style="padding: 0; background: transparent; box-shadow: none; border: none;">
+                        <table style="margin-top: 0;">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Playlist</th>
+                                    <th>Résultat</th>
+                                    <th>Score</th>
+                                    <th>Buts</th>
+                                    <th>Passes</th>
+                                    <th>Arrêts</th>
+                                    <th>Tirs</th>
+                                    <th>Démos</th>
+                                    <th>Possession</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyTableBodyPrivate">
+                            {% for row in history_private %}
+                                <tr data-result="{{ 'win' if row.result == 'Victoire' else 'loss' }}" data-playlist="{{ row.playlist | lower }}">
+                                    <td>{{ row.date }}</td>
+                                    <td>
+                                        <span class="playlist-badge">{{ row.playlist }}</span>
+                                    </td>
+                                    <td>
+                                        {% if row.result == 'Victoire' %}
+                                            <span class="result-badge result-win">Victoire</span>
+                                        {% else %}
+                                            <span class="result-badge result-loss">Défaite</span>
+                                        {% endif %}
+                                    </td>
+                                    <td><span class="score-badge">{{ row.score }}</span></td>
+                                    <td>{{ row.goals }}</td>
+                                    <td>{{ row.assists }}</td>
+                                    <td>{{ row.saves }}</td>
+                                    <td>{{ row.shots }}</td>
+                                    <td>{{ row.demolishes }}</td>
+                                    <td>{{ row.possession_time }}</td>
+                                </tr>
+                            {% else %}
+                                <tr>
+                                    <td colspan="10" class="muted">Aucun match privé disponible.</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION HISTORIQUE TOURNOI -->
+            <section id="history-tournament" class="section" style="display: none;">
+                <div class="history-section-header">
+                    <div>
+                        <h2 class="section-title" style="margin-bottom: 4px;">Historique des Tournois</h2>
+                        <p class="section-subtitle">Détails des matchs de tournoi pour {{ mate_name }}.</p>
+                    </div>
+                    <button class="history-toggle-btn" id="toggleHistoryTournament">
+                        <span id="btnTextTournament">Afficher les matchs</span>
+                        <span class="icon">▼</span>
+                    </button>
+                </div>
+
+                <div class="history-controls">
+                    <button class="filter-btn-tournament active" data-filter="all">Tous</button>
+                    <button class="filter-btn-tournament" data-filter="win">Victoires</button>
+                    <button class="filter-btn-tournament" data-filter="loss">Défaites</button>
+                </div>
+                
+                <p class="history-summary">
+                    Affichés : <span id="historyCountTournament">0</span> |
+                    Victoires : <span id="historyWinsTournament">0</span> |
+                    Défaites : <span id="historyLossesTournament">0</span>
+                </p>
+
+                <div class="history-scroll-container" id="historyContainerTournament">
+                    <div class="card" style="padding: 0; background: transparent; box-shadow: none; border: none;">
+                        <table style="margin-top: 0;">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Playlist</th>
+                                    <th>Résultat</th>
+                                    <th>Score</th>
+                                    <th>Buts</th>
+                                    <th>Passes</th>
+                                    <th>Arrêts</th>
+                                    <th>Tirs</th>
+                                    <th>Démos</th>
+                                    <th>Possession</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyTableBodyTournament">
+                            {% for row in history_tournament %}
+                                <tr data-result="{{ 'win' if row.result == 'Victoire' else 'loss' }}" data-playlist="{{ row.playlist | lower }}">
+                                    <td>{{ row.date }}</td>
+                                    <td>
+                                        <span class="playlist-badge">{{ row.playlist }}</span>
+                                    </td>
+                                    <td>
+                                        {% if row.result == 'Victoire' %}
+                                            <span class="result-badge result-win">Victoire</span>
+                                        {% else %}
+                                            <span class="result-badge result-loss">Défaite</span>
+                                        {% endif %}
+                                    </td>
+                                    <td><span class="score-badge">{{ row.score }}</span></td>
+                                    <td>{{ row.goals }}</td>
+                                    <td>{{ row.assists }}</td>
+                                    <td>{{ row.saves }}</td>
+                                    <td>{{ row.shots }}</td>
+                                    <td>{{ row.demolishes }}</td>
+                                    <td>{{ row.possession_time }}</td>
+                                </tr>
+                            {% else %}
+                                <tr>
+                                    <td colspan="10" class="muted">Aucun match de tournoi disponible.</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <section id="graphs" class="section">
+                <h2 class="section-title">Graphiques</h2>
+                <p class="section-subtitle">Évolution des performances de {{ mate_name }}.</p>
+
+                <div class="grid grid-1">
+                    <div class="card chart-card">
+                        <h3 class="chart-header-with-icon">
+                            Progression du Rating
+                            <span class="info-icon" data-tooltip="Score/100 basé sur - 2v2: Victoire (15%), Score (25%-Base 600), Arrêts (20%-Base 3), Buts (20%-Base 3), Tirs (10%-Base 4), Passes (10%-Base 1) | 3v3: Victoire (15%), Score (25%-Base 400), Arrêts (20%-Base 2), Buts (20%-Base 2), Tirs (10%-Base 3), Passes (10%-Base 1).">?</span>
+                        </h3>
+                        <div id="ratingChartFilters" class="chart-filters"></div>
+                        <canvas id="ratingChart"></canvas>
+                    </div>
+
+                    <div class="card chart-card">
+                        <h3>Score par match (Par Playlist)</h3>
+                        <div id="scoreChartFilters" class="chart-filters"></div>
+                        <canvas id="scoreChart"></canvas>
+                    </div>
+
+                <div class="grid grid-2">
+                    <div class="card chart-card">
+                        <h3>Buts</h3>
+                        <canvas id="goalsChart"></canvas>
+                    </div>
+                    <div class="card chart-card">
+                        <h3>Tirs</h3>
+                        <canvas id="shotsChart"></canvas>
+                    </div>
+                    <div class="card chart-card">
+                        <h3>Passes</h3>
+                        <canvas id="assistsChart"></canvas>
+                    </div>
+                    <div class="card chart-card">
+                        <h3>Arrêts</h3>
+                        <canvas id="savesChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="grid grid-3" style="margin-top: 16px;">
+                    <div class="card chart-card">
+                        <h3>Consommation Boost</h3>
+                        <canvas id="boostChart"></canvas>
+                    </div>
+                    <div class="card chart-card">
+                        <h3>Temps de Possession (sec)</h3>
+                        <canvas id="possessionChart"></canvas>
+                    </div>
+                    <div class="card chart-card">
+                        <h3>Démolitions</h3>
+                        <canvas id="demolishesChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="grid grid-2" style="margin-top: 16px;">
+                    <div class="card chart-card">
+                        <h3>Radar stats</h3>
+                        <canvas id="radarChart"></canvas>
+                    </div>
+
+                    <div class="card chart-card">
+                        <h3>Victoires / Défaites</h3>
+                        <canvas id="pieChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+
+        </div>
+    </main>
+</div>
+
+<script>
+    const DATA_RECENT = {{ charts | tojson }};
+    const DATA_GLOBAL = {{ charts_global | tojson }};
+    const DATA_RANKED = {{ charts_ranked | tojson }};
+    const DATA_PRIVATE = {{ charts_private | tojson }};
+    const DATA_TOURNAMENT = {{ charts_tournament | tojson }};
+    const MATE_NAME = {{ mate_name | tojson }};
+
+    function switchTab(tabId) {
+        // Mise à jour des boutons d'onglets
+        document.querySelectorAll('.detail-tabs .detail-tab').forEach(el => el.classList.remove('active'));
+        const activeBtn = document.getElementById('tab-btn-' + tabId);
+        if (activeBtn) activeBtn.classList.add('active');
+
+        // Éléments à basculer
+        const statsRecent = document.getElementById('stats-recent');
+        const statsGlobal = document.getElementById('stats-global');
+        const statsRanked = document.getElementById('stats-ranked');
+        const statsPrivate = document.getElementById('stats-private');
+        const statsTournament = document.getElementById('stats-tournament');
+        
+        const indRecent = document.getElementById('indicators-recent');
+        const indGlobal = document.getElementById('indicators-global');
+        const indRanked = document.getElementById('indicators-ranked');
+        const indPrivate = document.getElementById('indicators-private');
+        const indTournament = document.getElementById('indicators-tournament');
+        
+        const ratingRecent = document.getElementById('rating-recent');
+        const ratingGlobal = document.getElementById('rating-global');
+        const ratingRanked = document.getElementById('rating-ranked');
+        const ratingPrivate = document.getElementById('rating-private');
+        const ratingTournament = document.getElementById('rating-tournament');
+        
+        const seasonalStatsGlobal = document.getElementById('seasonal-stats-global');
+        const seasonalStatsRanked = document.getElementById('seasonal-stats-ranked');
+        const seasonalStatsPrivate = document.getElementById('seasonal-stats-private');
+        const seasonalStatsTournament = document.getElementById('seasonal-stats-tournament');
+        
+        const historyRecent = document.getElementById('history-recent');
+        const historyGlobal = document.getElementById('history-global');
+        const historyRanked = document.getElementById('history-ranked');
+        const historyPrivate = document.getElementById('history-private');
+        const historyTournament = document.getElementById('history-tournament');
+        
+        const graphSubtitle = document.querySelector('#graphs .section-subtitle');
+
+        // Masquer tout par défaut
+        [statsRecent, statsGlobal, statsRanked, statsPrivate, statsTournament,
+         indRecent, indGlobal, indRanked, indPrivate, indTournament,
+         ratingRecent, ratingGlobal, ratingRanked, ratingPrivate, ratingTournament,
+         seasonalStatsGlobal, seasonalStatsRanked, seasonalStatsPrivate, seasonalStatsTournament,
+         historyRecent, historyGlobal, historyRanked, historyPrivate, historyTournament].forEach(el => {
+            if (el) el.style.display = 'none';
+        });
+
+        if (tabId === 'recent') {
+            if (statsRecent) statsRecent.style.display = 'flex';
+            if (indRecent) indRecent.style.display = 'block';
+            if (ratingRecent) ratingRecent.style.display = 'block';
+            if (historyRecent) historyRecent.style.display = 'block';
+            if (graphSubtitle) graphSubtitle.textContent = "Évolution des performances de " + MATE_NAME + " (20 derniers matchs classés).";
+            initPlayerDetailCharts({ player_name: MATE_NAME, ...DATA_RECENT });
+        } else if (tabId === 'global') {
+            if (statsGlobal) statsGlobal.style.display = 'flex';
+            if (indGlobal) indGlobal.style.display = 'block';
+            if (ratingGlobal) ratingGlobal.style.display = 'block';
+            if (seasonalStatsGlobal) seasonalStatsGlobal.style.display = 'block';
+            if (historyGlobal) historyGlobal.style.display = 'block';
+            if (graphSubtitle) graphSubtitle.textContent = "Statistiques cumulées de " + MATE_NAME + ".";
+            initPlayerDetailCharts({ player_name: MATE_NAME, ...DATA_GLOBAL });
+        } else if (tabId === 'ranked') {
+            if (statsRanked) statsRanked.style.display = 'flex';
+            if (indRanked) indRanked.style.display = 'block';
+            if (ratingRanked) ratingRanked.style.display = 'block';
+            if (seasonalStatsRanked) seasonalStatsRanked.style.display = 'block';
+            if (historyRanked) historyRanked.style.display = 'block';
+            if (graphSubtitle) graphSubtitle.textContent = "Statistiques de " + MATE_NAME + " uniquement pour les Matchs Classés.";
+            initPlayerDetailCharts({ player_name: MATE_NAME, ...DATA_RANKED });
+        } else if (tabId === 'private') {
+            if (statsPrivate) statsPrivate.style.display = 'flex';
+            if (indPrivate) indPrivate.style.display = 'block';
+            if (ratingPrivate) ratingPrivate.style.display = 'block';
+            if (seasonalStatsPrivate) seasonalStatsPrivate.style.display = 'block';
+            if (historyPrivate) historyPrivate.style.display = 'block';
+            if (graphSubtitle) graphSubtitle.textContent = "Statistiques de " + MATE_NAME + " uniquement pour les matchs privés.";
+            initPlayerDetailCharts({ player_name: MATE_NAME, ...DATA_PRIVATE });
+        } else if (tabId === 'tournament') {
+            if (statsTournament) statsTournament.style.display = 'flex';
+            if (indTournament) indTournament.style.display = 'block';
+            if (ratingTournament) ratingTournament.style.display = 'block';
+            if (seasonalStatsTournament) seasonalStatsTournament.style.display = 'block';
+            if (historyTournament) historyTournament.style.display = 'block';
+            if (graphSubtitle) graphSubtitle.textContent = "Statistiques de " + MATE_NAME + " uniquement pour les matchs de tournoi.";
+            initPlayerDetailCharts({ player_name: MATE_NAME, ...DATA_TOURNAMENT });
+        }
+    }
+
+    // Initialisation par défaut sur l'onglet global
+    switchTab('global');
+
+    // History Table Filter Logic (Generic helper)
+    function setupHistoryFilters(btnClass, tableBodyId, counterIds) {
+        const filterButtons = document.querySelectorAll(btnClass);
+        const tableBody = document.getElementById(tableBodyId);
+        
+        if (!tableBody) return;
+        const rows = tableBody.querySelectorAll("tr");
+
+        function updateCounters() {
+            const visibleRows = tableBody.querySelectorAll("tr:not(.hidden-row):not(.empty-row)");
+            const total = visibleRows.length;
+            const wins = Array.from(visibleRows).filter(r => r.dataset.result === "win").length;
+            const losses = Array.from(visibleRows).filter(r => r.dataset.result === "loss").length;
+
+            if (document.getElementById(counterIds.total)) document.getElementById(counterIds.total).textContent = total;
+            if (document.getElementById(counterIds.wins)) document.getElementById(counterIds.wins).textContent = wins;
+            if (document.getElementById(counterIds.losses)) document.getElementById(counterIds.losses).textContent = losses;
+            
+            // Show/hide empty row
+            const emptyRow = tableBody.querySelector(".empty-row");
+            if (total === 0) {
+                if (!emptyRow) {
+                    const tr = document.createElement("tr");
+                    tr.className = "empty-row";
+                    tr.innerHTML = `<td colspan="10" class="muted">Aucun match ne correspond aux critères.</td>`;
+                    tableBody.appendChild(tr);
+                }
+            } else if (emptyRow) {
+                emptyRow.remove();
+            }
+        }
+
+        function applyFilter(filter) {
+            rows.forEach(row => {
+                if (row.classList.contains("empty-row")) return;
+                const result = row.dataset.result;
+                const playlist = row.dataset.playlist || "";
+                let show = false;
+
+                if (filter === "all") show = true;
+                else if (filter === "win") show = (result === "win");
+                else if (filter === "loss") show = (result === "loss");
+                else if (filter === "ranked") show = playlist.includes("ranked") || playlist.includes("classé");
+                else if (filter === "casual") show = playlist.includes("casual") || playlist.includes("amical");
+                else if (filter === "private") show = playlist.includes("private") || playlist.includes("privé");
+                else if (filter === "tournament") show = playlist.includes("tournament") || playlist.includes("tournoi");
+                
+                row.classList.toggle("hidden-row", !show);
+            });
+            updateCounters();
+        }
+
+        filterButtons.forEach(btn => {
+            btn.addEventListener("click", () => {
+                filterButtons.forEach(b => b.classList.remove("active"));
+                btn.classList.add("active");
+                applyFilter(btn.dataset.filter);
+            });
+        });
+
+        updateCounters();
+    }
+
+    // Init Histories
+    setupHistoryFilters(".filter-btn-recent", "historyTableBodyRecent", {
+        total: "historyCountRecent", wins: "historyWinsRecent", losses: "historyLossesRecent"
+    });
+    setupHistoryFilters(".filter-btn-global", "historyTableBodyGlobal", {
+        total: "historyCountGlobal", wins: "historyWinsGlobal", losses: "historyLossesGlobal"
+    });
+    setupHistoryFilters(".filter-btn-ranked", "historyTableBodyRanked", {
+        total: "historyCountRanked", wins: "historyWinsRanked", losses: "historyLossesRanked"
+    });
+    setupHistoryFilters(".filter-btn-private", "historyTableBodyPrivate", {
+        total: "historyCountPrivate", wins: "historyWinsPrivate", losses: "historyLossesPrivate"
+    });
+    setupHistoryFilters(".filter-btn-tournament", "historyTableBodyTournament", {
+        total: "historyCountTournament", wins: "historyWinsTournament", losses: "historyLossesTournament"
+    });
+
+    // Toggle scroll container logic
+    function setupToggle(btnId, containerId, textId) {
+        const toggleBtn = document.getElementById(btnId);
+        const container = document.getElementById(containerId);
+        const btnText = document.getElementById(textId);
+
+        if (toggleBtn && container) {
+            toggleBtn.addEventListener("click", () => {
+                const isExpanded = container.classList.toggle("expanded");
+                toggleBtn.classList.toggle("active");
+                if (btnText) {
+                    btnText.textContent = isExpanded ? "Réduire le tableau" : "Afficher les matchs";
+                }
+            });
+        }
+    }
+
+    setupToggle("toggleHistoryRecent", "historyContainerRecent", "btnTextRecent");
+    setupToggle("toggleHistoryGlobal", "historyContainerGlobal", "btnTextGlobal");
+    setupToggle("toggleHistoryRanked", "historyContainerRanked", "btnTextRanked");
+    setupToggle("toggleHistoryPrivate", "historyContainerPrivate", "btnTextPrivate");
+    setupToggle("toggleHistoryTournament", "historyContainerTournament", "btnTextTournament");
+</script>
+
+</body>
+</html>

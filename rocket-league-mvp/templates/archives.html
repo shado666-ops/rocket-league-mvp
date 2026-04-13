@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Statistiques du Club {{ club_name }} - Rocket League MVP Tracker</title>
+    <link rel="stylesheet" href="/static/style.css?v=2">
+    <style>
+        :root {
+            --primary-glow: rgba(56, 189, 248, 0.15);
+            --accent-blue: #38bdf8;
+            --accent-green: #4ade80;
+            --accent-red: #f87171;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        .archives-menu-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin-top: 20px;
+            margin-bottom: 50px;
+        }
+
+        @media (max-width: 1200px) {
+            .archives-menu-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 800px) {
+            .archives-menu-grid { grid-template-columns: 1fr; }
+        }
+
+
+        .menu-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+            padding: 30px;
+            text-decoration: none;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .menu-card:hover {
+            transform: translateY(-10px);
+            border-color: var(--accent-blue);
+            box-shadow: 0 20px 40px rgba(56, 189, 248, 0.15);
+        }
+
+        .menu-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.05) 0%, transparent 100%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .menu-card:hover::before {
+            opacity: 1;
+        }
+
+        .menu-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .menu-card-icon {
+            font-size: 2.5rem;
+            opacity: 0.8;
+        }
+
+        .menu-card-title {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .menu-card-stats {
+            display: flex;
+            gap: 20px;
+            margin-top: 15px;
+        }
+
+        .menu-stat-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .menu-stat-value {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--accent-blue);
+        }
+
+        .menu-stat-label {
+            font-size: 0.7rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+
+        .menu-card-footer {
+            margin-top: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--accent-blue);
+        }
+
+        .view-details-btn {
+            padding: 8px 16px;
+            background: rgba(56, 189, 248, 0.1);
+            border-radius: 10px;
+            transition: all 0.2s;
+        }
+
+        .menu-card:hover .view-details-btn {
+            background: var(--accent-blue);
+            color: #0f172a;
+        }
+
+        /* Playlist Tags in menu-card */
+        .playlist-count {
+            background: rgba(30, 41, 59, 0.5);
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            color: #eee;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+    </style>
+</head>
+<body>
+<div class="layout">
+    <aside class="sidebar">
+        <img src="/static/logo-club.png" alt="Club Logo" class="sidebar-logo">
+        <div class="sidebar-title">MVP Tracker</div>
+
+        <div class="sidebar-subtitle">Navigation rapide</div>
+
+        <nav class="sidebar-nav">
+            <a class="sidebar-link" href="/"><span>🏠</span> Accueil</a>
+            <a class="sidebar-link active" href="/club"><span>🛡️</span> Stats Club</a>
+            <a class="sidebar-link" href="/joueurs"><span>🧑‍🚀</span> Stats Joueurs</a>
+            <a class="sidebar-link" href="/hof"><span>🏆</span> Hall of Fame</a>
+            <a class="sidebar-link" href="/pepites"><span>✨</span> Pépites</a>
+            {% if unread_notifications_count > 0 %}
+            <a class="sidebar-link" href="/notifications"><span>🔔</span> Notifications <span class="notif-badge">{{ unread_notifications_count }}</span></a>
+            {% endif %}
+            <a class="sidebar-link" href="/admin/ui"><span>⚙️</span> Administration</a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <img src="/static/logo.svg" alt="Rocket League Logo" class="sidebar-footer-logo">
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <div class="content-container">
+            <div class="page-header">
+                <h1 class="section-title"><span>🛡️</span> Statistiques du Club {{ club_name }} <span>🛡️</span></h1>
+                <p class="section-subtitle">Toutes les performances du club, classées par formation.</p>
+            </div>
+
+            <!-- MENU GRID -->
+            <div class="archives-menu-grid">
+                {% for item in archives_menu %}
+                <a href="/club/{{ item.fid }}" class="menu-card">
+                    <div>
+                        <div class="menu-card-header">
+                            <div class="menu-card-title">{{ item.name }}</div>
+                            <div class="menu-card-icon">
+                                {% if item.fid == '3v3_club' %}🛡️
+                                {% elif item.fid == '3v3_random' %}🤝
+                                {% elif item.fid == '2v2_club' %}🌪️
+                                {% elif item.fid == '4v4_club' %}🔥
+                                {% elif item.fid == 'private' %}⚔️
+                                {% elif item.fid == 'tournaments' %}🏆
+                                {% else %}📊{% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="menu-card-stats" style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 20px;">
+                            <div class="menu-stat-item">
+                                <span class="menu-stat-value">{{ item.total_matches }}</span>
+                                <span class="menu-stat-label">Matchs</span>
+                            </div>
+                            <div class="menu-stat-item" style="text-align: right;">
+                                <span class="menu-stat-value" style="color: #fff; opacity: 0.9;">{{ item.count }}</span>
+                                <span class="menu-stat-label">{{ item.count_label }}</span>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="menu-card-footer">
+                        <span>Voir les statistiques détaillées</span>
+                        <div class="view-details-btn">→</div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+
+
+            <section id="history-global" class="section" style="margin-top: 40px;">
+                <div class="history-section-header">
+                    <div>
+                        <h2 class="section-title" style="margin-bottom: 4px;">Historique Global</h2>
+                        <p class="section-subtitle">Aperçu complet des matchs enregistrés pour le club.</p>
+                    </div>
+                    <button class="history-toggle-btn" id="toggleHistoryGlobal">
+                        <span id="btnTextGlobal">Afficher les matchs</span>
+                        <span class="icon">▼</span>
+                    </button>
+                </div>
+
+                <div class="history-controls">
+                    <button class="filter-btn-global active" data-filter="all">Tous</button>
+                    <button class="filter-btn-global" data-filter="win">Victoires</button>
+                    <button class="filter-btn-global" data-filter="loss">Défaites</button>
+                    <button class="filter-btn-global" data-filter="ranked">Matchs Classés</button>
+                    <button class="filter-btn-global" data-filter="private">Matchs Privés</button>
+                    <button class="filter-btn-global" data-filter="tournament">Tournois</button>
+                </div>
+                
+                <p class="history-summary">
+                    Affichés : <span id="historyCountGlobal">0</span> |
+                    Victoires : <span id="historyWinsGlobal">0</span> |
+                    Défaites : <span id="historyLossesGlobal">0</span> |
+                    Privés : <span id="historyPrivateGlobal">0</span> |
+                    Tournois : <span id="historyTournamentGlobal">0</span>
+                </p>
+
+                <div class="history-scroll-container" id="historyContainerGlobal">
+                    <div class="card" style="padding: 0; background: transparent; box-shadow: none; border: none;">
+                        <table style="margin-top: 0;">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Playlist</th>
+                                    <th>Composition</th>
+                                    <th>Résultat</th>
+                                    <th>Buts</th>
+                                    <th>Passes</th>
+                                    <th>Arrêts</th>
+                                    <th>Tirs</th>
+                                    <th>Démos</th>
+                                    <th>Possession</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyTableBodyGlobal">
+                            {% for row in club_history if 'casual' not in row.playlist | lower %}
+                                {% set is_win = row.result == 'Victoire' %}
+                                {% set is_loss = row.result == 'Défaite' %}
+                                {% if row.is_private %}
+                                    {% set score_parts = row.match_score.split(' - ') %}
+                                    {% if score_parts|length == 2 %}
+                                        {% if score_parts[0]|int > score_parts[1]|int %}
+                                            {% set is_win = true %}
+                                        {% elif score_parts[0]|int < score_parts[1]|int %}
+                                            {% set is_loss = true %}
+                                        {% endif %}
+                                    {% endif %}
+                                {% endif %}
+                                <tr data-result="{{ 'win' if is_win else ('loss' if is_loss else 'none') }}" data-playlist="{{ row.playlist | lower }}">
+                                    <td>{{ row.date }}</td>
+                                    <td>
+                                        {% if 'inconnue' in row.playlist | lower or 'unknown' in row.playlist | lower %}
+                                            <span class="playlist-unknown">{{ row.playlist }}</span>
+                                        {% else %}
+                                            <span class="playlist-badge">{{ row.playlist }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ row.players }}</td>
+                                    <td>
+                                        {% if is_win %}
+                                            <span class="result-badge result-win">{{ row.match_score }}</span>
+                                        {% elif is_loss %}
+                                            <span class="result-badge result-loss">{{ row.match_score }}</span>
+                                        {% else %}
+                                            <span class="result-badge muted">{{ row.match_score }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ row.goals }}</td>
+                                    <td>{{ row.assists }}</td>
+                                    <td>{{ row.saves }}</td>
+                                    <td>{{ row.shots }}</td>
+                                    <td>{{ row.demolishes }}</td>
+                                    <td>{{ row.possession_time }}</td>
+                                </tr>
+                            {% else %}
+                                <tr>
+                                    <td colspan="10" class="muted">Aucun match club disponible.</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+</div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/static/common.js"></script>
+    <script>
+    function setupHistoryFilters(btnClass, tableBodyId, counterIds) {
+        const filterButtons = document.querySelectorAll(btnClass);
+        const tableBody = document.getElementById(tableBodyId);
+        
+        if (!tableBody) return;
+        const rows = tableBody.querySelectorAll("tr");
+
+        function updateCounters() {
+            const visibleRows = tableBody.querySelectorAll("tr:not(.hidden-row):not(.empty-row)");
+            const total = visibleRows.length;
+            const wins = Array.from(visibleRows).filter(r => r.dataset.result === "win").length;
+            const losses = Array.from(visibleRows).filter(r => r.dataset.result === "loss").length;
+            const privates = Array.from(visibleRows).filter(r => r.dataset.playlist.includes("private") || r.dataset.playlist.includes("privé")).length;
+            const tournaments = Array.from(visibleRows).filter(r => r.dataset.playlist.includes("tournament") || r.dataset.playlist.includes("tournoi")).length;
+
+            if (document.getElementById(counterIds.total)) document.getElementById(counterIds.total).textContent = total;
+            if (document.getElementById(counterIds.wins)) document.getElementById(counterIds.wins).textContent = wins;
+            if (document.getElementById(counterIds.losses)) document.getElementById(counterIds.losses).textContent = losses;
+            if (document.getElementById(counterIds.private)) document.getElementById(counterIds.private).textContent = privates;
+            if (document.getElementById(counterIds.tournament)) document.getElementById(counterIds.tournament).textContent = tournaments;
+            
+            // Show/hide empty row
+            const emptyRow = tableBody.querySelector(".empty-row");
+            if (total === 0 && rows.length > 0) {
+                if (!emptyRow) {
+                    const tr = document.createElement("tr");
+                    tr.className = "empty-row";
+                    tr.innerHTML = `<td colspan="10" class="muted">Aucun match ne correspond aux critères.</td>`;
+                    tableBody.appendChild(tr);
+                }
+            } else if (emptyRow) {
+                emptyRow.remove();
+            }
+        }
+
+        function applyFilter(filter) {
+            rows.forEach(row => {
+                if (row.classList.contains("empty-row")) return;
+                const result = row.dataset.result;
+                const playlist = row.dataset.playlist || "";
+                let show = false;
+
+                if (filter === "all") show = true;
+                else if (filter === "win") show = (result === "win");
+                else if (filter === "loss") show = (result === "loss");
+                else if (filter === "ranked") show = playlist.includes("ranked") || playlist.includes("classé") || playlist.includes("tournament") || playlist.includes("tournoi");
+                else if (filter === "private") show = playlist.includes("private") || playlist.includes("privé");
+                else if (filter === "tournament") show = playlist.includes("tournament") || playlist.includes("tournoi");
+                
+                row.classList.toggle("hidden-row", !show);
+            });
+            updateCounters();
+        }
+
+        filterButtons.forEach(btn => {
+            btn.addEventListener("click", () => {
+                filterButtons.forEach(b => b.classList.remove("active"));
+                btn.classList.add("active");
+                applyFilter(btn.dataset.filter);
+            });
+        });
+
+        updateCounters();
+    }
+
+    function setupToggle(btnId, containerId, textId) {
+        const toggleBtn = document.getElementById(btnId);
+        const container = document.getElementById(containerId);
+        const btnText = document.getElementById(textId);
+
+        if (toggleBtn && container) {
+            toggleBtn.addEventListener("click", () => {
+                const isExpanded = container.classList.toggle("expanded");
+                toggleBtn.classList.toggle("active");
+                if (btnText) {
+                    btnText.textContent = isExpanded ? "Réduire le tableau" : "Afficher les matchs";
+                }
+            });
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        setupHistoryFilters(".filter-btn-global", "historyTableBodyGlobal", {
+            total: "historyCountGlobal", 
+            wins: "historyWinsGlobal", 
+            losses: "historyLossesGlobal",
+            private: "historyPrivateGlobal",
+            tournament: "historyTournamentGlobal"
+        });
+        setupToggle("toggleHistoryGlobal", "historyContainerGlobal", "btnTextGlobal");
+    });
+    </script>
+
+</body>
+</html>
