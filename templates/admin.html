@@ -87,6 +87,64 @@
                     <div id="settingsStatus" style="margin-top: 10px; font-size: 0.85rem; display: none; text-align: right;"></div>
                 </div>
             </section>
+            
+            <!-- User Management Section -->
+            <section class="admin-section" style="margin-top: 24px;">
+                <div class="admin-section-header">
+                    <h2 class="admin-section-title">👥 Gestion des Utilisateurs</h2>
+                </div>
+                
+                <div class="admin-grid">
+                    <!-- Pending Users -->
+                    <div class="card admin-card">
+                        <h3>En attente d'approbation ({{ pending_users|length }})</h3>
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            {% if pending_users %}
+                                {% for user in pending_users %}
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: rgba(255, 165, 0, 0.1); border-radius: 8px; border: 1px solid rgba(255, 165, 0, 0.2);">
+                                    <div>
+                                        <div style="font-weight: bold; color: #fbbf24;">{{ user.username }}</div>
+                                        <div style="font-size: 0.8rem; color: #a1a1aa;">Inscrit le {{ user.created_at.strftime('%d/%m/%Y') }}</div>
+                                    </div>
+                                    <div style="display: flex; gap: 8px;">
+                                        <form action="/admin/users/approve/{{ user.id }}" method="post">
+                                            <button type="submit" class="btn" style="background: #22c55e; padding: 6px 12px; font-size: 0.85rem;">Approuver</button>
+                                        </form>
+                                        <form action="/admin/users/delete/{{ user.id }}" method="post">
+                                            <button type="submit" class="btn btn-danger" style="padding: 6px 12px; font-size: 0.85rem;">Refuser</button>
+                                        </form>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <p style="color: #64748b; font-style: italic; text-align: center; padding: 10px;">Aucune inscription en attente.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Approved Members -->
+                    <div class="card admin-card">
+                        <h3>Membres Accrédités ({{ approved_users|length }})</h3>
+                        <div style="display: flex; flex-direction: column; gap: 10px; max-height: 250px; overflow-y: auto; padding-right: 5px;">
+                            {% if approved_users %}
+                                {% for user in approved_users %}
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+                                    <div>
+                                        <div style="font-weight: bold; color: #fff;">{{ user.username }}</div>
+                                        <div style="font-size: 0.75rem; color: #64748b;">Rôle: {{ user.role }}</div>
+                                    </div>
+                                    <form action="/admin/users/delete/{{ user.id }}" method="post" onsubmit="return confirm('Supprimer cet accès ?');">
+                                        <button type="submit" style="background: none; border: none; color: #f87171; cursor: pointer; font-size: 1.2rem;">×</button>
+                                    </form>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <p style="color: #64748b; font-style: italic; text-align: center; padding: 10px;">Aucun membre approuvé.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </section>
 
             <div class="admin-grid">
                 <!-- Season Management Section (New Position: Col 1) -->

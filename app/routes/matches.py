@@ -1,6 +1,6 @@
-import os
-from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Request
+from app.dependencies import get_current_user
+import models
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
@@ -16,7 +16,7 @@ templates = Jinja2Templates(directory="templates")
 
 
 @router.get("/matches/{match_id}")
-def match_detail(match_id: int, request: Request, db: Session = Depends(get_db)):
+def match_detail(match_id: int, request: Request, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     data = get_match_detail_data(db, match_id)
     if not data:
         raise HTTPException(status_code=404, detail="Match introuvable.")
@@ -27,13 +27,12 @@ def match_detail(match_id: int, request: Request, db: Session = Depends(get_db))
     club_tag = get_club_tag(db)
     
     return templates.TemplateResponse(
-        "match_detail.html",
-        {
-            "request": request,
-            **data,
-            "unread_notifications_count": unread_notifications_count,
+        request=request,
+        name="match_detail.html",
+        context={
             "club_name": club_name,
-            "club_tag": club_tag
+            "club_tag": club_tag,
+            "user": current_user
         },
     )
 

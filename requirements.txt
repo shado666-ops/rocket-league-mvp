@@ -1,7 +1,10 @@
 fastapi
-uvicorn
+uvicorn[standard]
 sqlalchemy
 jinja2
 python-multipart
 watchdog
 requests
+passlib[bcrypt]
+bcrypt==3.1.7
+python-jose[cryptography]

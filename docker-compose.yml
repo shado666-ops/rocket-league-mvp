@@ -12,7 +12,7 @@ services:
       - ./uploaded_replays:/app/uploaded_replays
     environment:
       - ENV=production
-      - RRROCKET_PATH=/app/parsers/rrrocket
+      - RRROCKET_PATH=/app/parsers/boxcars/rrrocket
 
   # Optionnel : Nginx pour la gestion du domaine et SSL
   # Vous pourrez décommenter cette partie une fois le domaine lié à l'IP du VPS

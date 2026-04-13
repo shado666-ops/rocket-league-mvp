@@ -1,5 +1,6 @@
 import os
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, Request, status
+import models
 from fastapi.staticfiles import StaticFiles
 from app.websocket_manager import manager
 import threading
@@ -12,22 +13,50 @@ from app.routes.analytics import router as analytics_router
 from app.routes.pepites import router as pepites_router
 from app.routes.admin import router as admin_router
 from app.routes.notifications import router as notifications_router
-from app.dependencies import get_current_user
+from app.routes.auth import router as auth_router
+from app.dependencies import get_current_user, get_current_admin
 from sqlalchemy.orm import Session
 from database import Base, engine, SessionLocal
 from models import ClubMember
 
+app = FastAPI(title="Rocket League MVP Tracker")
+
 def seed_database():
-    """Initialise les membres de base du club s'ils n'existent pas."""
+    """Initialise les membres de base du club et le compte admin s'ils n'existent pas."""
     db: Session = SessionLocal()
     try:
+        # Membres du club
         primary_members = ["Shado666", "Kalibakbak", "Ezy", "JulienYo"]
         for name in primary_members:
-            exists = db.query(ClubMember).filter(ClubMember.display_name == name).first()
+            exists = db.query(models.ClubMember).filter(models.ClubMember.display_name == name).first()
             if not exists:
                 print(f"[Seeding] Ajout du membre : {name}")
-                db.add(ClubMember(display_name=name, is_active=True))
+                db.add(models.ClubMember(display_name=name, is_active=True))
+        
+        print("[Seeding] Vérification du compte ADMIN...")
+        from app.services.auth_service import get_password_hash
+        admin_pseudo = "Shado666"
+        admin_pass = "Cloudff7!"
+        admin_exists = db.query(models.User).filter(models.User.username == admin_pseudo).first()
+        if not admin_exists:
+            print(f"[Seeding] Création du compte ADMIN : {admin_pseudo}")
+            new_admin = models.User(
+                username=admin_pseudo,
+                hashed_password=get_password_hash(admin_pass),
+                role="admin",
+                is_approved=True
+            )
+            # Lier à la fiche membre du même nom
+            member = db.query(models.ClubMember).filter(models.ClubMember.display_name == admin_pseudo).first()
+            if member:
+                new_admin.linked_member_id = member.id
+            db.add(new_admin)
+            print(f"[Seeding] Succès : compte ADMIN {admin_pseudo} créé.")
+        else:
+            print(f"[Seeding] Info : le compte ADMIN {admin_pseudo} existe déjà.")
+            
         db.commit()
+        print("[Seeding] Opération terminée avec succès.")
     except Exception as e:
         print(f"[Seeding] Erreur : {e}")
     finally:
@@ -38,18 +67,36 @@ seed_database()
 
 # Authentication imports moved to app/dependencies.py
 
-app = FastAPI(title="Rocket League MVP Tracker")
+# Routes publiques
+app.include_router(auth_router)
 
-# Configuration and get_current_user moved to app/dependencies.py
+# Routes protégées par rôle Admin
+app.include_router(admin_router, dependencies=[Depends(get_current_admin)])
 
-# Appliquer la sécurité UNIQUEMENT sur le routeur admin
-app.include_router(admin_router, dependencies=[Depends(get_current_user)])
-# Les autres sont publics
-app.include_router(matches_router)
-app.include_router(players_router)
-app.include_router(analytics_router)
-app.include_router(pepites_router)
-app.include_router(notifications_router)
+# Routes protégées (Membres & API)
+app.include_router(matches_router, dependencies=[Depends(get_current_user)])
+app.include_router(players_router, dependencies=[Depends(get_current_user)])
+app.include_router(analytics_router, dependencies=[Depends(get_current_user)])
+app.include_router(pepites_router, dependencies=[Depends(get_current_user)])
+app.include_router(notifications_router, dependencies=[Depends(get_current_user)])
+
+# Redirection vers Login en cas d'erreur 401 (non authentifié)
+from fastapi.responses import RedirectResponse
+from fastapi import HTTPException
+@app.exception_handler(status.HTTP_401_UNAUTHORIZED)
+async def unauthorized_redirect(request: Request, exc: HTTPException):
+    # Si c'est une requête API (Watcher), on renvoie l'erreur 401 telle quelle
+    # pour que l'authentification Basic puisse se déclencher sur le script.
+    if "/api/" in request.url.path:
+        from fastapi.responses import JSONResponse
+        return JSONResponse(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            content={"detail": "Non authentifié"},
+            headers={"WWW-Authenticate": "Basic"}
+        )
+    
+    # Pour le web, on redirige vers la page de login
+    return RedirectResponse(url="/login")
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):

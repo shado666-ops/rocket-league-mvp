@@ -11,6 +11,7 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
+import enum
 
 from database import Base
 
@@ -112,3 +113,21 @@ class Notification(Base):
     type = Column(String, nullable=True) # e.g. "hall_of_fame"
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     is_read = Column(Boolean, nullable=False, default=False)
+
+class UserRole(str, enum.Enum):
+    ADMIN = "admin"
+    MEMBER = "member"
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, nullable=False, index=True)
+    hashed_password = Column(String, nullable=False)
+    role = Column(String, nullable=False, default=UserRole.MEMBER)
+    is_approved = Column(Boolean, nullable=False, default=False)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+    # Lien optionnel vers la fiche joueur du club
+    linked_member_id = Column(Integer, ForeignKey("club_members.id", ondelete="SET NULL"), nullable=True)
+    member = relationship("ClubMember")

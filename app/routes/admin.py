@@ -5,14 +5,16 @@ from datetime import datetime
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
+from app.dependencies import get_current_user, get_current_admin
 
 from database import SessionLocal, engine, Base
 import models
 from models import ClubMember, Match, Player, MatchPlayerStat
 from app.services.stats_service import get_seasons, set_setting, get_club_name, get_club_tag
+import models
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 templates = Jinja2Templates(directory="templates")
@@ -28,7 +30,7 @@ def get_db():
 from sqlalchemy.orm import joinedload
 
 @router.get("/ui", response_class=HTMLResponse)
-async def admin_ui(request: Request, db: Session = Depends(get_db)):
+async def admin_ui(request: Request, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_admin)):
     members = db.query(ClubMember).options(joinedload(ClubMember.aliases)).all()
     backups_dir = "backups"
     last_backup = "Aucune"
@@ -43,15 +45,25 @@ async def admin_ui(request: Request, db: Session = Depends(get_db)):
     from app.services.stats_service import get_unread_notifications_count
     unread_notifications_count = get_unread_notifications_count(db)
 
-    return templates.TemplateResponse("admin.html", {
-        "request": request, 
-        "members": members,
-        "last_backup": last_backup,
-        "seasons": seasons,
-        "club_name": get_club_name(db),
-        "club_tag": get_club_tag(db),
-        "unread_notifications_count": unread_notifications_count
-    })
+    # Gestion des utilisateurs
+    pending_users = db.query(models.User).filter(models.User.is_approved == False).all()
+    approved_users = db.query(models.User).filter(models.User.is_approved == True, models.User.role != "admin").all()
+
+    return templates.TemplateResponse(
+        request=request,
+        name="admin.html",
+        context={
+            "members": members,
+            "last_backup": last_backup,
+            "seasons": seasons,
+            "club_name": get_club_name(db),
+            "club_tag": get_club_tag(db),
+            "unread_notifications_count": unread_notifications_count,
+            "pending_users": pending_users,
+            "approved_users": approved_users,
+            "user": current_user
+        }
+    )
 
 # --- SETTINGS ---
 @router.post("/settings")
@@ -182,3 +194,18 @@ async def delete_alias(alias_id: int, db: Session = Depends(get_db)):
     db.delete(alias)
     db.commit()
     return {"status": "ok"}
+@router.post("/users/approve/{user_id}")
+async def approve_user(user_id: int, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if user:
+        user.is_approved = True
+        db.commit()
+    return RedirectResponse(url="/admin/ui", status_code=303)
+
+@router.post("/users/delete/{user_id}")
+async def delete_user(user_id: int, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if user:
+        db.delete(user)
+        db.commit()
+    return RedirectResponse(url="/admin/ui", status_code=303)

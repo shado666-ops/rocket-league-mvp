@@ -1,16 +1,16 @@
 # Image de base Python
 FROM python:3.11-slim
 
-# Empêcher Python de générer des fichiers .pyc et activer le mode non-interactif
+# Config environnement
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 ENV ENV production
-ENV RRROCKET_PATH /app/parsers/rrrocket
 
-# Installation des dépendances système nécessaires (curl pour télécharger le parser)
+# Installation des dépendances système nécessaires
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
+    tar \
     && rm -rf /var/lib/apt/lists/*
 
 # Création du répertoire de travail
@@ -23,8 +23,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Création des répertoires pour les données et le parser
 RUN mkdir -p data uploaded_replays parsers/boxcars
 
-# Téléchargement du binaire rrrocket pour Linux
-RUN curl -L https://github.com/nick12/rrrocket/releases/download/v0.1.0/rrrocket-linux-x86_64 -o /app/parsers/boxcars/rrrocket \
+# Téléchargement et extraction du binaire rrrocket pour Linux
+RUN curl -L https://github.com/nickbabcock/rrrocket/releases/download/v0.10.12/rrrocket-0.10.12-x86_64-unknown-linux-musl.tar.gz -o rrrocket.tar.gz \
+    && tar -xzf rrrocket.tar.gz -C /app/parsers/boxcars/ --strip-components=1 \
+    && rm rrrocket.tar.gz \
     && chmod +x /app/parsers/boxcars/rrrocket
 
 # Copie du reste de l'application

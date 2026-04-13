@@ -26,9 +26,9 @@ else:
 
 print(f"[Watcher] Dossier cible identifie : {DEMOS_PATH}", flush=True)
 
-# API Local du tracker
-API_UPLOAD_URL = "http://127.0.0.1:8000/api/matches/upload"
-API_UPLOAD_CSV_URL = "http://127.0.0.1:8000/api/matches/upload_csv"
+# API du tracker (Production VPS)
+API_UPLOAD_URL = "https://notre-club-rl.fr/api/matches/upload"
+API_UPLOAD_CSV_URL = "https://notre-club-rl.fr/api/matches/upload_csv"
 
 # Authentification (doit correspondre à main.py)
 ADMIN_USER = os.getenv("ADMIN_USER", "admin")

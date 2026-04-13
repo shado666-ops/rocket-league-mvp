@@ -7,74 +7,75 @@ from app.services.stats_service import MAIN_PLAYER_NAME, get_dashboard_data, get
 from database import get_db
 from models import ClubMember
 
+from app.dependencies import get_current_user
+import models
+
 router = APIRouter(tags=["players"])
 templates = Jinja2Templates(directory="templates")
 
 
 @router.get("/")
-def dashboard(request: Request, db: Session = Depends(get_db)):
+def dashboard(request: Request, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     data = get_dashboard_data(db)
     return templates.TemplateResponse(
-        "index.html",
-        {
-            "request": request,
-            **data,
-        },
+        request=request,
+        name="index.html",
+        context={**data, "user": current_user},
     )
+
 @router.get("/joueurs")
-def club_page(request: Request, db: Session = Depends(get_db)):
+def club_page(request: Request, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     data = get_dashboard_data(db)
     return templates.TemplateResponse(
-        "club.html",
-        {
-            "request": request,
-            **data,
-        },
+        request=request,
+        name="club.html",
+        context={**data, "user": current_user},
     )
 
 
 @router.get("/club")
-def archives_page(request: Request, db: Session = Depends(get_db)):
+def archives_page(request: Request, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     data = get_dashboard_data(db, limit=None)
     archive_data = get_club_archives_data(db) # This now returns the menu
     return templates.TemplateResponse(
-        "archives.html",
-        {
-            "request": request,
+        request=request,
+        name="archives.html",
+        context={
             **data,
             **archive_data,
+            "user": current_user
         },
     )
 
 
 @router.get("/club/{fid}")
-def archives_detail_page(fid: str, request: Request, db: Session = Depends(get_db)):
+def archives_detail_page(fid: str, request: Request, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     data = get_dashboard_data(db, limit=None)
     category_data = get_club_archives_data(db, category_fid=fid)
     if not category_data:
-        raise HTTPException(status_code=404, detail="Catégorie introuvable.")
+        raise HTTPException(status_code=404, detail="Catégorie non trouvée")
     
     return templates.TemplateResponse(
-        "archives_detail.html",
-        {
-            "request": request,
+        request=request,
+        name="archives_detail.html",
+        context={
             **data,
             **category_data,
+            "user": current_user
         },
     )
 
 
 @router.get("/mates/{mate_name}")
-def mate_detail(mate_name: str, request: Request, db: Session = Depends(get_db)):
+def mate_detail(mate_name: str, request: Request, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     data = get_mate_detail_data(db, mate_name)
     if not data:
-        raise HTTPException(status_code=404, detail="Joueur introuvable.")
+        raise HTTPException(status_code=404, detail="Joueur non trouvé")
+    
     return templates.TemplateResponse(
-        "mate_detail.html",
-        {
-            "request": request,
-            **data,
-        },
+        request=request,
+        name="mate_detail.html",
+        context={**data, "user": current_user},
     )
 
 

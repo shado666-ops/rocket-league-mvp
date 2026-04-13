@@ -9,8 +9,8 @@ class BoxcarsService:
     Inclut un mode simulation si le binaire rrrocket.exe est absent.
     """
     
-    # Chemin par défaut pour rrrocket.exe (à adapter selon l'installation)
-    RRROCKET_EXE = os.getenv("RRROCKET_PATH", r"parsers\boxcars\rrrocket.exe")
+    # Chemin par défaut pour rrrocket (automatiquement surchargé par l'env RRROCKET_PATH en Docker)
+    RRROCKET_EXE = os.getenv("RRROCKET_PATH", "parsers/boxcars/rrrocket")
 
     @classmethod
     def parse_replay(cls, file_path: str, played_at_mtime: float = None) -> Dict[str, Any]:

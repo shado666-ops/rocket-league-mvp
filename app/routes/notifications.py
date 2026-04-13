@@ -4,35 +4,35 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from database import get_db
 from models import Notification
+import models
+from app.dependencies import get_current_user
 from app.services.stats_service import get_unread_notifications_count, get_club_name, get_club_tag
 
 router = APIRouter(prefix="/notifications", tags=["notifications"])
 templates = Jinja2Templates(directory="templates")
 
-# No security dependency here as notifications and their actions are public
-
 @router.get("/")
-def notifications_page(request: Request, db: Session = Depends(get_db)):
+async def notifications_page(request: Request, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     limit = datetime.utcnow() - timedelta(hours=48)
     notifications = db.query(Notification).filter(
         Notification.is_read.is_(False),
         Notification.created_at >= limit
     ).order_by(Notification.created_at.desc()).all()
-    unread_notifications_count = len(notifications)
     
     return templates.TemplateResponse(
-        "notifications.html",
-        {
-            "request": request,
+        request=request,
+        name="notifications.html",
+        context={
             "notifications": notifications,
-            "unread_notifications_count": unread_notifications_count,
+            "unread_notifications_count": get_unread_notifications_count(db),
             "club_name": get_club_name(db),
             "club_tag": get_club_tag(db),
+            "user": current_user
         }
     )
 
 @router.post("/clear-all")
-def clear_all_notifications(db: Session = Depends(get_db)):
+def clear_all_notifications(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     db.query(Notification).filter(Notification.is_read.is_(False)).update({"is_read": True})
     db.commit()
     return {"status": "ok"}

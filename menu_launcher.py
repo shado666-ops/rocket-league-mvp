@@ -57,11 +57,19 @@ def is_process_running(name, is_python=True):
         return False
     except: return False
 
+def check_production_health():
+    """Vérifie si le site en ligne répond."""
+    try:
+        response = requests.get("https://notre-club-rl.fr/health", timeout=2)
+        return response.status_code == 200
+    except:
+        return False
+
 def get_process_states():
     return {
-        "server_ok": is_process_running("main.py"),
+        "server_ok": check_production_health(),
         "watcher_ok": is_process_running("watcher.py"),
-        "ngrok_ok": is_process_running("ngrok.exe", is_python=False)
+        "ngrok_ok": False # Ngrok plus utilisé en prod
     }
 
 def get_ngrok_url():
@@ -100,65 +108,35 @@ def get_last_backup_info():
 
 def show_header():
     states = get_process_states()
-    all_ok = states["server_ok"] and states["watcher_ok"]
-    status = "en cours" if all_ok else ("partiellement lance" if states["server_ok"] or states["watcher_ok"] else "arrete")
     
-    def fmt_status(s):
-        if s == "en cours": return colorize(s, C_GREEN)
-        if s == "partiellement lance": return colorize(s, C_YELLOW)
-        return colorize(s, C_RED)
-
-    def fmt_on_off(v): return colorize("ON", C_GREEN) if v else colorize("OFF", C_RED)
+    def fmt_on_off(v): return colorize("EN LIGNE", C_GREEN) if v else colorize("HORS LIGNE", C_RED)
+    def fmt_watcher(v): return colorize("ACTIF", C_GREEN) if v else colorize("INACTIF", C_RED)
 
     print(colorize("="*64, C_CYAN))
-    print(colorize("               ROCKET LEAGUE MVP - MENU PRO", C_BOLD))
+    print(colorize("               ROCKET LEAGUE MVP - MODE PRODUCTION", C_BOLD))
     print(colorize("="*64, C_CYAN))
-    print(f"{'Tracker':<18}: {fmt_status(status)}")
-    print(f"{'Serveur FastAPI':<18}: {fmt_on_off(states['server_ok'])}")
-    print(f"{'Watcher replay':<18}: {fmt_on_off(states['watcher_ok'])}")
-    
-    ngrok_url = get_ngrok_url() if states["ngrok_ok"] else None
-    public_status = colorize(ngrok_url, C_CYAN) if ngrok_url else fmt_on_off(False)
-    print(f"{'Accès Public (ngrok)':<18}: {public_status}")
+    print(f"{'Site Production':<18}: {fmt_on_off(states['server_ok'])}")
+    print(f"{'URL':<18}: {colorize('https://notre-club-rl.fr', C_CYAN)}")
+    print(f"{'Watcher Replay':<18}: {fmt_watcher(states['watcher_ok'])}")
     
     print(colorize("-" * 64, C_DIM))
     
-    exists = lambda p: colorize("presente" if "db" in p else "present", C_GREEN) if os.path.exists(p) else colorize("absente" if "db" in p else "absent", C_RED)
-    print(f"{'Base de donnees':<18}: {exists(DB_FILE)}")
+    exists = lambda p: colorize("present", C_GREEN) if os.path.exists(p) else colorize("absent", C_RED)
     print(f"{'Dossier replays':<18}: {exists(REPLAY_DIR)}")
     print(f"{'Dossier logs':<18}: {exists(LOGS_DIR)}")
-    print(f"{'Membres du club':<18}: {get_club_members_count()}")
-    print(f"{'Derniere backup':<18}: {get_last_backup_info()}")
     print(colorize("-" * 64, C_DIM))
 
 def show_menu():
-    print(f"{colorize('DEMARRAGE', C_CYAN)}")
-    print(f" {colorize('1.', C_CYAN)} TOUT DEMARRER (Serveur + Watcher)")
-    print(f" {colorize('2.', C_CYAN)} Lancer SEULEMENT le Serveur (Consultation)")
-    print(f" {colorize('3.', C_CYAN)} Lancer SEULEMENT le Watcher")
-    print()
-    print(f"{colorize('ARRET', C_RED)}")
-    print(f" {colorize('4.', C_RED)} TOUT ARRETER")
-    print(f" {colorize('5.', C_RED)} Arreter SEULEMENT le Watcher")
+    print(f"{colorize('ACTIONS', C_CYAN)}")
+    print(f" {colorize('1.', C_CYAN)} DEMARRER LE WATCHER (Tracker temps réel)")
+    print(f" {colorize('2.', C_CYAN)} Arreter le Watcher")
+    print(f" {colorize('3.', C_CYAN)} Ouvrir le Dashboard (https://notre-club-rl.fr)")
     print()
     print(f"{colorize('OUTILS', C_YELLOW)}")
-    print(f" {colorize('6.', C_YELLOW)} Ouvrir le dashboard")
-    print(f" {colorize('7.', C_YELLOW)} Sauvegarder la base")
-    print(f" {colorize('8.', C_YELLOW)} Reset la base")
-    print(f" {colorize('9.', C_YELLOW)} Ouvrir le dossier des replays")
+    print(f" {colorize('4.', C_YELLOW)} Ouvrir le dossier des replays")
+    print(f" {colorize('5.', C_YELLOW)} Ouvrir le dossier des logs")
     print()
-    print(f"{colorize('CLUB', C_GREEN)}")
-    print(f" {colorize('10.', C_GREEN)} Voir les membres du club")
-    print(f" {colorize('11.', C_GREEN)} Ajouter un membre du club")
-    print(f" {colorize('12.', C_GREEN)} Supprimer un membre du club")
-    print()
-    print(f"{colorize('LOGS / NGROK', C_MAGENTA)}")
-    print(f" {colorize('13.', C_MAGENTA)} Ouvrir le dossier des logs")
-    print(f" {colorize('14.', C_MAGENTA)} Vider les logs")
-    print(f" {colorize('15.', C_MAGENTA)} Démarrer ngrok (accès public)")
-    print(f" {colorize('16.', C_MAGENTA)} Arrêter ngrok")
-    print()
-    print(f" {colorize('17.', C_RED)} Quitter")
+    print(f" {colorize('6.', C_RED)} Quitter")
     print(colorize("-" * 64, C_DIM))
     print(colorize("Conseil : laisse le serveur tourner pour garder la page accessible.", C_DIM))
 
@@ -309,28 +287,12 @@ def main_loop():
         show_menu()
         choice = input(colorize("Choix : ", C_YELLOW)).strip()
         
-        if choice == "1": start_tracker(); pause()
-        elif choice == "2": start_server(); pause()
-        elif choice == "3": start_watcher(); pause()
-        elif choice == "4": stop_tracker(); pause()
-        elif choice == "5": stop_watcher(); pause()
-        elif choice == "6": os.system("start http://localhost:8000")
-        elif choice == "7": 
-             os.system(f"{PYTHON_EXE} -c \"import shutil, os, datetime; ts=datetime.datetime.now().strftime('%Y%m%d_%H%M%S'); os.makedirs('backups', exist_ok=True); shutil.copy2('data/app.db', f'backups/app_backup_{{ts}}.db'); print('Backup OK')\"")
-             pause()
-        elif choice == "8": reset_database(); pause()
-        elif choice == "9": os.system(f"explorer \"{REPLAY_DIR}\"")
-        elif choice == "10": manage_members("list"); pause()
-        elif choice == "11": manage_members("add"); pause()
-        elif choice == "12": manage_members("delete"); pause()
-        elif choice == "13": os.system(f"explorer \"{LOGS_DIR}\"")
-        elif choice == "14": 
-            for f in ["server.log", "watcher.log"]:
-                with open(os.path.join(LOGS_DIR, f), "w") as log: log.write(f"--- Cleared at {datetime.now()} ---\n")
-            print("Logs vidés."); pause()
-        elif choice == "15": start_ngrok(); pause()
-        elif choice == "16": stop_ngrok(); pause()
-        elif choice == "17": break
+        if choice == "1": start_watcher(); pause()
+        elif choice == "2": stop_watcher(); pause()
+        elif choice == "3": os.system("start https://notre-club-rl.fr")
+        elif choice == "4": os.system(f"explorer \"{REPLAY_DIR}\"")
+        elif choice == "5": os.system(f"explorer \"{LOGS_DIR}\"")
+        elif choice == "6": break
         else:
             print(colorize("Option inconnue.", C_RED)); time.sleep(1)
 
