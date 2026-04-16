@@ -360,6 +360,15 @@ async def upload_replay(replay_file: UploadFile = File(...), mtime: float = None
         import traceback
         error_details = traceback.format_exc()
         print(f"[Upload] ERREUR CRITIQUE :\n{error_details}")
+        
+        # Écriture dans un fichier statique pour diagnostic externe
+        try:
+            os.makedirs("static", exist_ok=True)
+            with open("static/debug_error.log", "w", encoding="utf-8") as f:
+                f.write(error_details)
+        except:
+            pass
+            
         raise HTTPException(status_code=500, detail=f"Erreur interne lors de l'upload : {str(e)}\n{error_details}")
 
 
