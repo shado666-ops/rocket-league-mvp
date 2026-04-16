@@ -1346,7 +1346,7 @@ canvas {
 }
 
 .history-scroll-container.expanded {
-    max-height: 310px; /* Limiter la hauteur pour afficher exactement 7 matchs + headers */
+    max-height: 250px !important; /* Force la réduction pour afficher environ 5-7 matchs */
     overflow-y: auto;
     border: 1px solid #334155;
     border-radius: 8px;
