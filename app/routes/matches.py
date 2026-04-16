@@ -358,8 +358,9 @@ async def upload_replay(replay_file: UploadFile = File(...), mtime: float = None
         
     except Exception as e:
         import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Erreur lors de l'upload/parsing Boxcars: {str(e)}")
+        error_details = traceback.format_exc()
+        print(f"[Upload] ERREUR CRITIQUE :\n{error_details}")
+        raise HTTPException(status_code=500, detail=f"Erreur interne lors de l'upload : {str(e)}\n{error_details}")
 
 
 @router.post("/api/matches/upload_csv")
