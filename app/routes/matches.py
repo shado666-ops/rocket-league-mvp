@@ -63,153 +63,164 @@ def health_check():
 
 @router.post("/api/matches")
 async def ingest_match(payload: MatchIngestPayload, db: Session = Depends(get_db)):
-    # 1. Tentative de correspondance exacte par replay_id
-    match = db.query(Match).filter(Match.replay_id == payload.replay_id).first()
-    
-    # 2. Si pas de correspondance exacte, tentative par date + joueurs (fusion CSV/Replay)
-    if not match and payload.played_at:
-        tolerance = timedelta(seconds=45) # BakkesMod et Replays peuvent avoir un petit décalage
-        start = payload.played_at - tolerance
-        end = payload.played_at + tolerance
+    try:
+        # 1. Tentative de correspondance exacte par replay_id
+        match = db.query(Match).filter(Match.replay_id == payload.replay_id).first()
         
-        similar_matches = db.query(Match).filter(Match.played_at.between(start, end)).all()
-        for m in similar_matches:
-            existing_players = [ps.player.display_name for ps in m.player_stats]
-            payload_players = [p.display_name for p in payload.players]
-            if set(existing_players).intersection(set(payload_players)):
-                match = m
-                break
-
-    if match:
-        # Match déjà existant : on enrichit les données
-        if match.replay_id.startswith("game_stats_") and not payload.replay_id.startswith("game_stats_"):
-            match.replay_id = payload.replay_id
-        
-        # Enrichment: Replay should override generic CSV labels
-        is_replay = not payload.replay_id.startswith("game_stats_")
-        is_generic = match.playlist == "unknown" or match.playlist == "BakkesMod CSV" or "Private" in match.playlist
-        
-        if payload.playlist != "unknown" and (is_generic or is_replay):
-            match.playlist = payload.playlist
+        # 2. Si pas de correspondance exacte, tentative par date + joueurs (fusion CSV/Replay)
+        if not match and payload.played_at:
+            tolerance = timedelta(seconds=45) # BakkesMod et Replays peuvent avoir un petit décalage
+            start = payload.played_at - tolerance
+            end = payload.played_at + tolerance
             
-        # Harmonisation et détection 3v3 Ranked+R
+            similar_matches = db.query(Match).filter(Match.played_at.between(start, end)).all()
+            for m in similar_matches:
+                existing_players = [ps.player.display_name for ps in m.player_stats]
+                payload_players = [p.display_name for p in payload.players]
+                if set(existing_players).intersection(set(payload_players)):
+                    match = m
+                    break
+
+        if match:
+            # Match déjà existant : on enrichit les données
+            if match.replay_id.startswith("game_stats_") and not payload.replay_id.startswith("game_stats_"):
+                match.replay_id = payload.replay_id
+            
+            # Enrichment: Replay should override generic CSV labels
+            is_replay = not payload.replay_id.startswith("game_stats_")
+            is_generic = match.playlist == "unknown" or match.playlist == "BakkesMod CSV" or "Private" in match.playlist
+            
+            if payload.playlist != "unknown" and (is_generic or is_replay):
+                match.playlist = payload.playlist
+                
+            # Harmonisation et détection 3v3 Ranked+R
+            playlist_lower = payload.playlist.lower()
+            if ("3v3" in playlist_lower or "standard" in playlist_lower) and "ranked" in playlist_lower:
+                member_map = get_active_club_member_map(db)
+                all_pseudos = set(member_map.keys())
+                
+                # Compte des membres du club par équipe
+                teams_club_count = {}
+                for p in payload.players:
+                    if p.display_name in all_pseudos:
+                        teams_club_count[p.team] = teams_club_count.get(p.team, 0) + 1
+                
+                # On cherche l'équipe avec le plus de membres du club (notre équipe)
+                max_club_on_team = max(teams_club_count.values()) if teams_club_count else 0
+                
+                if 0 < max_club_on_team < 3:
+                    payload.playlist = "3v3 (Ranked+R)"
+                else:
+                    payload.playlist = "3v3 (Ranked)"
+                
+                match.playlist = payload.playlist
+
+            # Detect private matches by composition if still generic
+            if match.playlist == "unknown" or match.playlist == "BakkesMod CSV":
+                member_map = get_active_club_member_map(db)
+                all_pseudos = set(member_map.keys())
+                
+                # Count club members on each team
+                team0_club = sum(1 for p in payload.players if p.team == 0 and p.display_name in all_pseudos)
+                team1_club = sum(1 for p in payload.players if p.team == 1 and p.display_name in all_pseudos)
+                total_players = len(payload.players)
+                total_club = team0_club + team1_club
+
+                if (team0_club > 0 and team1_club > 0) or (total_club == total_players and total_players > 0):
+                    # Detected as private
+                    blue_size = sum(1 for p in payload.players if p.team == 0)
+                    orange_size = sum(1 for p in payload.players if p.team == 1)
+                    match.playlist = f"{blue_size}v{orange_size} Private"
+
+            for p_in in payload.players:
+                for ps in match.player_stats:
+                    if ps.player.display_name == p_in.display_name:
+                        if p_in.demolishes is not None: ps.demolishes = p_in.demolishes
+                        if p_in.pads is not None: ps.pads = p_in.pads
+                        if p_in.boost_usage is not None: ps.boost_usage = p_in.boost_usage
+                        if p_in.possession_time is not None: ps.possession_time = p_in.possession_time
+                        break
+            db.commit()
+            return {"status": "enriched", "match_id": match.id, "replay_id": match.replay_id}
+
+        if not payload.players and os.getenv("ENV") != "production":
+            raise HTTPException(status_code=400, detail="Payload vide : aucun joueur fourni.")
+
+        # Harmonisation et détection 3v3 Ranked+R pour nouveaux matchs
         playlist_lower = payload.playlist.lower()
         if ("3v3" in playlist_lower or "standard" in playlist_lower) and "ranked" in playlist_lower:
             member_map = get_active_club_member_map(db)
             all_pseudos = set(member_map.keys())
             
-            # Compte des membres du club par équipe
             teams_club_count = {}
             for p in payload.players:
                 if p.display_name in all_pseudos:
                     teams_club_count[p.team] = teams_club_count.get(p.team, 0) + 1
             
-            # On cherche l'équipe avec le plus de membres du club (notre équipe)
             max_club_on_team = max(teams_club_count.values()) if teams_club_count else 0
             
             if 0 < max_club_on_team < 3:
                 payload.playlist = "3v3 (Ranked+R)"
             else:
                 payload.playlist = "3v3 (Ranked)"
-            
-            match.playlist = payload.playlist
 
-        # Detect private matches by composition if still generic
-        if match.playlist == "unknown" or match.playlist == "BakkesMod CSV":
-            member_map = get_active_club_member_map(db)
-            all_pseudos = set(member_map.keys())
-            
-            # Count club members on each team
-            team0_club = sum(1 for p in payload.players if p.team == 0 and p.display_name in all_pseudos)
-            team1_club = sum(1 for p in payload.players if p.team == 1 and p.display_name in all_pseudos)
-            total_players = len(payload.players)
-            total_club = team0_club + team1_club
-
-            if (team0_club > 0 and team1_club > 0) or (total_club == total_players and total_players > 0):
-                # Detected as private
-                blue_size = sum(1 for p in payload.players if p.team == 0)
-                orange_size = sum(1 for p in payload.players if p.team == 1)
-                match.playlist = f"{blue_size}v{orange_size} Private"
-
-        for p_in in payload.players:
-            for ps in match.player_stats:
-                if ps.player.display_name == p_in.display_name:
-                    if p_in.demolishes is not None: ps.demolishes = p_in.demolishes
-                    if p_in.pads is not None: ps.pads = p_in.pads
-                    if p_in.boost_usage is not None: ps.boost_usage = p_in.boost_usage
-                    if p_in.possession_time is not None: ps.possession_time = p_in.possession_time
-                    break
-        db.commit()
-        return {"status": "enriched", "match_id": match.id, "replay_id": match.replay_id}
-
-    if not payload.players and os.getenv("ENV") != "production":
-        raise HTTPException(status_code=400, detail="Payload vide : aucun joueur fourni.")
-
-    # Harmonisation et détection 3v3 Ranked+R pour nouveaux matchs
-    playlist_lower = payload.playlist.lower()
-    if ("3v3" in playlist_lower or "standard" in playlist_lower) and "ranked" in playlist_lower:
-        member_map = get_active_club_member_map(db)
-        all_pseudos = set(member_map.keys())
-        
-        teams_club_count = {}
-        for p in payload.players:
-            if p.display_name in all_pseudos:
-                teams_club_count[p.team] = teams_club_count.get(p.team, 0) + 1
-        
-        max_club_on_team = max(teams_club_count.values()) if teams_club_count else 0
-        
-        if 0 < max_club_on_team < 3:
-            payload.playlist = "3v3 (Ranked+R)"
-        else:
-            payload.playlist = "3v3 (Ranked)"
-
-    match = Match(
-        replay_id=payload.replay_id,
-        playlist=payload.playlist,
-        result=payload.result,
-        played_at=payload.played_at or datetime.utcnow(),
-    )
-    db.add(match)
-    db.flush()
-
-    for player_stat in payload.players:
-        player = db.query(Player).filter(Player.display_name == player_stat.display_name).first()
-        if not player:
-            player = Player(display_name=player_stat.display_name)
-            db.add(player)
-            db.flush()
-
-        row = MatchPlayerStat(
-            match_id=match.id,
-            player_id=player.id,
-            team=player_stat.team,
-            goals=player_stat.goals,
-            assists=player_stat.assists,
-            saves=player_stat.saves,
-            shots=player_stat.shots,
-            score=player_stat.score,
-            won=player_stat.won,
-            demolishes=player_stat.demolishes,
-            pads=player_stat.pads,
-            boost_usage=player_stat.boost_usage,
-            possession_time=player_stat.possession_time,
+        match = Match(
+            replay_id=payload.replay_id,
+            playlist=payload.playlist,
+            result=payload.result,
+            played_at=payload.played_at or datetime.utcnow(),
         )
-        db.add(row)
+        db.add(match)
+        db.flush()
 
-    db.commit()
-    db.refresh(match)
+        for player_stat in payload.players:
+            player = db.query(Player).filter(Player.display_name == player_stat.display_name).first()
+            if not player:
+                player = Player(display_name=player_stat.display_name)
+                db.add(player)
+                db.flush()
 
-    # Vérification des changements dans le Hall of Fame
-    check_and_update_rankings(db, match_filter="public")
-    check_and_update_rankings(db, match_filter="private")
+            row = MatchPlayerStat(
+                match_id=match.id,
+                player_id=player.id,
+                team=player_stat.team,
+                goals=player_stat.goals,
+                assists=player_stat.assists,
+                saves=player_stat.saves,
+                shots=player_stat.shots,
+                score=player_stat.score,
+                won=player_stat.won,
+                demolishes=player_stat.demolishes,
+                pads=player_stat.pads,
+                boost_usage=player_stat.boost_usage,
+                possession_time=player_stat.possession_time,
+            )
+            db.add(row)
 
-    await manager.broadcast("refresh")
+        db.commit()
+        db.refresh(match)
 
-    return {
-        "status": "created",
-        "match_id": match.id,
-        "replay_id": match.replay_id,
-    }
+        # Vérification des changements dans le Hall of Fame
+        check_and_update_rankings(db, match_filter="public")
+        check_and_update_rankings(db, match_filter="private")
+
+        await manager.broadcast("refresh")
+
+        return {
+            "status": "created",
+            "match_id": match.id,
+            "replay_id": match.replay_id,
+        }
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"[Ingest] ERREUR :\n{error_details}")
+        try:
+            os.makedirs("static", exist_ok=True)
+            with open("static/debug_error.log", "w", encoding="utf-8") as f:
+                f.write(error_details)
+        except: pass
+        raise HTTPException(status_code=500, detail=f"Erreur lors de l'ingestion : {str(e)}\n{error_details}")
 
 @router.get("/api/latest-match-id")
 def get_latest_match_id(db: Session = Depends(get_db)):
