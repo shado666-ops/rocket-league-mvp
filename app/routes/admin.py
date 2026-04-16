@@ -124,23 +124,6 @@ async def get_logs():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/test-parser")
-async def test_parser():
-    import subprocess
-    try:
-        path = os.getenv("RRROCKET_PATH", "/app/parsers/boxcars/rrrocket")
-        result = subprocess.run([path, "--version"], capture_output=True, text=True)
-        return {
-            "status": "ok" if result.returncode == 0 else "error",
-            "returncode": result.returncode,
-            "stdout": result.stdout,
-            "stderr": result.stderr,
-            "path": path,
-            "exists": os.path.exists(path)
-        }
-    except Exception as e:
-        return {"status": "exception", "error": str(e)}
-
 @router.post("/logs/clear")
 async def clear_logs():
     try:

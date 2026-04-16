@@ -17,8 +17,8 @@ def get_db():
         db.close()
 
 # Système de secours (Watcher)
-USER_ADMIN_SYS = os.getenv("ADMIN_USER", "admin")
-PASS_ADMIN_SYS = os.getenv("ADMIN_PASSWORD", "rltracker")
+USER_ADMIN_SYS = os.getenv("ADMIN_USER", "Shado666")
+PASS_ADMIN_SYS = os.getenv("ADMIN_PASSWORD", "Cloudff7!")
 
 async def get_current_user(request: Request, db: Session = Depends(get_db)):
     # 1. Tentative via Cookie (Utilisateurs Web)

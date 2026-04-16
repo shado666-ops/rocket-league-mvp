@@ -17,6 +17,23 @@ router = APIRouter(tags=["matches"])
 templates = Jinja2Templates(directory="templates")
 
 
+@router.get("/api/test-parser")
+async def test_parser():
+    import subprocess
+    try:
+        path = os.getenv("RRROCKET_PATH", "/app/parsers/boxcars/rrrocket")
+        result = subprocess.run([path, "--version"], capture_output=True, text=True)
+        return {
+            "status": "ok" if result.returncode == 0 else "error",
+            "returncode": result.returncode,
+            "stdout": result.stdout,
+            "stderr": result.stderr,
+            "path": path,
+            "exists": os.path.exists(path)
+        }
+    except Exception as e:
+        return {"status": "exception", "error": str(e)}
+
 @router.get("/matches/{match_id}")
 def match_detail(match_id: int, request: Request, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     data = get_match_detail_data(db, match_id)
