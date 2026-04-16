@@ -137,7 +137,7 @@ def upload_missing_locally():
             elif r.status_code == 409:
                 print(f"  -> ALREADY EXISTS", flush=True)
             else:
-                print(f"  -> ERROR {r.status_code}: {r.text[:100]}", flush=True)
+                print(f"  -> ERROR {r.status_code}: {r.json().get('detail', r.text) if r.headers.get('content-type') == 'application/json' else r.text}", flush=True)
 
         except Exception as e:
             print(f"  -> EXCEPTION: {e}", flush=True)
