@@ -82,6 +82,19 @@ async def ingest_match(payload: MatchIngestPayload, db: Session = Depends(get_db
                     match = m
                     break
 
+        # --- PROTOCOLE D'IDENTIFICATION INFAILLIBLE ---
+        # Si la playlist est générique, on devine le format par le nombre de joueurs
+        if payload.playlist.lower() in ["unknown", "bakkesmod csv", "inconnue"]:
+            player_count = len(payload.players)
+            if player_count == 4:
+                payload.playlist = "2v2 (Ranked)"
+            elif player_count == 6:
+                payload.playlist = "3v3 (Ranked)"
+            elif player_count == 2:
+                payload.playlist = "Duel (Ranked)"
+            elif player_count == 8:
+                payload.playlist = "4v4 (Ranked)"
+
         if match:
             # Match déjà existant : on enrichit les données
             if match.replay_id.startswith("game_stats_") and not payload.replay_id.startswith("game_stats_"):
@@ -89,7 +102,7 @@ async def ingest_match(payload: MatchIngestPayload, db: Session = Depends(get_db
             
             # Enrichment: Replay should override generic CSV labels
             is_replay = not payload.replay_id.startswith("game_stats_")
-            is_generic = match.playlist == "unknown" or match.playlist == "BakkesMod CSV" or "Private" in match.playlist
+            is_generic = match.playlist == "unknown" or match.playlist == "BakkesMod CSV" or "Private" in match.playlist or "Inconnue" in match.playlist
             
             if payload.playlist != "unknown" and (is_generic or is_replay):
                 match.playlist = payload.playlist
