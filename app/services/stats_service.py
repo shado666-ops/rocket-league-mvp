@@ -1278,7 +1278,6 @@ def get_dashboard_data(db: Session, limit: int | None = 20) -> dict[str, Any]:
     seasons = get_seasons(db)
     club_name = get_club_name(db)
 
-    total_matches_in_db = db.query(func.count(Match.id)).scalar() or 0
 
     # Get unread notifications
     unread_notifications_count = get_unread_notifications_count(db)
@@ -1297,7 +1296,6 @@ def get_dashboard_data(db: Session, limit: int | None = 20) -> dict[str, Any]:
             "shots_per_match": player_summary["shots_per_match"],
             "score_per_match": player_summary["score_per_match"],
             "performance_rating": player_summary["performance_rating"],
-            "db_total_matches": total_matches_in_db,
         },
         "history": player_data["history"],
         "charts": {
