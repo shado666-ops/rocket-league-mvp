@@ -28,6 +28,12 @@ class Logger:
         self.terminal.flush()
         self.log.flush()
 
+    def isatty(self):
+        return self.terminal.isatty()
+
+    def fileno(self):
+        return self.terminal.fileno()
+
 sys.stdout = Logger(LOG_FILE)
 sys.stderr = sys.stdout
 
