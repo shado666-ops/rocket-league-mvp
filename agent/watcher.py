@@ -187,7 +187,7 @@ class MatchHandler(FileSystemEventHandler):
         
         if payload:
             playlist = payload.get('playlist', '')
-            if "Casual" in playlist:
+            if "casual" in playlist.lower():
                 print(f"[Watcher] SKIP: Match Casual ignore ({playlist})", flush=True)
                 return
             self.send_to_server(payload)
@@ -200,7 +200,7 @@ class MatchHandler(FileSystemEventHandler):
         payload = self.parse_csv_local(filepath)
         if payload:
             playlist = payload.get('playlist', '')
-            if "Casual" in playlist:
+            if "casual" in playlist.lower():
                 print(f"[Watcher] SKIP: Match Casual ignore ({playlist})", flush=True)
                 return
             self.send_to_server(payload)
