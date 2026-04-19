@@ -1099,6 +1099,10 @@ canvas {
     min-height: 420px;
 }
 
+.chart-card-sm {
+    min-height: 280px !important;
+}
+
 .muted {
     color: #94a3b8;
     font-size: 14px;
@@ -1474,6 +1478,9 @@ canvas {
 
     .chart-card {
         min-height: 360px;
+    }
+    .chart-card-sm {
+        min-height: 240px !important;
     }
 }
 
