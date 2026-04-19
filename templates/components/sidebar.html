@@ -1,6 +1,6 @@
 <aside class="sidebar">
     <img src="/static/logo-club.png" alt="Club Logo" class="sidebar-logo">
-    <div class="sidebar-title">MVP Tracker v2</div>
+    <div class="sidebar-title">MVP Tracker</div>
 
     <div class="sidebar-user">
         <div class="user-avatar">
@@ -37,7 +37,9 @@
         {% if unread_notifications_count > 0 %}
         <a class="sidebar-link {% if active_page == 'notifications' %}active{% endif %}" href="/notifications"><span>🔔</span> Notifications <span class="notif-badge">{{ unread_notifications_count }}</span></a>
         {% endif %}
+        {% if user.role == "admin" %}
         <a class="sidebar-link {% if active_page == 'admin' %}active{% endif %}" href="/admin/ui"><span>⚙️</span> Administration</a>
+        {% endif %}
     </nav>
 
     <div class="sidebar-subtitle">Paramètres</div>
