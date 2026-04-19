@@ -8,6 +8,8 @@ import subprocess
 import csv
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
+import threading
+from collections import deque
 
 # Logging configuration
 LOGS_DIR = "logs"
@@ -63,6 +65,7 @@ print(f"[Watcher] Parser local : {RRROCKET_PATH}", flush=True)
 
 # API du tracker (Production VPS)
 API_INGEST_URL = "https://notre-club-rl.fr/api/matches"
+API_LOG_SYNC_URL = "https://notre-club-rl.fr/admin/logs/watcher_sync"
 
 # Authentification
 ADMIN_USER = os.getenv("ADMIN_USER", "Shado666")
@@ -225,10 +228,39 @@ class MatchHandler(FileSystemEventHandler):
             )
             if response.status_code in [200, 201]:
                 print(f"[Watcher] SUCCESS: Match {payload['replay_id']} envoye.", flush=True)
+                send_logs_to_server() # Sync logs immediately after success
             else:
                 print(f"[Watcher] API ERROR: {response.status_code} - {response.text}", flush=True)
         except Exception as e:
             print(f"[Watcher] NETWORK ERROR: {e}", flush=True)
+
+def send_logs_to_server():
+    """Envoie les dernières lignes de log au serveur VPS."""
+    try:
+        if not os.path.exists(LOG_FILE): return
+        
+        # Lecture des 100 dernières lignes
+        with open(LOG_FILE, "r", encoding="utf-8", errors="replace") as f:
+            last_lines = "".join(deque(f, 100))
+            
+        response = requests.post(
+            API_LOG_SYNC_URL,
+            json={"log_content": last_lines},
+            auth=(ADMIN_USER, ADMIN_PASSWORD),
+            timeout=10
+        )
+        # On ne print rien en cas de succès pour éviter de polluer les logs eux-mêmes à l'infini
+        if response.status_code != 200:
+            # Sauf en cas d'erreur
+            sys.stderr.write(f"[Watcher] Log Sync Error: {response.status_code}\n")
+    except Exception as e:
+        sys.stderr.write(f"[Watcher] Log Sync Exception: {e}\n")
+
+def log_sync_loop():
+    """Boucle de synchronisation des logs en arrière-plan."""
+    while True:
+        send_logs_to_server()
+        time.sleep(30) # Toutes les 30 secondes
 
     def on_created(self, event):
         if not event.is_directory:
@@ -273,6 +305,11 @@ if __name__ == "__main__":
         catch_up_scan(event_handler, DEMOS_PATH)
         
         print(f"[Watcher] Surveillance active : {DEMOS_PATH}", flush=True)
+        
+        # Démarrage de la synchro des logs en arrière-plan
+        sync_thread = threading.Thread(target=log_sync_loop, daemon=True)
+        sync_thread.start()
+        
         observer = Observer()
         observer.schedule(event_handler, DEMOS_PATH, recursive=False)
         observer.start()

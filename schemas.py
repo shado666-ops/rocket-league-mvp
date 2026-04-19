@@ -45,3 +45,6 @@ class ClubMemberOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+class LogSyncPayload(BaseModel):
+    log_content: str

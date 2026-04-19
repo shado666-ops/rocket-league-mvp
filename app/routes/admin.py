@@ -13,6 +13,7 @@ from app.dependencies import get_current_user, get_current_admin
 from database import SessionLocal, engine, Base
 import models
 from models import ClubMember, Match, Player, MatchPlayerStat
+from schemas import LogSyncPayload
 from app.services.stats_service import get_seasons, set_setting, get_club_name, get_club_tag
 import models
 
@@ -121,6 +122,17 @@ async def get_logs():
                 logs["watcher"] = "".join(deque(f, 100))
                 
         return logs
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/logs/watcher_sync")
+async def sync_watcher_logs(payload: LogSyncPayload, current_admin: models.User = Depends(get_current_admin)):
+    """Reçoit les logs du watcher local et les écrit dans le fichier logs/watcher.log du serveur."""
+    try:
+        os.makedirs("logs", exist_ok=True)
+        with open("logs/watcher.log", "w", encoding="utf-8") as f:
+            f.write(payload.log_content)
+        return {"status": "success"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
