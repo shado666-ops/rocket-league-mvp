@@ -119,10 +119,10 @@ class MatchHandler(FileSystemEventHandler):
             elif event.dest_path.endswith('.csv'): self.process_csv(event.dest_path)
 
 def catch_up_scan(handler, path):
-    print("[Watcher] Lancement du scan de rattrapage (24h)...", flush=True)
+    print("[Watcher] Lancement du scan de rattrapage (7 jours)...", flush=True)
     count = 0
     now = time.time()
-    day_ago = now - (24 * 3600)
+    day_ago = now - (7 * 24 * 3600)
     
     try:
         for filename in os.listdir(path):
