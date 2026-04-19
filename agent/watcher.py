@@ -161,7 +161,11 @@ class MatchHandler(FileSystemEventHandler):
                         "saves": int(row.get('Saves', 0)),
                         "shots": int(row.get('Shots', 0)),
                         "score": int(row.get('Score', 0)),
-                        "won": row.get('Won', 'False').lower() == 'true'
+                        "won": row.get('Won', 'False').lower() == 'true',
+                        "demolishes": int(row.get('Demolishes', 0)) if row.get('Demolishes') else 0,
+                        "pads": int(row.get('Pads', 0)) if row.get('Pads') else 0,
+                        "boost_usage": float(row.get('BoostUsage', 0)) if row.get('BoostUsage') else 0.0,
+                        "possession_time": row.get('PossessionTime', '0:00')
                     })
 
             if not players: return None
