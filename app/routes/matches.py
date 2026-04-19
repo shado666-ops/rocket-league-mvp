@@ -146,14 +146,49 @@ async def ingest_match(payload: MatchIngestPayload, db: Session = Depends(get_db
                     orange_size = sum(1 for p in payload.players if p.team == 1)
                     match.playlist = f"{blue_size}v{orange_size} Private"
 
+            # Création d'un set pour recherche rapide des joueurs existants
+            existing_player_map = {ps.player.display_name: ps for ps in match.player_stats}
+            
             for p_in in payload.players:
-                for ps in match.player_stats:
-                    if ps.player.display_name == p_in.display_name:
-                        if p_in.demolishes is not None: ps.demolishes = p_in.demolishes
-                        if p_in.pads is not None: ps.pads = p_in.pads
-                        if p_in.boost_usage is not None: ps.boost_usage = p_in.boost_usage
-                        if p_in.possession_time is not None: ps.possession_time = p_in.possession_time
-                        break
+                ps = existing_player_map.get(p_in.display_name)
+                if ps:
+                    # Mise à jour des stats existantes (Enrichissement)
+                    if p_in.demolishes is not None: ps.demolishes = p_in.demolishes
+                    if p_in.pads is not None: ps.pads = p_in.pads
+                    if p_in.boost_usage is not None: ps.boost_usage = p_in.boost_usage
+                    if p_in.possession_time is not None: ps.possession_time = p_in.possession_time
+                    # On met à jour aussi les stats de base si elles viennent d'un CSV (plus précis)
+                    if payload.replay_id.startswith("game_stats_"):
+                        ps.goals = p_in.goals
+                        ps.assists = p_in.assists
+                        ps.saves = p_in.saves
+                        ps.shots = p_in.shots
+                        ps.score = p_in.score
+                else:
+                    # Nouveau joueur trouvé dans l'enrichissement (ex: CSV Bakkes)
+                    player = db.query(Player).filter(Player.display_name == p_in.display_name).first()
+                    if not player:
+                        player = Player(display_name=p_in.display_name)
+                        db.add(player)
+                        db.flush()
+                    
+                    new_stat = MatchPlayerStat(
+                        match_id=match.id,
+                        player_id=player.id,
+                        team=p_in.team,
+                        goals=p_in.goals,
+                        assists=p_in.assists,
+                        saves=p_in.saves,
+                        shots=p_in.shots,
+                        score=p_in.score,
+                        won=p_in.won,
+                        demolishes=p_in.demolishes,
+                        pads=p_in.pads,
+                        boost_usage=p_in.boost_usage,
+                        possession_time=p_in.possession_time
+                    )
+                    db.add(new_stat)
+
             db.commit()
             return {"status": "enriched", "match_id": match.id, "replay_id": match.replay_id}
 
@@ -187,12 +222,18 @@ async def ingest_match(payload: MatchIngestPayload, db: Session = Depends(get_db
         db.add(match)
         db.flush()
 
+        # Set pour éviter les doublons de joueurs dans le même payload
+        processed_player_ids = set()
         for player_stat in payload.players:
             player = db.query(Player).filter(Player.display_name == player_stat.display_name).first()
             if not player:
                 player = Player(display_name=player_stat.display_name)
                 db.add(player)
                 db.flush()
+
+            if player.id in processed_player_ids:
+                continue # Évite IntegrityError si le même joueur est dans le payload 2 fois
+            processed_player_ids.add(player.id)
 
             row = MatchPlayerStat(
                 match_id=match.id,
@@ -226,6 +267,7 @@ async def ingest_match(payload: MatchIngestPayload, db: Session = Depends(get_db
             "replay_id": match.replay_id,
         }
     except Exception as e:
+        db.rollback() # CRITIQUE : Libère la session en cas d'erreur
         import traceback
         error_details = traceback.format_exc()
         print(f"[Ingest] ERREUR :\n{error_details}")
