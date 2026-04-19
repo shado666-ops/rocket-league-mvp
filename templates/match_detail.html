@@ -144,21 +144,7 @@
 </head>
 <body class="dashboard-page">
 <div class="layout">
-    <aside class="sidebar">
-        <img src="/static/logo-club.png" alt="Club Logo" class="sidebar-logo">
-        <div class="sidebar-title">MVP Tracker</div>
-        <nav class="sidebar-nav">
-            <a class="sidebar-link" href="/"><span>🏠</span> Accueil</a>
-            <a class="sidebar-link active" href="/club"><span>🛡️</span> Stats Club</a>
-            <a class="sidebar-link" href="/joueurs"><span>🧑‍🚀</span> Stats Joueurs</a>
-            <a class="sidebar-link" href="/hof"><span>🏆</span> Hall of Fame</a>
-            <a class="sidebar-link" href="/pepites"><span>✨</span> Pépites</a>
-            {% if unread_notifications_count > 0 %}
-            <a class="sidebar-link" href="/notifications"><span>🔔</span> Notifications <span class="notif-badge">{{ unread_notifications_count }}</span></a>
-            {% endif %}
-            <a class="sidebar-link" href="/admin/ui"><span>⚙️</span> Administration</a>
-        </nav>
-    </aside>
+    {% with active_page='club' %}{% include 'components/sidebar.html' %}{% endwith %}
 
     <main class="main-content">
         <div class="match-container">

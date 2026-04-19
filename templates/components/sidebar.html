@@ -1,0 +1,55 @@
+<aside class="sidebar">
+    <img src="/static/logo-club.png" alt="Club Logo" class="sidebar-logo">
+    <div class="sidebar-title">MVP Tracker v2</div>
+
+    <div class="sidebar-user">
+        <div class="user-avatar">
+            {% set uname = user.username.strip().lower() %}
+            {% if uname == 'shado666' %}
+                <img src="/static/Avatar_Shado666.gif" alt="Avatar">
+            {% elif uname == 'kalibakbak' %}
+                <img src="/static/Avatar_Kalibakbak.gif" alt="Avatar">
+            {% elif uname == 'ezy' %}
+                <img src="/static/Avatar_Ezy.jpg" alt="Avatar">
+            {% elif uname == 'xen0n666' %}
+                <img src="/static/Avatar_Xen0n666.jpg" alt="Avatar">
+            {% elif uname == 'julienyo' %}
+                <img src="/static/Avatar_JulienYo.jpg" alt="Avatar">
+            {% else %}
+                <img src="/static/logo-club.png" alt="Avatar">
+            {% endif %}
+        </div>
+        <div class="user-details">
+            <span class="username">{{ user.username }}</span>
+            <span class="user-role">{{ "Admin" if user.role == "admin" else "Membre" }}</span>
+        </div>
+        <a href="/logout" class="logout-link" title="Déconnexion">🚪</a>
+    </div>
+
+    <div class="sidebar-subtitle">Navigation rapide</div>
+
+    <nav class="sidebar-nav">
+        <a class="sidebar-link {% if active_page == 'home' %}active{% endif %}" href="/"><span>🏠</span> Accueil</a>
+        <a class="sidebar-link {% if active_page == 'club' %}active{% endif %}" href="/club"><span>🛡️</span> Stats Club</a>
+        <a class="sidebar-link {% if active_page == 'players' %}active{% endif %}" href="/joueurs"><span>🧑‍🚀</span> Stats Joueurs</a>
+        <a class="sidebar-link {% if active_page == 'hof' %}active{% endif %}" href="/hof"><span>🏆</span> Hall of Fame</a>
+        <a class="sidebar-link {% if active_page == 'pepites' %}active{% endif %}" href="/pepites"><span>✨</span> Pépites</a>
+        {% if unread_notifications_count > 0 %}
+        <a class="sidebar-link {% if active_page == 'notifications' %}active{% endif %}" href="/notifications"><span>🔔</span> Notifications <span class="notif-badge">{{ unread_notifications_count }}</span></a>
+        {% endif %}
+        <a class="sidebar-link {% if active_page == 'admin' %}active{% endif %}" href="/admin/ui"><span>⚙️</span> Administration</a>
+    </nav>
+
+    <div class="sidebar-subtitle">Paramètres</div>
+    <div class="sidebar-setting">
+        <span>Auto-Refresh (15s)</span>
+        <label class="switch">
+            <input type="checkbox" id="autoRefreshToggle" checked>
+            <span class="slider round"></span>
+        </label>
+    </div>
+
+    <div class="sidebar-footer">
+        <img src="/static/logo.svg" alt="Rocket League Logo" class="sidebar-footer-logo">
+    </div>
+</aside>

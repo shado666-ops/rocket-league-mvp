@@ -20,37 +20,7 @@
 </head>
 <body class="dashboard-page">
 <div class="layout">
-    <aside class="sidebar">
-        <img src="/static/logo-club.png" alt="Club Logo" class="sidebar-logo">
-        <div class="sidebar-title">MVP Tracker</div>
-
-        <div class="sidebar-subtitle">Navigation rapide</div>
-
-        <nav class="sidebar-nav">
-            <a class="sidebar-link" href="/"><span>🏠</span> Accueil</a>
-            <a class="sidebar-link" href="/club"><span>🛡️</span> Stats Club</a>
-            <a class="sidebar-link" href="/joueurs"><span>🧑‍🚀</span> Stats Joueurs</a>
-            <a class="sidebar-link" href="/hof"><span>🏆</span> Hall of Fame</a>
-            <a class="sidebar-link" href="/pepites"><span>✨</span> Pépites</a>
-            {% if unread_notifications_count > 0 %}
-            <a class="sidebar-link" href="/notifications"><span>🔔</span> Notifications <span class="notif-badge">{{ unread_notifications_count }}</span></a>
-            {% endif %}
-            <a class="sidebar-link active" href="/admin/ui"><span>⚙️</span> Administration</a>
-        </nav>
-
-        <div class="sidebar-subtitle">Paramètres</div>
-        <div class="sidebar-setting">
-            <span>Auto-Refresh (15s)</span>
-            <label class="switch">
-                <input type="checkbox" id="autoRefreshToggle" checked>
-                <span class="slider round"></span>
-            </label>
-        </div>
-
-        <div class="sidebar-footer">
-            <img src="/static/logo.svg" alt="Rocket League Logo" class="sidebar-footer-logo">
-        </div>
-    </aside>
+    {% with active_page='admin' %}{% include 'components/sidebar.html' %}{% endwith %}
 
 
     <main class="main-content">

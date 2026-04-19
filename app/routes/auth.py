@@ -5,7 +5,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from database import SessionLocal
 import models
-from app.services.auth_service import verify_password, get_password_hash, create_access_token
+from app.services.auth_service import verify_password, get_password_hash, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
 
 router = APIRouter(tags=["auth"])
 templates = Jinja2Templates(directory="templates")
@@ -51,7 +51,12 @@ async def login(
 
     response = RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
     access_token = create_access_token(data={"sub": user.username})
-    response.set_cookie(key="access_token", value=f"Bearer {access_token}", httponly=True)
+    response.set_cookie(
+        key="access_token", 
+        value=f"Bearer {access_token}", 
+        httponly=True,
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60
+    )
     return response
 
 @router.get("/register", response_class=HTMLResponse)

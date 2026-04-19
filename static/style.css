@@ -39,11 +39,67 @@ a:hover {
 .sidebar-user {
     display: flex;
     align-items: center;
-    padding: 15px;
-    background: rgba(0,0,0,0.2);
-    border-radius: 12px;
-    margin: 15px 10px;
-    border: 1px solid rgba(255,255,255,0.05);
+    padding: 12px 15px;
+    background: rgba(15, 23, 42, 0.4);
+    border-radius: 14px;
+    margin: 15px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.user-avatar {
+    width: 38px;
+    height: 38px;
+    background: #1e293b;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    flex-shrink: 0;
+}
+
+.user-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.user-details {
+    flex-grow: 1;
+    margin-left: 12px;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.user-details .username {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #f8fafc;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.user-details .user-role {
+    font-size: 0.7rem;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.logout-link {
+    text-decoration: none;
+    color: #94a3b8;
+    font-size: 1.2rem;
+    transition: all 0.2s ease;
+    padding: 4px;
+}
+
+.logout-link:hover {
+    color: #f87171;
+    transform: scale(1.1);
 }
 
 

@@ -162,48 +162,7 @@
 </head>
 <body>
 <div class="layout">
-    <aside class="sidebar">
-        <img src="/static/logo-club.png" alt="Club Logo" class="sidebar-logo">
-        <div class="sidebar-title">MVP Tracker</div>
-
-        <div class="sidebar-user">
-            <div class="user-avatar" style="width: 32px; height: 32px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #000; font-size: 0.8rem;">
-                {{ user.username[0]|upper }}
-            </div>
-            <div class="user-details" style="flex-grow: 1; margin-left: 10px; display: flex; flex-direction: column;">
-                <span style="font-size: 0.9rem; font-weight: bold; color: #f8fafc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 120px;">{{ user.username }}</span>
-                <span style="font-size: 0.7rem; color: #94a3b8;">{{ "Admin" if user.role == "admin" else "Membre" }}</span>
-            </div>
-            <a href="/logout" style="text-decoration: none; color: #94a3b8; font-size: 1.2rem; transition: color 0.2s;" onmouseover="this.style.color='#f87171'" onmouseout="this.style.color='#94a3b8'" title="Déconnexion">🚪</a>
-        </div>
-
-        <div class="sidebar-subtitle">Navigation rapide</div>
-
-        <nav class="sidebar-nav">
-            <a class="sidebar-link" href="/"><span>🏠</span> Accueil</a>
-            <a class="sidebar-link active" href="/club"><span>🛡️</span> Stats Club</a>
-            <a class="sidebar-link" href="/joueurs"><span>🧑‍🚀</span> Stats Joueurs</a>
-            <a class="sidebar-link" href="/hof"><span>🏆</span> Hall of Fame</a>
-            <a class="sidebar-link" href="/pepites"><span>✨</span> Pépites</a>
-            {% if unread_notifications_count > 0 %}
-            <a class="sidebar-link" href="/notifications"><span>🔔</span> Notifications <span class="notif-badge">{{ unread_notifications_count }}</span></a>
-            {% endif %}
-            <a class="sidebar-link" href="/admin/ui"><span>⚙️</span> Administration</a>
-        </nav>
-
-        <div class="sidebar-subtitle">Paramètres</div>
-        <div class="sidebar-setting">
-            <span>Auto-Refresh (15s)</span>
-            <label class="switch">
-                <input type="checkbox" id="autoRefreshToggle" checked>
-                <span class="slider round"></span>
-            </label>
-        </div>
-
-        <div class="sidebar-footer">
-            <img src="/static/logo.svg" alt="Rocket League Logo" class="sidebar-footer-logo">
-        </div>
-    </aside>
+    {% with active_page='club' %}{% include 'components/sidebar.html' %}{% endwith %}
 
     <main class="main-content">
         <div class="content-container">
