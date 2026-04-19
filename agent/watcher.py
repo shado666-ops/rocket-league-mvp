@@ -167,7 +167,7 @@ class MatchHandler(FileSystemEventHandler):
             if not players: return None
 
             return {
-                "replay_id": f"game_stats_{int(time.time())}",
+                "replay_id": os.path.splitext(os.path.basename(filepath))[0],
                 "played_at": played_at or datetime.datetime.now().isoformat(),
                 "playlist": "BakkesMod CSV",
                 "result": "CSV Import (Local)",
