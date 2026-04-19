@@ -186,6 +186,10 @@ class MatchHandler(FileSystemEventHandler):
         payload = self.parse_replay_local(filepath, mtime)
         
         if payload:
+            playlist = payload.get('playlist', '')
+            if "Casual" in playlist:
+                print(f"[Watcher] SKIP: Match Casual ignore ({playlist})", flush=True)
+                return
             self.send_to_server(payload)
 
     def process_csv(self, filepath):
@@ -195,6 +199,10 @@ class MatchHandler(FileSystemEventHandler):
         
         payload = self.parse_csv_local(filepath)
         if payload:
+            playlist = payload.get('playlist', '')
+            if "Casual" in playlist:
+                print(f"[Watcher] SKIP: Match Casual ignore ({playlist})", flush=True)
+                return
             self.send_to_server(payload)
 
     def send_to_server(self, payload):
