@@ -1,4 +1,30 @@
 import os
+import sys
+
+# Logging configuration
+LOGS_DIR = "logs"
+os.makedirs(LOGS_DIR, exist_ok=True)
+LOG_FILE = os.path.join(LOGS_DIR, "server.log")
+
+class Logger:
+    def __init__(self, filename):
+        self.terminal = sys.stdout
+        self.log = open(filename, "a", encoding="utf-8")
+
+    def write(self, message):
+        self.terminal.write(message)
+        if self.log:
+            self.log.write(message)
+            self.log.flush()
+
+    def flush(self):
+        self.terminal.flush()
+        if self.log:
+            self.log.flush()
+
+sys.stdout = Logger(LOG_FILE)
+sys.stderr = sys.stdout
+
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, Request, status
 import models
 from fastapi.staticfiles import StaticFiles

@@ -113,11 +113,11 @@ async def get_logs():
     logs = {"server": "", "watcher": ""}
     try:
         if os.path.exists("logs/server.log"):
-            with open("logs/server.log", "r", encoding="utf-8") as f:
+            with open("logs/server.log", "r", encoding="utf-8", errors="replace") as f:
                 logs["server"] = "".join(deque(f, 100)) # Last 100 lines efficiently
         
         if os.path.exists("logs/watcher.log"):
-            with open("logs/watcher.log", "r", encoding="utf-8") as f:
+            with open("logs/watcher.log", "r", encoding="utf-8", errors="replace") as f:
                 logs["watcher"] = "".join(deque(f, 100))
                 
         return logs
