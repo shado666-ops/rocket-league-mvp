@@ -65,7 +65,7 @@ print(f"[Watcher] Parser local : {RRROCKET_PATH}", flush=True)
 
 # API du tracker (Production VPS)
 API_INGEST_URL = "https://notre-club-rl.fr/api/matches"
-API_LOG_SYNC_URL = "https://notre-club-rl.fr/admin/logs/watcher_sync"
+API_LOG_SYNC_URL = "https://notre-club-rl.fr/admin/api/logs/watcher_sync"
 
 # Authentification
 ADMIN_USER = os.getenv("ADMIN_USER", "Shado666")

@@ -125,7 +125,7 @@ async def get_logs():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/logs/watcher_sync")
+@router.post("/api/logs/watcher_sync")
 async def sync_watcher_logs(payload: LogSyncPayload, current_admin: models.User = Depends(get_current_admin)):
     """Reçoit les logs du watcher local et les écrit dans le fichier logs/watcher.log du serveur."""
     try:
